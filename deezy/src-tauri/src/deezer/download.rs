@@ -66,7 +66,6 @@ pub async fn download_track(
     let response = client
         .http
         .get(&url)
-        .header("Cookie", format!("arl={}", client.arl))
         .send()
         .await
         .map_err(|e| format!("Download failed: {}", e))?;

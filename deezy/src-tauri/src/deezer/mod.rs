@@ -3,8 +3,10 @@ pub mod download;
 pub mod models;
 
 use models::{SearchResult, UserInfo};
+use reqwest::cookie::Jar;
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, ACCEPT_LANGUAGE, CACHE_CONTROL, CONNECTION, USER_AGENT};
 use serde_json::Value;
+use std::sync::Arc;
 
 const API_URL: &str = "https://www.deezer.com/ajax/gw-light.php";
 const LEGACY_API_URL: &str = "https://api.deezer.com";
@@ -32,8 +34,13 @@ impl DeezerClient {
         headers.insert(CACHE_CONTROL, HeaderValue::from_static("max-age=0"));
         headers.insert(CONNECTION, HeaderValue::from_static("keep-alive"));
 
+        let jar = Arc::new(Jar::default());
+        let deezer_url = "https://www.deezer.com".parse().unwrap();
+        jar.add_cookie_str(&format!("arl={}; Domain=.deezer.com; Path=/", arl), &deezer_url);
+
         let http = reqwest::Client::builder()
             .default_headers(headers)
+            .cookie_provider(jar)
             .build()
             .map_err(|e| e.to_string())?;
 
@@ -50,6 +57,17 @@ impl DeezerClient {
     }
 
     async fn login(&mut self) -> Result<(), String> {
+        eprintln!("Logging in with ARL: {}...", &self.arl[..20.min(self.arl.len())]);
+        
+        // Make initial request to establish session and get SID cookie
+        let _ = self.http
+            .get(API_URL)
+            .send()
+            .await
+            .map_err(|e: reqwest::Error| format!("Failed to get SID: {}", e))?;
+        
+        eprintln!("Session initialized, getting user data...");
+        
         let data = self.api_call("deezer.getUserData", None).await?;
         let results = &data["results"];
 
@@ -57,6 +75,8 @@ impl DeezerClient {
             .as_str()
             .ok_or("Failed to get auth token from Deezer")?
             .to_string();
+        
+        eprintln!("Got CSRF token: {} (full: {})", &self.token[..20.min(self.token.len())], self.token);
 
         self.license_token = results
             .get("USER")
@@ -77,6 +97,8 @@ impl DeezerClient {
         if user_id == 0 {
             return Err("Invalid ARL token".into());
         }
+        
+        eprintln!("Login successful, user_id: {}", user_id);
 
         let name = results["USER"]["BLOG_NAME"]
             .as_str()
@@ -120,7 +142,6 @@ impl DeezerClient {
                 ("limit", &limit.to_string()),
                 ("index", "0"),
             ])
-            .header("Cookie", format!("arl={}", self.arl))
             .send()
             .await
             .map_err(|e| format!("Search failed: {}", e))?;
@@ -170,14 +191,9 @@ impl DeezerClient {
     }
 
     pub async fn get_track(&self, track_id: &str) -> Result<Value, String> {
-        let method = if track_id.parse::<i64>().unwrap_or(0) >= 0 {
-            "deezer.pageTrack"
-        } else {
-            "song.getData"
-        };
-
+        // Use song.getData method like Python version
         let params = serde_json::json!({ "SNG_ID": track_id });
-        let data = self.api_call(method, Some(params)).await?;
+        let data = self.api_call("song.getData", Some(params)).await?;
         Ok(data["results"].clone())
     }
 
@@ -221,7 +237,6 @@ impl DeezerClient {
         let res = self
             .http
             .get(&url)
-            .header("Cookie", format!("arl={}", self.arl))
             .send()
             .await
             .map_err(|e| e.to_string())?;
@@ -247,7 +262,6 @@ impl DeezerClient {
             let res = self
                 .http
                 .get(&url)
-                .header("Cookie", format!("arl={}", self.arl))
                 .send()
                 .await
                 .map_err(|e| e.to_string())?;
@@ -269,7 +283,6 @@ impl DeezerClient {
         let res = self
             .http
             .get(&url)
-            .header("Cookie", format!("arl={}", self.arl))
             .send()
             .await
             .map_err(|e| e.to_string())?;
@@ -365,10 +378,15 @@ impl DeezerClient {
         let token = if method == "deezer.getUserData" {
             "null".to_string()
         } else {
+            if self.token.is_empty() {
+                eprintln!("WARNING: Token is empty for method: {}", method);
+            }
             self.token.clone()
         };
 
         let body = params.unwrap_or(serde_json::json!({}));
+        
+        eprintln!("API call: method={}, token_len={}", method, token.len());
 
         let res = self
             .http
@@ -379,7 +397,6 @@ impl DeezerClient {
                 ("input", "3"),
                 ("method", method),
             ])
-            .header("Cookie", format!("arl={}", self.arl))
             .json(&body)
             .send()
             .await
@@ -398,6 +415,7 @@ impl DeezerClient {
                         .next()
                         .and_then(|v| v.as_str())
                         .unwrap_or("Unknown error");
+                    eprintln!("Deezer API error: {}", msg);
                     return Err(format!("Deezer error: {}", msg));
                 }
             }
