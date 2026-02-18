@@ -39,23 +39,77 @@ pub async fn search_tracks(
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn download_track(
-    track_id: String,
+    trackId: String,
     state: tauri::State<'_, AppState>,
     app: AppHandle,
 ) -> Result<String, String> {
-    let (client, output_dir, quality) = {
+    eprintln!("Download track command called for trackId: {}", trackId);
+    
+    // Get or recreate the client
+    let (mut client, output_dir, quality, arl) = {
         let lock = state.client.lock().await;
-        let client = lock.as_ref().ok_or("Not logged in")?.clone();
         let settings = state.settings.lock().await;
+        eprintln!("Settings - output_dir: {}, quality: {}", settings.output_dir, settings.quality);
+        
+        let client = if let Some(c) = lock.as_ref() {
+            c.clone()
+        } else {
+            return Err("Not logged in. Please set your ARL token in Settings.".to_string());
+        };
+        
         (
             client,
             settings.output_dir.clone(),
             settings.quality.clone(),
+            settings.arl.clone(),
         )
     };
+    
+    // If token is empty or invalid, try to refresh the client
+    if client.token.is_empty() && !arl.is_empty() {
+        eprintln!("Token is empty, recreating client...");
+        match DeezerClient::new(&arl).await {
+            Ok(new_client) => {
+                client = new_client.clone();
+                *state.client.lock().await = Some(new_client);
+                eprintln!("Client recreated successfully");
+            }
+            Err(e) => {
+                return Err(format!("Failed to refresh session: {}", e));
+            }
+        }
+    }
 
-    download::download_track(&client, &track_id, &output_dir, &quality, &app).await
+    eprintln!("Starting download to: {}", output_dir);
+    let mut result = download::download_track(&client, &trackId, &output_dir, &quality, &app).await;
+    
+    // If we get a CSRF error, try to refresh the client and retry once
+    if let Err(ref e) = result {
+        if e.contains("CSRF") || e.contains("token") {
+            eprintln!("CSRF error detected, refreshing client and retrying...");
+            match DeezerClient::new(&arl).await {
+                Ok(new_client) => {
+                    client = new_client.clone();
+                    *state.client.lock().await = Some(new_client);
+                    eprintln!("Client refreshed, retrying download...");
+                    result = download::download_track(&client, &trackId, &output_dir, &quality, &app).await;
+                }
+                Err(refresh_err) => {
+                    eprintln!("Failed to refresh client: {}", refresh_err);
+                    return Err(format!("Session expired. Please go to Settings and log in again. Error: {}", e));
+                }
+            }
+        }
+    }
+    
+    match &result {
+        Ok(path) => eprintln!("Download successful: {}", path),
+        Err(e) => eprintln!("Download failed: {}", e),
+    }
+    
+    result
 }
 
 #[tauri::command]

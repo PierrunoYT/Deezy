@@ -12,14 +12,18 @@
       const settings: any = await invoke('get_settings');
       if (settings.arl) {
         try {
+          console.log('Auto-logging in with saved ARL...');
           const user = await invoke('login', { arl: settings.arl });
           loggedIn.set(true);
           userInfo.set(user);
-        } catch {
+          console.log('Auto-login successful:', user);
+        } catch (err) {
+          console.error('Auto-login failed:', err);
           // ARL expired or invalid
         }
       }
-    } catch {
+    } catch (err) {
+      console.error('Failed to load settings:', err);
       // First run, no settings yet
     }
     
