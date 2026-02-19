@@ -10,7 +10,8 @@ All notable changes to Deezy are documented here.
 - **Rust backend** – Deezer API client with ARL-based authentication
 - **Track search** – Debounced search with rate limiting (2 req/s) via Deezer public API
 - **Track download** – Blowfish CBC decryption, quality fallback (FLAC → MP3_320 → MP3_128)
-- **ID3v2.4 tagging** – Title, artist, album, album artist, year, track/disc number, genre, label, and 1000×1000 cover art
+- **ID3v2.4 tagging** – MP3: title, artist, album, album artist, year, track/disc number, genre, label, and 1000×1000 cover art
+- **FLAC tagging** – Vorbis comments + embedded cover art via metaflac
 - **Download queue** – Up to 3 concurrent downloads with priority sorting
 - **Download progress** – Real-time progress bar via Tauri events, tracked globally in layout
 - **Downloads view** – Full history with cover art, progress bar, and status text
@@ -24,6 +25,10 @@ All notable changes to Deezy are documented here.
 - **Dark theme** – Custom dark UI with purple accent
 - **Rate limiting** – Separate limiters for search (2/s) and download (3/s) operations
 - **Tag error handling** – Non-blocking warnings emitted to frontend when tag writing fails
+- **Album search** – Tracks/Albums tab toggle in search view
+- **Album download** – "Download All" button to batch-queue every track in an album
+- **Retry failed downloads** – One-click retry button on errored items in Downloads view
+- **Persistent download history** – Saved to disk and restored on app restart
 
 ### Removed
 

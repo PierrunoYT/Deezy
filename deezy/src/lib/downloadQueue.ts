@@ -94,7 +94,8 @@ class DownloadQueueManager {
           album: track.album,
           cover: track.cover_medium || track.cover_small,
           percent: 0,
-          status: 'downloading'
+          status: 'downloading',
+          track: track
         }, ...history];
       }
       return history;

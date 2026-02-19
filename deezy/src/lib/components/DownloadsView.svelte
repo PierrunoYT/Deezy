@@ -2,6 +2,7 @@
   import { listen } from '@tauri-apps/api/event';
   import { onMount } from 'svelte';
   import { downloadHistory, downloads, type DownloadItem } from '$lib/stores';
+  import { downloadQueueManager } from '$lib/downloadQueue';
 
   interface DownloadProgressEvent {
     track_id: string;
@@ -100,6 +101,27 @@
     });
   }
 
+  function retryDownload(item: DownloadItem) {
+    if (!item.track) return;
+
+    // Reset status in download history
+    downloadHistory.update(history =>
+      history.map(h =>
+        h.trackId === item.trackId
+          ? { ...h, status: 'downloading', percent: 0, errorMsg: undefined }
+          : h
+      )
+    );
+
+    // Reset downloads map entry so addToQueue won't skip it
+    downloads.update(d => {
+      d.delete(item.trackId);
+      return d;
+    });
+
+    downloadQueueManager.addToQueue(item.track);
+  }
+
   function getStatusText(status: string, percent: number): string {
     if (status === 'complete') return 'Done';
     if (status === 'error') return 'Error';
@@ -161,7 +183,14 @@
           </div>
           <div class="download-status {item.status === 'complete' ? 'complete' : ''} {item.status === 'error' ? 'error' : ''}">
             {getStatusText(item.status, item.percent)}
-            {#if item.errorMsg}
+            {#if item.status === 'error' && item.track}
+              <button class="retry-btn" title="Retry download" onclick={() => retryDownload(item)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="23 4 23 10 17 10"/>
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                </svg>
+              </button>
+            {:else if item.errorMsg}
               <div class="error-msg" title={item.errorMsg}>⚠</div>
             {/if}
           </div>
@@ -317,6 +346,25 @@
 
   .download-status.error {
     color: var(--error);
+  }
+
+  .retry-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--error);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .retry-btn:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
   }
 
   .error-msg {

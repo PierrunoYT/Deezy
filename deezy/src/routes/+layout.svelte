@@ -3,7 +3,7 @@
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { listen } from '@tauri-apps/api/event';
-  import { loggedIn, userInfo, downloads, activeDownloads, downloadHistory, type UserInfo } from '$lib/stores';
+  import { loggedIn, userInfo, downloads, activeDownloads, downloadHistory, type UserInfo, type DownloadItem } from '$lib/stores';
 
   let { children } = $props();
 
@@ -21,6 +21,18 @@
   }
   
   onMount(() => {
+    // Load persisted download history
+    (async () => {
+      try {
+        const history = await invoke<DownloadItem[]>('load_download_history');
+        if (history.length > 0) {
+          downloadHistory.set(history);
+        }
+      } catch (err) {
+        console.error('Failed to load download history:', err);
+      }
+    })();
+
     // Auto-login
     (async () => {
       try {
@@ -42,6 +54,24 @@
         // First run, no settings yet
       }
     })();
+
+    // Debounce-save download history on changes
+    let saveTimeout: ReturnType<typeof setTimeout> | undefined;
+    let skipFirst = true;
+    const unsubscribe = downloadHistory.subscribe((history) => {
+      // Skip the initial subscription call (or the load we just did)
+      if (skipFirst) {
+        skipFirst = false;
+        return;
+      }
+      if (saveTimeout) clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(() => {
+        const toSave = history.filter(item => item.status !== 'downloading');
+        invoke('save_download_history', { history: toSave }).catch(err =>
+          console.error('Failed to save download history:', err)
+        );
+      }, 2000);
+    });
 
     // Listen for download progress and cleanup on unmount
     let unlisten: (() => void) | undefined;
@@ -71,11 +101,13 @@
       unlisten = fn;
     });
 
-    // Cleanup event listener on unmount
+    // Cleanup event listener and subscription on unmount
     return () => {
       if (unlisten) {
         unlisten();
       }
+      unsubscribe();
+      if (saveTimeout) clearTimeout(saveTimeout);
     };
   });
 </script>

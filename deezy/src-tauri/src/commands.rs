@@ -1,10 +1,31 @@
 use crate::deezer::download;
-use crate::deezer::models::SearchResult;
+use crate::deezer::models::{AlbumResult, SearchResult};
 use crate::deezer::DeezerClient;
 use crate::settings::Settings;
 use crate::AppState;
 use serde_json::Value;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
+
+#[tauri::command]
+pub async fn save_download_history(history: Vec<serde_json::Value>, app: AppHandle) -> Result<(), String> {
+    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let path = dir.join("download_history.json");
+    let data = serde_json::to_string_pretty(&history).map_err(|e| e.to_string())?;
+    std::fs::write(&path, data).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn load_download_history(app: AppHandle) -> Result<Vec<serde_json::Value>, String> {
+    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let path = dir.join("download_history.json");
+    if path.exists() {
+        let data = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        serde_json::from_str(&data).map_err(|e| e.to_string())
+    } else {
+        Ok(vec![])
+    }
+}
 
 #[tauri::command]
 pub async fn login(
@@ -36,6 +57,31 @@ pub async fn search_tracks(
         .as_ref()
         .ok_or("Not logged in. Set your ARL token in Settings.")?;
     client.search_tracks(&query, 20).await
+}
+
+#[tauri::command]
+pub async fn search_albums(
+    query: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<AlbumResult>, String> {
+    let lock = state.client.lock().await;
+    let client = lock
+        .as_ref()
+        .ok_or("Not logged in. Set your ARL token in Settings.")?;
+    client.search_albums(&query, 20).await
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn get_album_tracks(
+    albumId: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<SearchResult>, String> {
+    let lock = state.client.lock().await;
+    let client = lock
+        .as_ref()
+        .ok_or("Not logged in. Set your ARL token in Settings.")?;
+    client.get_album_tracks(&albumId).await
 }
 
 #[tauri::command]

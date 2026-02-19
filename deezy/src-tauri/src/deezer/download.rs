@@ -129,7 +129,17 @@ pub async fn download_track(
             write_mp3_tags(&download_path, &full_title, &artist, &album_title, track_data, client, &album_id).await
         {
             eprintln!("Warning: failed to write tags: {}", e);
-            // Emit warning event to frontend
+            let _ = app.emit("tag-writing-error", serde_json::json!({
+                "track_id": track_id,
+                "title": full_title,
+                "error": e.to_string()
+            }));
+        }
+    } else if ext == ".flac" {
+        if let Err(e) =
+            write_flac_tags(&download_path, &full_title, &artist, &album_title, track_data, client, &album_id).await
+        {
+            eprintln!("Warning: failed to write FLAC tags: {}", e);
             let _ = app.emit("tag-writing-error", serde_json::json!({
                 "track_id": track_id,
                 "title": full_title,
@@ -220,6 +230,79 @@ async fn write_mp3_tags(
 
     tag.write_to_path(path, id3::Version::Id3v24)
         .map_err(|e| format!("Tag write error: {}", e))?;
+
+    Ok(())
+}
+
+async fn write_flac_tags(
+    path: &Path,
+    title: &str,
+    artist: &str,
+    album: &str,
+    track_data: &Value,
+    client: &DeezerClient,
+    album_id: &str,
+) -> Result<(), String> {
+    let mut tag =
+        metaflac::Tag::read_from_path(path).map_err(|e| format!("FLAC read error: {}", e))?;
+
+    tag.set_vorbis("TITLE", vec![title]);
+    tag.set_vorbis("ARTIST", vec![artist]);
+    tag.set_vorbis("ALBUM", vec![album]);
+
+    if let Some(album_artist) = track_data["ART_NAME"].as_str() {
+        tag.set_vorbis("ALBUMARTIST", vec![album_artist]);
+    }
+
+    if let Some(date) = track_data["PHYSICAL_RELEASE_DATE"].as_str() {
+        if date.len() >= 4 {
+            tag.set_vorbis("DATE", vec![&date[..4]]);
+        }
+    }
+
+    if let Some(n) = parse_u32_from_value(&track_data["TRACK_NUMBER"]) {
+        tag.set_vorbis("TRACKNUMBER", vec![n.to_string()]);
+    }
+    if let Some(n) = parse_u32_from_value(&track_data["DISK_NUMBER"]) {
+        tag.set_vorbis("DISCNUMBER", vec![n.to_string()]);
+    }
+
+    if !album_id.is_empty() && album_id != "0" {
+        if let Ok(album_data) = client.get_album(album_id).await {
+            if let Some(cover_small) = album_data["cover_small"].as_str() {
+                let cover_id = cover_small
+                    .split("cover/")
+                    .nth(1)
+                    .and_then(|s| s.split('/').next())
+                    .unwrap_or("");
+
+                if !cover_id.is_empty() {
+                    if let Ok(cover_bytes) = client.get_album_cover(cover_id, 1000).await {
+                        tag.add_picture(
+                            "image/jpeg",
+                            metaflac::block::PictureType::CoverFront,
+                            cover_bytes,
+                        );
+                    }
+                }
+            }
+
+            if let Some(genres) = album_data["genres"]["data"].as_array() {
+                if let Some(first) = genres.first() {
+                    if let Some(name) = first["name"].as_str() {
+                        tag.set_vorbis("GENRE", vec![name]);
+                    }
+                }
+            }
+
+            if let Some(label) = album_data["label"].as_str() {
+                tag.set_vorbis("LABEL", vec![label]);
+            }
+        }
+    }
+
+    tag.write_to_path(path)
+        .map_err(|e| format!("FLAC tag write error: {}", e))?;
 
     Ok(())
 }

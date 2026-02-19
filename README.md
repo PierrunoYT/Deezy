@@ -4,9 +4,12 @@ A desktop Deezer downloader built with [Tauri](https://tauri.app), [SvelteKit](h
 
 ## Features
 
-- **Search** – Find tracks instantly with debounced search and rate limiting
+- **Search** – Find tracks or albums with debounced search and rate limiting
+- **Album download** – Browse albums and batch-download all tracks with one click
 - **Download queue** – Up to 3 concurrent downloads with progress tracking
-- **ID3 tags** – Title, artist, album, year, track/disc number, genre, label, and embedded cover art
+- **Retry failed downloads** – One-click retry button on any failed download
+- **Persistent history** – Download history survives app restarts
+- **Full metadata** – ID3v2.4 tags for MP3, Vorbis comments for FLAC (title, artist, album, year, track/disc number, genre, label, cover art)
 - **Quality options** – MP3 128, MP3 320, or FLAC
 - **Settings** – ARL token, download folder, and quality saved between sessions
 - **Auto-login** – Reconnects on app start using your saved ARL
@@ -43,9 +46,10 @@ npm run tauri build
 
 1. Open the app → you'll land on **Settings**
 2. Paste your ARL token, choose a download folder and quality, then click **Save & Login**
-3. Switch to **Search**, type a track name, and hit Enter
-4. Click the download button on any result
-5. Switch to **Downloads** to see progress
+3. Switch to **Search**, type a track or album name, and hit Enter
+4. Toggle between **Tracks** and **Albums** tabs
+5. Click the download button on a track, or **Download All** on an album
+6. Switch to **Downloads** to see progress — retry any failures with one click
 
 ## Tech Stack
 
@@ -54,7 +58,7 @@ npm run tauri build
 | Frontend | SvelteKit 2 + Svelte 5           |
 | Backend  | Rust + Tauri 2                    |
 | Crypto   | Blowfish CBC (track decryption)   |
-| Tags     | id3 crate (ID3v2.4)              |
+| Tags     | id3 (MP3) + metaflac (FLAC)      |
 | API      | Deezer private + public REST API |
 
 ## License

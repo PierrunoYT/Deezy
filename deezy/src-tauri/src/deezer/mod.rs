@@ -2,7 +2,7 @@ pub mod crypto;
 pub mod download;
 pub mod models;
 
-use models::{SearchResult, UserInfo};
+use models::{AlbumResult, SearchResult, UserInfo};
 use reqwest::cookie::Jar;
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, ACCEPT_LANGUAGE, CACHE_CONTROL, CONNECTION, USER_AGENT};
 use serde_json::Value;
@@ -187,6 +187,107 @@ impl DeezerClient {
                         .as_str()
                         .unwrap_or("")
                         .to_string(),
+                })
+            })
+            .collect();
+
+        Ok(tracks)
+    }
+
+    pub async fn search_albums(
+        &self,
+        query: &str,
+        limit: u32,
+    ) -> Result<Vec<AlbumResult>, String> {
+        let url = format!("{}/search/album", LEGACY_API_URL);
+
+        let res = self
+            .http
+            .get(&url)
+            .query(&[
+                ("q", query),
+                ("limit", &limit.to_string()),
+                ("index", "0"),
+            ])
+            .send()
+            .await
+            .map_err(|e| format!("Search failed: {}", e))?;
+
+        let data: Value = res
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse results: {}", e))?;
+
+        if let Some(error) = data.get("error") {
+            if let Some(obj) = error.as_object() {
+                if !obj.is_empty() {
+                    let msg = obj
+                        .values()
+                        .next()
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("Unknown error");
+                    return Err(format!("API error: {}", msg));
+                }
+            }
+        }
+
+        let albums = data["data"]
+            .as_array()
+            .ok_or("No results found")?
+            .iter()
+            .filter_map(|a| {
+                Some(AlbumResult {
+                    id: a["id"].as_u64()?,
+                    title: a["title"].as_str()?.to_string(),
+                    artist: a["artist"]["name"].as_str()?.to_string(),
+                    cover_small: a["cover_small"].as_str().unwrap_or("").to_string(),
+                    cover_medium: a["cover_medium"].as_str().unwrap_or("").to_string(),
+                    nb_tracks: a["nb_tracks"].as_u64().unwrap_or(0),
+                })
+            })
+            .collect();
+
+        Ok(albums)
+    }
+
+    pub async fn get_album_tracks(
+        &self,
+        album_id: &str,
+    ) -> Result<Vec<SearchResult>, String> {
+        let url = format!("{}/album/{}/tracks", LEGACY_API_URL, album_id);
+
+        let res = self
+            .http
+            .get(&url)
+            .query(&[("limit", "500")])
+            .send()
+            .await
+            .map_err(|e| format!("Failed to get album tracks: {}", e))?;
+
+        let data: Value = res
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse album tracks: {}", e))?;
+
+        // Get album info for cover art and album title
+        let album_data = self.get_album(album_id).await?;
+        let album_title = album_data["title"].as_str().unwrap_or("Unknown").to_string();
+        let cover_small = album_data["cover_small"].as_str().unwrap_or("").to_string();
+        let cover_medium = album_data["cover_medium"].as_str().unwrap_or("").to_string();
+
+        let tracks = data["data"]
+            .as_array()
+            .ok_or("No tracks found in album")?
+            .iter()
+            .filter_map(|t| {
+                Some(SearchResult {
+                    id: t["id"].as_u64()?,
+                    title: t["title"].as_str()?.to_string(),
+                    artist: t["artist"]["name"].as_str()?.to_string(),
+                    album: album_title.clone(),
+                    duration: t["duration"].as_u64().unwrap_or(0),
+                    cover_small: cover_small.clone(),
+                    cover_medium: cover_medium.clone(),
                 })
             })
             .collect();

@@ -15,6 +15,7 @@ export interface DownloadItem {
   percent: number;
   status: string;
   errorMsg?: string;
+  track?: Track;
 }
 
 export interface Track {

@@ -4,12 +4,26 @@
   import { downloadQueueManager } from '$lib/downloadQueue';
   import { searchRateLimiter } from '$lib/rateLimiter';
 
+  interface AlbumResult {
+    id: number;
+    title: string;
+    artist: string;
+    cover_small: string;
+    cover_medium: string;
+    nb_tracks: number;
+  }
+
+  type SearchType = 'tracks' | 'albums';
+
   let searchQuery = $state<string>('');
+  let searchType = $state<SearchType>('tracks');
   let results = $state<Track[]>([]);
+  let albumResults = $state<AlbumResult[]>([]);
   let searching = $state<boolean>(false);
   let errorMsg = $state<string>('');
   let isLoggedIn = $state<boolean>(false);
   let downloadStates = $state<Map<string, string>>(new Map());
+  let downloadingAlbums = $state<Set<number>>(new Set());
 
   let searchTimeout: ReturnType<typeof setTimeout> | undefined;
 
@@ -33,6 +47,7 @@
     
     if (searchQuery.trim().length < 2) {
       results = [];
+      albumResults = [];
       return;
     }
     
@@ -45,6 +60,16 @@
       if (searchQuery.trim()) doSearch();
     }
   }
+
+  function switchSearchType(type: SearchType) {
+    searchType = type;
+    results = [];
+    albumResults = [];
+    errorMsg = '';
+    if (searchQuery.trim().length >= 2) {
+      doSearch();
+    }
+  }
   
   async function doSearch() {
     if (!isLoggedIn) {
@@ -55,16 +80,23 @@
     searching = true;
     errorMsg = '';
     results = [];
+    albumResults = [];
 
     try {
-      // Apply rate limiting
       await searchRateLimiter.throttle();
 
-      const data = await invoke<Track[]>('search_tracks', { query: searchQuery.trim() });
-      results = data;
-
-      if (results.length === 0) {
-        errorMsg = 'No results found.';
+      if (searchType === 'tracks') {
+        const data = await invoke<Track[]>('search_tracks', { query: searchQuery.trim() });
+        results = data;
+        if (results.length === 0) {
+          errorMsg = 'No results found.';
+        }
+      } else {
+        const data = await invoke<AlbumResult[]>('search_albums', { query: searchQuery.trim() });
+        albumResults = data;
+        if (albumResults.length === 0) {
+          errorMsg = 'No results found.';
+        }
       }
     } catch (err) {
       errorMsg = String(err);
@@ -84,8 +116,24 @@
       return;
     }
 
-    // Add to download queue (queue manager handles the rest)
     await downloadQueueManager.addToQueue(track);
+  }
+
+  async function downloadAlbum(album: AlbumResult) {
+    if (downloadingAlbums.has(album.id)) return;
+
+    downloadingAlbums = new Set([...downloadingAlbums, album.id]);
+
+    try {
+      const tracks = await invoke<Track[]>('get_album_tracks', { albumId: String(album.id) });
+      for (const track of tracks) {
+        await downloadQueueManager.addToQueue(track);
+      }
+    } catch (err) {
+      errorMsg = `Failed to get album tracks: ${String(err)}`;
+    } finally {
+      downloadingAlbums = new Set([...downloadingAlbums].filter(id => id !== album.id));
+    }
   }
   
   function formatDuration(seconds: number): string {
@@ -97,6 +145,18 @@
 
 <div class="view">
   <div class="search-header">
+    <div class="search-tabs">
+      <button
+        class="tab-btn"
+        class:active={searchType === 'tracks'}
+        onclick={() => switchSearchType('tracks')}
+      >Tracks</button>
+      <button
+        class="tab-btn"
+        class:active={searchType === 'albums'}
+        onclick={() => switchSearchType('albums')}
+      >Albums</button>
+    </div>
     <div class="search-bar">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -106,7 +166,7 @@
         bind:value={searchQuery}
         oninput={handleInput}
         onkeydown={handleKeydown}
-        placeholder="Search for tracks..." 
+        placeholder="Search for {searchType}..." 
         autocomplete="off" 
       />
     </div>
@@ -120,7 +180,7 @@
     <div class="status-message error">{errorMsg}</div>
   {/if}
   
-  {#if results.length > 0}
+  {#if searchType === 'tracks' && results.length > 0}
     <div class="results-header">
       <span class="col-title">Title</span>
       <span class="col-album">Album</span>
@@ -166,6 +226,43 @@
       {/each}
     </div>
   {/if}
+
+  {#if searchType === 'albums' && albumResults.length > 0}
+    <div class="results-list">
+      {#each albumResults as album (album.id)}
+        <div class="album-item">
+          <img 
+            class="album-cover" 
+            src={album.cover_medium} 
+            alt="" 
+            loading="lazy"
+          />
+          <div class="album-info">
+            <div class="album-title">{album.title}</div>
+            <div class="album-artist">{album.artist}</div>
+            <div class="album-meta">{album.nb_tracks} track{album.nb_tracks !== 1 ? 's' : ''}</div>
+          </div>
+          <button 
+            class="btn-download-all"
+            class:downloading={downloadingAlbums.has(album.id)}
+            onclick={() => downloadAlbum(album)}
+            disabled={downloadingAlbums.has(album.id)}
+          >
+            {#if downloadingAlbums.has(album.id)}
+              <span class="spinner"></span> Adding...
+            {:else}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Download All
+            {/if}
+          </button>
+        </div>
+      {/each}
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -181,6 +278,36 @@
     background: var(--bg-dark);
     padding-bottom: 20px;
     z-index: 10;
+  }
+  
+  .search-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+  
+  .tab-btn {
+    padding: 6px 16px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  
+  .tab-btn:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+  }
+  
+  .tab-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
   }
   
   .search-bar {
@@ -343,5 +470,87 @@
   
   .btn-download.done {
     color: var(--success);
+  }
+  
+  .album-item {
+    display: grid;
+    grid-template-columns: 72px 1fr auto;
+    gap: 16px;
+    align-items: center;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    cursor: default;
+    transition: background 0.15s;
+  }
+  
+  .album-item:hover {
+    background: var(--bg-hover);
+  }
+  
+  .album-cover {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    background: var(--bg-elevated);
+  }
+  
+  .album-info {
+    overflow: hidden;
+  }
+  
+  .album-title {
+    font-size: 15px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .album-artist {
+    font-size: 13px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .album-meta {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+  }
+  
+  .btn-download-all {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  
+  .btn-download-all:hover:not(:disabled) {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+  
+  .btn-download-all.downloading {
+    color: var(--accent);
+    border-color: var(--accent);
+    cursor: wait;
+  }
+  
+  .btn-download-all:disabled {
+    opacity: 0.7;
   }
 </style>

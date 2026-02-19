@@ -19,6 +19,16 @@ pub struct SearchResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AlbumResult {
+    pub id: u64,
+    pub title: String,
+    pub artist: String,
+    pub cover_small: String,
+    pub cover_medium: String,
+    pub nb_tracks: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DownloadProgress {
     pub track_id: String,
     pub title: String,

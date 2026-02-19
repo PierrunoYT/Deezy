@@ -30,11 +30,11 @@
 ## 📋 To Do
 
 ### High Priority
-- [ ] Update README.md for the new Tauri app (remove old Python instructions)
-- [ ] Album / playlist download support (batch download all tracks)
-- [ ] FLAC tag writing (currently only MP3 tags are written)
-- [ ] Retry failed downloads (button per item or auto-retry)
-- [ ] Persist download history across app restarts
+- [x] Update README.md for the new Tauri app (remove old Python instructions)
+- [x] Album / playlist download support (batch download all tracks)
+- [x] FLAC tag writing (currently only MP3 tags are written)
+- [x] Retry failed downloads (button per item or auto-retry)
+- [x] Persist download history across app restarts
 
 ### Medium Priority
 - [ ] Artist view / album browsing (click artist name → show discography)
