@@ -1,64 +1,62 @@
 # Deezy
 
-A command-line Deezer downloader. Search for tracks, pick one, and download it as MP3 320kbps.
+A desktop Deezer downloader built with [Tauri](https://tauri.app), [SvelteKit](https://kit.svelte.dev), and Rust. Search for tracks, queue downloads, and save them as MP3 320 kbps (or FLAC) with full metadata and cover art.
 
-Includes a patched version of [pydeezer](https://github.com/Chr1st-662/pydeezer) that uses Deezer's current `media.deezer.com` API instead of the decommissioned CDN endpoints.
+## Features
+
+- **Search** – Find tracks instantly with debounced search and rate limiting
+- **Download queue** – Up to 3 concurrent downloads with progress tracking
+- **ID3 tags** – Title, artist, album, year, track/disc number, genre, label, and embedded cover art
+- **Quality options** – MP3 128, MP3 320, or FLAC
+- **Settings** – ARL token, download folder, and quality saved between sessions
+- **Auto-login** – Reconnects on app start using your saved ARL
 
 ## Setup
 
-**1. Install dependencies**
+### Prerequisites
+
+- [Node.js](https://nodejs.org) (v18+)
+- [Rust](https://rustup.rs)
+- [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/)
+
+### Get your Deezer ARL token
+
+1. Log into [deezer.com](https://www.deezer.com)
+2. Open DevTools (`F12`) → **Application** → **Cookies** → `https://www.deezer.com`
+3. Copy the value of the `arl` cookie
+
+### Build & run
 
 ```bash
-pip install -r requirements.txt
+cd deezy
+npm install
+npm run tauri dev
 ```
 
-**2. Get your Deezer ARL token**
+To create a production build:
 
-- Log into [deezer.com](https://www.deezer.com)
-- Open DevTools (`F12`) > **Application** > **Cookies** > `https://www.deezer.com`
-- Copy the value of the `arl` cookie
-
-**3. Create a `.env` file** in the project root:
-
-```
-DEEZER_ARL=your_arl_token_here
+```bash
+npm run tauri build
 ```
 
 ## Usage
 
-**Interactive mode** — search and download in a loop:
+1. Open the app → you'll land on **Settings**
+2. Paste your ARL token, choose a download folder and quality, then click **Save & Login**
+3. Switch to **Search**, type a track name, and hit Enter
+4. Click the download button on any result
+5. Switch to **Downloads** to see progress
 
-```bash
-python main.py
-```
+## Tech Stack
 
-```
-Deezy - Deezer Downloader
+| Layer    | Technology                        |
+| -------- | --------------------------------- |
+| Frontend | SvelteKit 2 + Svelte 5           |
+| Backend  | Rust + Tauri 2                    |
+| Crypto   | Blowfish CBC (track decryption)   |
+| Tags     | id3 crate (ID3v2.4)              |
+| API      | Deezer private + public REST API |
 
-Search (or 'q' to quit): Daft Punk Around The World
+## License
 
-Results for "Daft Punk Around The World":
-
-   1. Daft Punk - Around the World  (7:09)
-   2. Daft Punk - Around the World / Harder, Better, Faster, Stronger  (5:42)
-   3. Daft Punk - Around the World (Radio Edit)  (4:01)
-   ...
-
-Pick a track (number): 1
-Downloading: Daft Punk - Around the World
-Saved to: deezer_downloads/
-```
-
-**Search from command line:**
-
-```bash
-python main.py "Daft Punk Around The World"
-```
-
-**Download by track ID:**
-
-```bash
-python main.py 3135556
-```
-
-Downloaded tracks are saved to the `deezer_downloads/` folder as MP3 320kbps with embedded metadata and album art.
+MIT
