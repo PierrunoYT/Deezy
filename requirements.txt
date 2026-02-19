@@ -1,5 +1,0 @@
-python-dotenv>=1.0.0
-requests>=2.28.0
-cryptography>=41.0.0
-mutagen>=1.46.0
-rich>=13.0.0
