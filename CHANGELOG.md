@@ -52,3 +52,7 @@ All notable changes to Deezy are documented here.
 ### Removed
 
 - Legacy Python CLI (`main.py`, `pydeezer/`, `requirements.txt`)
+
+### Fixed
+
+- **Startup blank screen** – Initialize i18n with a safe default locale before first render to prevent `svelte-i18n` formatter crashes when sidebar/messages are rendered before locale setup finishes
