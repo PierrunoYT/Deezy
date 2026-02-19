@@ -3,7 +3,7 @@
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { listen } from '@tauri-apps/api/event';
-  import { loggedIn, userInfo, downloads, activeDownloads, type UserInfo } from '$lib/stores';
+  import { loggedIn, userInfo, downloads, activeDownloads, downloadHistory, type UserInfo } from '$lib/stores';
 
   let { children } = $props();
 
@@ -47,13 +47,25 @@
     let unlisten: (() => void) | undefined;
 
     listen<DownloadProgressEvent>('download-progress', (event) => {
-      const { track_id, status } = event.payload;
+      const { track_id, title, percent, status } = event.payload;
       downloads.update(d => {
         d.set(track_id, status);
         // Calculate active downloads directly without creating new subscription
         const active = Array.from(d.values()).filter(s => s === 'downloading').length;
         activeDownloads.set(active);
         return d;
+      });
+
+      // Update download history so the progress bar works even when
+      // DownloadsView is not mounted
+      downloadHistory.update(history => {
+        const idx = history.findIndex(item => item.trackId === track_id);
+        if (idx >= 0) {
+          return history.map((item, i) =>
+            i === idx ? { ...item, title, percent, status } : item
+          );
+        }
+        return history;
       });
     }).then(fn => {
       unlisten = fn;

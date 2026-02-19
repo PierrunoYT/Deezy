@@ -1,7 +1,7 @@
 <script lang="ts">
   import { listen } from '@tauri-apps/api/event';
   import { onMount } from 'svelte';
-  import { downloadHistory, type DownloadItem } from '$lib/stores';
+  import { downloadHistory, downloads, type DownloadItem } from '$lib/stores';
 
   interface DownloadProgressEvent {
     track_id: string;
@@ -92,6 +92,14 @@
     };
   });
 
+  function clearHistory() {
+    downloadHistory.set([]);
+    downloads.update(d => {
+      d.clear();
+      return d;
+    });
+  }
+
   function getStatusText(status: string, percent: number): string {
     if (status === 'complete') return 'Done';
     if (status === 'error') return 'Error';
@@ -103,7 +111,12 @@
 </script>
 
 <div class="view">
-  <h2>Downloads</h2>
+  <div class="header-row">
+    <h2>Downloads</h2>
+    {#if downloadItems.length > 0}
+      <button class="clear-btn" onclick={clearHistory}>Clear history</button>
+    {/if}
+  </div>
   
   {#if downloadItems.length === 0}
     <div class="empty-state">
@@ -165,10 +178,33 @@
     overflow-y: auto;
   }
   
+  .header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
   h2 {
     font-size: 24px;
     font-weight: 700;
-    margin-bottom: 24px;
+  }
+
+  .clear-btn {
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .clear-btn:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
   }
   
   .empty-state {

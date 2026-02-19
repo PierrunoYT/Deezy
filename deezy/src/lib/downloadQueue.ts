@@ -116,6 +116,17 @@ class DownloadQueueManager {
         d.set(trackId, 'complete');
         return d;
       });
+
+      // Always mark the history entry as 100 % complete regardless of
+      // whether every Tauri progress event was received while the
+      // DownloadsView was mounted.
+      downloadHistory.update(history =>
+        history.map(item =>
+          item.trackId === trackId
+            ? { ...item, percent: 100, status: 'complete' }
+            : item
+        )
+      );
     } catch (err) {
       console.error('Download failed:', err);
       
