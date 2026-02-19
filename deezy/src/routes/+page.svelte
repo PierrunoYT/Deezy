@@ -11,11 +11,17 @@
   let isLoggedIn = $state(false);
   let user = $state<any>(null);
   let activeCount = $state(0);
-  
+
+  // Use idiomatic Svelte 5 pattern with proper cleanup
   $effect(() => {
-    loggedIn.subscribe(val => isLoggedIn = val);
-    userInfo.subscribe(val => user = val);
-    activeDownloads.subscribe(val => activeCount = val);
+    const unsubscribe1 = loggedIn.subscribe(val => isLoggedIn = val);
+    const unsubscribe2 = userInfo.subscribe(val => user = val);
+    const unsubscribe3 = activeDownloads.subscribe(val => activeCount = val);
+    return () => {
+      unsubscribe1();
+      unsubscribe2();
+      unsubscribe3();
+    };
   });
   
   onMount(() => {

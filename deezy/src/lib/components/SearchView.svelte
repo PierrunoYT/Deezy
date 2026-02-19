@@ -11,9 +11,14 @@
 
   let searchTimeout: any = null;
 
+  // Use idiomatic Svelte 5 pattern with proper cleanup
   $effect(() => {
-    loggedIn.subscribe(val => isLoggedIn = val);
-    downloads.subscribe(val => downloadStates = val);
+    const unsubscribe1 = loggedIn.subscribe(val => isLoggedIn = val);
+    const unsubscribe2 = downloads.subscribe(val => downloadStates = val);
+    return () => {
+      unsubscribe1();
+      unsubscribe2();
+    };
   });
   
   function handleInput() {

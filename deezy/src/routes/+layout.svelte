@@ -26,21 +26,23 @@
       console.error('Failed to load settings:', err);
       // First run, no settings yet
     }
-    
-    // Listen for download progress
-    await listen('download-progress', (event: any) => {
+
+    // Listen for download progress and cleanup on unmount
+    const unlisten = await listen('download-progress', (event: any) => {
       const { track_id, status } = event.payload;
       downloads.update(d => {
         d.set(track_id, status);
-        return d;
-      });
-      
-      // Update active downloads count
-      downloads.subscribe(d => {
+        // Calculate active downloads directly without creating new subscription
         const active = Array.from(d.values()).filter(s => s === 'downloading').length;
         activeDownloads.set(active);
+        return d;
       });
     });
+
+    // Cleanup event listener on unmount
+    return () => {
+      unlisten();
+    };
   });
 </script>
 

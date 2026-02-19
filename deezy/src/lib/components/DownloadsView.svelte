@@ -5,15 +5,17 @@
 
   let downloadItems = $state<DownloadItem[]>([]);
 
-  // Subscribe to the download history store
+  // Subscribe to the download history store using idiomatic Svelte 5 pattern
   $effect(() => {
-    downloadHistory.subscribe(val => {
+    const unsubscribe = downloadHistory.subscribe(val => {
       downloadItems = val;
     });
+    return unsubscribe;
   });
 
   onMount(async () => {
-    await listen('download-progress', (event: any) => {
+    // Listen for download progress events to update the store
+    const unlisten = await listen('download-progress', (event: any) => {
       const { track_id, title, percent, status } = event.payload;
 
       console.log('Download progress event:', { track_id, title, percent, status });
@@ -45,6 +47,11 @@
 
       console.log('Updated downloadHistory');
     });
+
+    // Cleanup event listener on unmount
+    return () => {
+      unlisten();
+    };
   });
 
   function getStatusText(status: string, percent: number): string {
