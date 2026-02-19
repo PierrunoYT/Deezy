@@ -1,5 +1,5 @@
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use futures::StreamExt;
 use id3::TagLike;
@@ -8,12 +8,14 @@ use tauri::Emitter;
 
 use super::models::DownloadProgress;
 use super::{crypto, get_quality_ext, DeezerClient};
+use crate::settings::FolderStructure;
 
 pub async fn download_track(
     client: &DeezerClient,
     track_id: &str,
     output_dir: &str,
     quality: &str,
+    folder_structure: &FolderStructure,
     app: &tauri::AppHandle,
 ) -> Result<String, String> {
     let track = client.get_track(track_id).await?;
@@ -56,9 +58,26 @@ pub async fn download_track(
     let ext = get_quality_ext(&actual_quality);
     let bf_key = crypto::get_blowfish_key(&sng_id);
 
+    // Build the directory path based on folder structure
+    let base_dir = PathBuf::from(output_dir);
+    let download_dir = match folder_structure {
+        FolderStructure::Flat => base_dir,
+        FolderStructure::ArtistTrack => {
+            base_dir.join(sanitize_path_component(&artist))
+        }
+        FolderStructure::ArtistAlbumTrack => {
+            base_dir
+                .join(sanitize_path_component(&artist))
+                .join(sanitize_path_component(&album_title))
+        }
+        FolderStructure::AlbumTrack => {
+            base_dir.join(sanitize_path_component(&album_title))
+        }
+    };
+
+    std::fs::create_dir_all(&download_dir).map_err(|e| e.to_string())?;
+
     let filename = clean_filename(&format!("{} - {}{}", artist, full_title, ext));
-    let download_dir = Path::new(output_dir);
-    std::fs::create_dir_all(download_dir).map_err(|e| e.to_string())?;
 
     // Check if file exists and create unique filename if needed
     let mut download_path = download_dir.join(&filename);
@@ -333,6 +352,18 @@ fn clean_filename(name: &str) -> String {
         })
         .collect::<String>()
         .trim()
+        .to_string()
+}
+
+fn sanitize_path_component(name: &str) -> String {
+    name.chars()
+        .map(|c| match c {
+            '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*' => '_',
+            _ => c,
+        })
+        .collect::<String>()
+        .trim()
+        .trim_matches('.')
         .to_string()
 }
 

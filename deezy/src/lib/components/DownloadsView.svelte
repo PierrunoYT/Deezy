@@ -3,6 +3,9 @@
   import { onMount } from 'svelte';
   import { downloadHistory, downloads, type DownloadItem } from '$lib/stores';
   import { downloadQueueManager } from '$lib/downloadQueue';
+  import QueueView from './QueueView.svelte';
+  import ExportHistoryModal from './ExportHistoryModal.svelte';
+  import { _ } from 'svelte-i18n';
 
   interface DownloadProgressEvent {
     track_id: string;
@@ -12,6 +15,7 @@
   }
 
   let downloadItems = $state<DownloadItem[]>([]);
+  let showExportModal = $state(false);
 
   // Subscribe to the download history store using idiomatic Svelte 5 pattern
   $effect(() => {
@@ -122,23 +126,52 @@
     downloadQueueManager.addToQueue(item.track);
   }
 
+  function pauseDownload(item: DownloadItem) {
+    downloadQueueManager.pauseDownload(item.trackId);
+  }
+
+  function resumeDownload(item: DownloadItem) {
+    downloadQueueManager.resumeDownload(item.trackId);
+  }
+
   function getStatusText(status: string, percent: number): string {
-    if (status === 'complete') return 'Done';
-    if (status === 'error') return 'Error';
-    if (status === 'downloading') return `${Math.round(percent)}%`;
-    if (status === 'tagging') return 'Writing tags...';
-    if (status === 'resolving') return 'Resolving...';
+    if (status === 'complete') return $_('downloads.status.complete');
+    if (status === 'error') return $_('downloads.status.error');
+    if (status === 'paused') return $_('downloads.status.paused');
+    if (status === 'downloading') return $_('downloads.status.downloading', { values: { percent: Math.round(percent) } });
+    if (status === 'tagging') return $_('downloads.status.tagging');
+    if (status === 'resolving') return $_('downloads.status.resolving');
     return status;
+  }
+
+  function openExportModal() {
+    showExportModal = true;
+  }
+
+  function closeExportModal() {
+    showExportModal = false;
   }
 </script>
 
 <div class="view">
   <div class="header-row">
-    <h2>Downloads</h2>
+    <h2>{$_('downloads.title')}</h2>
     {#if downloadItems.length > 0}
-      <button class="clear-btn" onclick={clearHistory}>Clear history</button>
+      <div class="header-actions">
+        <button class="action-btn export-btn" onclick={openExportModal}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          {$_('downloads.exportHistory')}
+        </button>
+        <button class="action-btn clear-btn" onclick={clearHistory}>{$_('downloads.clearHistory')}</button>
+      </div>
     {/if}
   </div>
+  
+  <QueueView />
   
   {#if downloadItems.length === 0}
     <div class="empty-state">
@@ -147,12 +180,14 @@
         <polyline points="7 10 12 15 17 10"/>
         <line x1="12" y1="15" x2="12" y2="3"/>
       </svg>
-      <p>No downloads yet</p>
-      <p class="sub">Search for tracks and click the download button</p>
+      <p>{$_('downloads.empty.title')}</p>
+      <p class="sub">{$_('downloads.empty.subtitle')}</p>
     </div>
   {:else}
-    <div class="download-list">
-      {#each downloadItems as item (item.trackId)}
+    <div class="history-section">
+      <h3>{$_('downloads.history.title')}</h3>
+      <div class="download-list">
+        {#each downloadItems as item (item.trackId)}
         <div class="download-item">
           {#if item.cover}
             <img class="download-cover" src={item.cover} alt="" />
@@ -175,16 +210,29 @@
             <div class="progress-container">
               <div class="progress-bar">
                 <div
-                  class="progress-fill {item.status === 'complete' ? 'complete' : ''} {item.status === 'error' ? 'error' : ''}"
+                  class="progress-fill {item.status === 'complete' ? 'complete' : ''} {item.status === 'error' ? 'error' : ''} {item.status === 'paused' ? 'paused' : ''}"
                   style="width: {item.percent}%"
                 ></div>
               </div>
             </div>
           </div>
-          <div class="download-status {item.status === 'complete' ? 'complete' : ''} {item.status === 'error' ? 'error' : ''}">
+          <div class="download-status {item.status === 'complete' ? 'complete' : ''} {item.status === 'error' ? 'error' : ''} {item.status === 'paused' ? 'paused' : ''}">
             {getStatusText(item.status, item.percent)}
-            {#if item.status === 'error' && item.track}
-              <button class="retry-btn" title="Retry download" onclick={() => retryDownload(item)}>
+            {#if item.status === 'downloading' || item.status === 'resolving'}
+              <button class="action-btn pause-btn" title={$_('downloads.actions.pause')} onclick={() => pauseDownload(item)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="6" y="4" width="4" height="16"/>
+                  <rect x="14" y="4" width="4" height="16"/>
+                </svg>
+              </button>
+            {:else if item.status === 'paused' && item.track}
+              <button class="action-btn resume-btn" title={$_('downloads.actions.resume')} onclick={() => resumeDownload(item)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+              </button>
+            {:else if item.status === 'error' && item.track}
+              <button class="action-btn retry-btn" title={$_('downloads.actions.retry')} onclick={() => retryDownload(item)}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="23 4 23 10 17 10"/>
                   <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
@@ -195,10 +243,17 @@
             {/if}
           </div>
         </div>
-      {/each}
+        {/each}
+      </div>
     </div>
   {/if}
 </div>
+
+<ExportHistoryModal 
+  bind:show={showExportModal}
+  history={downloadItems}
+  onClose={closeExportModal}
+/>
 
 <style>
   .view {
@@ -217,6 +272,36 @@
   h2 {
     font-size: 24px;
     font-weight: 700;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .action-btn {
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .action-btn:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+  }
+
+  .export-btn svg {
+    width: 14px;
+    height: 14px;
   }
 
   .clear-btn {
@@ -254,6 +339,13 @@
   .empty-state .sub {
     font-size: 13px;
     margin-top: 4px;
+  }
+
+  .history-section h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-secondary);
   }
   
   .download-list {
@@ -330,6 +422,10 @@
   .progress-fill.error {
     background: var(--error);
   }
+
+  .progress-fill.paused {
+    background: var(--text-tertiary);
+  }
   
   .download-status {
     font-size: 12px;
@@ -348,7 +444,11 @@
     color: var(--error);
   }
 
-  .retry-btn {
+  .download-status.paused {
+    color: var(--text-secondary);
+  }
+
+  .action-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -357,13 +457,35 @@
     border-radius: 50%;
     border: 1px solid var(--border);
     background: transparent;
-    color: var(--error);
     cursor: pointer;
     transition: all 0.15s ease;
   }
 
-  .retry-btn:hover {
+  .action-btn:hover {
     background: var(--bg-elevated);
+  }
+
+  .retry-btn {
+    color: var(--error);
+  }
+
+  .retry-btn:hover {
+    color: var(--text-primary);
+  }
+
+  .pause-btn {
+    color: var(--text-secondary);
+  }
+
+  .pause-btn:hover {
+    color: var(--text-primary);
+  }
+
+  .resume-btn {
+    color: var(--accent);
+  }
+
+  .resume-btn:hover {
     color: var(--text-primary);
   }
 

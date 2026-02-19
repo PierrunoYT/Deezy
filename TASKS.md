@@ -38,19 +38,19 @@
 
 ### Medium Priority
 - [x] Artist view / album browsing (click artist name → show discography)
-- [ ] Drag-and-drop reordering of download queue
-- [ ] Pause / resume downloads
-- [ ] Download folder structure options (e.g. `Artist/Album/Track.mp3`)
-- [ ] Dark/light theme toggle
-- [ ] Keyboard shortcuts (Ctrl+F for search, Escape to clear)
-- [ ] Notification on download complete (system toast)
-- [ ] Search history / recent searches
+- [x] Drag-and-drop reordering of download queue
+- [x] Pause / resume downloads
+- [x] Download folder structure options (e.g. `Artist/Album/Track.mp3`)
+- [x] Dark/light theme toggle
+- [x] Keyboard shortcuts (Ctrl+F for search, Escape to clear)
+- [x] Notification on download complete (system toast)
+- [x] Search history / recent searches
 
 ### Low Priority
-- [ ] Lyrics view (backend `song.getLyrics` already exists)
-- [ ] Audio preview / playback
-- [ ] Localization / i18n
-- [ ] Auto-update mechanism
-- [ ] Tray icon with minimize to tray
-- [ ] Export download history as CSV/JSON
-- [ ] Custom CSS theme support
+- [x] Lyrics view (backend `song.getLyrics` already exists)
+- [x] Audio preview / playback
+- [x] Localization / i18n
+- [x] Auto-update mechanism
+- [x] Tray icon with minimize to tray
+- [x] Export download history as CSV/JSON
+- [x] Custom CSS theme support

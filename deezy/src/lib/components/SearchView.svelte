@@ -1,8 +1,14 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
-  import { loggedIn, downloads, type Track } from '$lib/stores';
+  import { loggedIn, downloads, searchHistory, audioPlayer, type Track } from '$lib/stores';
   import { downloadQueueManager } from '$lib/downloadQueue';
   import { searchRateLimiter } from '$lib/rateLimiter';
+  import { onMount } from 'svelte';
+  import { keyboardShortcuts } from '$lib/keyboardShortcuts';
+  import { audioPlayerManager } from '$lib/audioPlayer';
+  import LyricsModal from './LyricsModal.svelte';
+  import { _ } from 'svelte-i18n';
+  import { formatDuration, formatFans } from '$lib/i18n/formatters';
 
   interface AlbumResult {
     id: number;
@@ -41,6 +47,9 @@
   let isLoggedIn = $state<boolean>(false);
   let downloadStates = $state<Map<string, string>>(new Map());
   let downloadingAlbums = $state<Set<number>>(new Set());
+  let showSearchHistory = $state<boolean>(false);
+  let history = $state<string[]>([]);
+  let searchInputRef = $state<HTMLInputElement | undefined>(undefined);
 
   // Artist discography state
   let selectedArtist = $state<SelectedArtist | null>(null);
@@ -48,24 +57,112 @@
   let loadingDiscography = $state<boolean>(false);
   let discographyError = $state<string>('');
 
+  // Lyrics modal state
+  let lyricsTrack = $state<Track | null>(null);
+
+  // Audio player state
+  let currentPlayingTrack = $state<Track | null>(null);
+  let isPlaying = $state<boolean>(false);
+
   let searchTimeout: ReturnType<typeof setTimeout> | undefined;
 
   $effect(() => {
     try {
       const unsubscribe1 = loggedIn.subscribe(val => isLoggedIn = val);
       const unsubscribe2 = downloads.subscribe(val => downloadStates = val);
+      const unsubscribe3 = searchHistory.subscribe(val => history = val);
+      const unsubscribe4 = audioPlayer.subscribe(state => {
+        currentPlayingTrack = state.currentTrack;
+        isPlaying = state.isPlaying;
+      });
       return () => {
         unsubscribe1();
         unsubscribe2();
+        unsubscribe3();
+        unsubscribe4();
       };
     } catch (err) {
       console.error('Error in effect:', err);
     }
   });
+
+  onMount(() => {
+    // Load search history
+    loadSearchHistory();
+    
+    // Close search history dropdown when clicking outside
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.search-bar') && !target.closest('.search-history-dropdown')) {
+        showSearchHistory = false;
+      }
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+
+    // Register search-specific keyboard shortcuts
+    keyboardShortcuts.register('focus-search', {
+      key: 'f',
+      ctrl: true,
+      description: 'Focus search input',
+      category: 'search',
+      action: () => {
+        if (searchInputRef) {
+          searchInputRef.focus();
+          searchInputRef.select();
+        }
+      }
+    });
+
+    keyboardShortcuts.register('clear-search', {
+      key: 'Escape',
+      description: 'Clear search / Go back',
+      category: 'search',
+      action: () => {
+        if (selectedArtist) {
+          closeArtist();
+        } else if (lyricsTrack) {
+          closeLyrics();
+        } else if (searchQuery) {
+          searchQuery = '';
+          results = [];
+          albumResults = [];
+          artistResults = [];
+          errorMsg = '';
+        }
+      }
+    });
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+      keyboardShortcuts.unregister('focus-search');
+      keyboardShortcuts.unregister('clear-search');
+    };
+  });
+
+  async function loadSearchHistory() {
+    try {
+      const data = await invoke<string[]>('get_search_history');
+      searchHistory.set(data);
+    } catch (err) {
+      console.error('Failed to load search history:', err);
+    }
+  }
+
+  async function addToSearchHistory(query: string) {
+    try {
+      await invoke('add_search_history', { query });
+      await loadSearchHistory();
+    } catch (err) {
+      console.error('Failed to add to search history:', err);
+    }
+  }
   
   function handleInput() {
     clearTimeout(searchTimeout);
     errorMsg = '';
+    showSearchHistory = false;
     
     if (searchQuery.trim().length < 2) {
       results = [];
@@ -81,7 +178,21 @@
     if (e.key === 'Enter') {
       clearTimeout(searchTimeout);
       if (searchQuery.trim()) doSearch();
+    } else if (e.key === 'Escape') {
+      showSearchHistory = false;
     }
+  }
+
+  function handleFocus() {
+    if (searchQuery.trim().length === 0 && history.length > 0) {
+      showSearchHistory = true;
+    }
+  }
+
+  function selectHistoryItem(item: string) {
+    searchQuery = item;
+    showSearchHistory = false;
+    doSearch();
   }
 
   function switchSearchType(type: SearchType) {
@@ -98,32 +209,39 @@
   
   async function doSearch() {
     if (!isLoggedIn) {
-      errorMsg = 'Please set your ARL token in Settings first.';
+      errorMsg = $_('search.status.loginRequired');
       return;
     }
+
+    const query = searchQuery.trim();
+    if (!query) return;
 
     searching = true;
     errorMsg = '';
     results = [];
     albumResults = [];
     artistResults = [];
+    showSearchHistory = false;
 
     try {
       await searchRateLimiter.throttle();
 
       if (searchType === 'tracks') {
-        const data = await invoke<Track[]>('search_tracks', { query: searchQuery.trim() });
+        const data = await invoke<Track[]>('search_tracks', { query });
         results = data;
-        if (results.length === 0) errorMsg = 'No results found.';
+        if (results.length === 0) errorMsg = $_('search.status.noResults');
       } else if (searchType === 'albums') {
-        const data = await invoke<AlbumResult[]>('search_albums', { query: searchQuery.trim() });
+        const data = await invoke<AlbumResult[]>('search_albums', { query });
         albumResults = data;
-        if (albumResults.length === 0) errorMsg = 'No results found.';
+        if (albumResults.length === 0) errorMsg = $_('search.status.noResults');
       } else {
-        const data = await invoke<ArtistResult[]>('search_artists', { query: searchQuery.trim() });
+        const data = await invoke<ArtistResult[]>('search_artists', { query });
         artistResults = data;
-        if (artistResults.length === 0) errorMsg = 'No results found.';
+        if (artistResults.length === 0) errorMsg = $_('search.status.noResults');
       }
+
+      // Add to search history after successful search
+      await addToSearchHistory(query);
     } catch (err) {
       errorMsg = String(err);
     } finally {
@@ -140,7 +258,7 @@
     try {
       const data = await invoke<AlbumResult[]>('get_artist_albums', { artistId: String(id) });
       artistAlbums = data;
-      if (artistAlbums.length === 0) discographyError = 'No albums found for this artist.';
+      if (artistAlbums.length === 0) discographyError = $_('search.artist.noAlbums');
     } catch (err) {
       discographyError = String(err);
     } finally {
@@ -176,17 +294,21 @@
       downloadingAlbums = new Set([...downloadingAlbums].filter(id => id !== album.id));
     }
   }
-  
-  function formatDuration(seconds: number): string {
-    const mins = Math.floor(seconds / 60);
-    const secs = String(seconds % 60).padStart(2, '0');
-    return `${mins}:${secs}`;
+
+  function openLyrics(track: Track) {
+    lyricsTrack = track;
   }
 
-  function formatFans(n: number): string {
-    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M fans`;
-    if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K fans`;
-    return `${n} fans`;
+  function closeLyrics() {
+    lyricsTrack = null;
+  }
+
+  function playTrack(track: Track) {
+    audioPlayerManager.play(track);
+  }
+
+  function isTrackPlaying(track: Track): boolean {
+    return currentPlayingTrack?.id === track.id && isPlaying;
   }
 </script>
 
@@ -198,7 +320,7 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <polyline points="15 18 9 12 15 6"/>
           </svg>
-          Back
+          {$_('search.artist.back')}
         </button>
         <div class="artist-hero">
           {#if selectedArtist.picture}
@@ -212,28 +334,48 @@
           {/if}
           <div class="artist-hero-info">
             <div class="artist-hero-name">{selectedArtist.name}</div>
-            <div class="artist-hero-meta">Discography</div>
+            <div class="artist-hero-meta">{$_('search.artist.discography')}</div>
           </div>
         </div>
       </div>
     {:else}
       <div class="search-tabs">
-        <button class="tab-btn" class:active={searchType === 'tracks'} onclick={() => switchSearchType('tracks')}>Tracks</button>
-        <button class="tab-btn" class:active={searchType === 'albums'} onclick={() => switchSearchType('albums')}>Albums</button>
-        <button class="tab-btn" class:active={searchType === 'artists'} onclick={() => switchSearchType('artists')}>Artists</button>
+        <button class="tab-btn" class:active={searchType === 'tracks'} onclick={() => switchSearchType('tracks')}>{$_('search.tabs.tracks')}</button>
+        <button class="tab-btn" class:active={searchType === 'albums'} onclick={() => switchSearchType('albums')}>{$_('search.tabs.albums')}</button>
+        <button class="tab-btn" class:active={searchType === 'artists'} onclick={() => switchSearchType('artists')}>{$_('search.tabs.artists')}</button>
       </div>
-      <div class="search-bar">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input 
-          type="text" 
-          bind:value={searchQuery}
-          oninput={handleInput}
-          onkeydown={handleKeydown}
-          placeholder="Search for {searchType}..." 
-          autocomplete="off" 
-        />
+      <div class="search-bar-container">
+        <div class="search-bar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input 
+            type="text" 
+            bind:this={searchInputRef}
+            bind:value={searchQuery}
+            oninput={handleInput}
+            onkeydown={handleKeydown}
+            onfocus={handleFocus}
+            placeholder={$_(`search.placeholder.${searchType}`)}
+            autocomplete="off" 
+          />
+        </div>
+        
+        {#if showSearchHistory && history.length > 0}
+          <div class="search-history-dropdown">
+            <div class="search-history-header">
+              <span>{$_('search.history.title')}</span>
+            </div>
+            {#each history as item (item)}
+              <button class="search-history-item" onclick={() => selectHistoryItem(item)}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <span>{item}</span>
+              </button>
+            {/each}
+          </div>
+        {/if}
       </div>
     {/if}
   </div>
@@ -241,7 +383,7 @@
   <!-- Artist discography view -->
   {#if selectedArtist}
     {#if loadingDiscography}
-      <div class="status-message info"><span class="spinner"></span> Loading discography...</div>
+      <div class="status-message info"><span class="spinner"></span> {$_('search.artist.loadingDiscography')}</div>
     {:else if discographyError}
       <div class="status-message error">{discographyError}</div>
     {:else if artistAlbums.length > 0}
@@ -251,7 +393,7 @@
             <img class="album-cover" src={album.cover_medium} alt="" loading="lazy" />
             <div class="album-info">
               <div class="album-title">{album.title}</div>
-              <div class="album-meta">{album.nb_tracks} track{album.nb_tracks !== 1 ? 's' : ''}</div>
+              <div class="album-meta">{$_('search.album.tracks', { values: { count: album.nb_tracks } })}</div>
             </div>
             <button 
               class="btn-download-all"
@@ -260,14 +402,14 @@
               disabled={downloadingAlbums.has(album.id)}
             >
               {#if downloadingAlbums.has(album.id)}
-                <span class="spinner"></span> Adding...
+                <span class="spinner"></span> {$_('search.album.adding')}
               {:else}
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                   <polyline points="7 10 12 15 17 10"/>
                   <line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
-                Download All
+                {$_('search.album.downloadAll')}
               {/if}
             </button>
           </div>
@@ -278,51 +420,82 @@
   <!-- Normal search results -->
   {:else}
     {#if searching}
-      <div class="status-message info"><span class="spinner"></span> Searching...</div>
+      <div class="status-message info"><span class="spinner"></span> {$_('search.status.searching')}</div>
     {:else if errorMsg}
       <div class="status-message error">{errorMsg}</div>
     {/if}
 
     {#if searchType === 'tracks' && results.length > 0}
       <div class="results-header">
-        <span class="col-title">Title</span>
-        <span class="col-album">Album</span>
-        <span class="col-duration">Duration</span>
+        <span class="col-title">{$_('search.track.title')}</span>
+        <span class="col-album">{$_('search.track.album')}</span>
+        <span class="col-duration">{$_('search.track.duration')}</span>
         <span class="col-action"></span>
       </div>
       <div class="results-list">
         {#each results as track (track.id)}
           <div class="track-item">
+            <button 
+              class="btn-play-track"
+              class:playing={isTrackPlaying(track)}
+              onclick={() => playTrack(track)}
+              disabled={!track.preview}
+              title={track.preview ? (isTrackPlaying(track) ? 'Pause' : 'Play preview') : 'No preview available'}
+            >
+              {#if isTrackPlaying(track)}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="4" width="4" height="16" rx="1"/>
+                  <rect x="14" y="4" width="4" height="16" rx="1"/>
+                </svg>
+              {:else}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              {/if}
+            </button>
             <img class="track-cover" src={track.cover_small} alt="" loading="lazy" />
             <div class="track-info">
               <div class="track-title">{track.title}</div>
               <button
                 class="track-artist artist-link"
                 onclick={() => openArtist(track.artist_id, track.artist, '')}
-                title="Browse {track.artist}'s discography"
+                title={$_('search.artist.browseDiscography', { values: { artist: track.artist } })}
               >{track.artist}</button>
             </div>
             <div class="track-album">{track.album}</div>
             <div class="track-duration">{formatDuration(track.duration)}</div>
-            <button 
-              class="btn-download {downloadStates.get(String(track.id)) === 'downloading' ? 'downloading' : ''} {downloadStates.get(String(track.id)) === 'complete' ? 'done' : ''}"
-              onclick={() => downloadTrack(track)}
-              title="Download"
-            >
-              {#if downloadStates.get(String(track.id)) === 'downloading'}
-                <span class="spinner"></span>
-              {:else if downloadStates.get(String(track.id)) === 'complete'}
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
-              {:else}
+            <div class="track-actions">
+              <button 
+                class="btn-lyrics"
+                onclick={() => openLyrics(track)}
+                title={$_('search.track.viewLyrics')}
+              >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="7 10 12 15 17 10"/>
-                  <line x1="12" y1="15" x2="12" y2="3"/>
+                  <path d="M9 18V5l12-2v13"/>
+                  <circle cx="6" cy="18" r="3"/>
+                  <circle cx="18" cy="16" r="3"/>
                 </svg>
-              {/if}
-            </button>
+              </button>
+              <button 
+                class="btn-download {downloadStates.get(String(track.id)) === 'downloading' ? 'downloading' : ''} {downloadStates.get(String(track.id)) === 'complete' ? 'done' : ''}"
+                onclick={() => downloadTrack(track)}
+                title={$_('search.track.download')}
+              >
+                {#if downloadStates.get(String(track.id)) === 'downloading'}
+                  <span class="spinner"></span>
+                {:else if downloadStates.get(String(track.id)) === 'complete'}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                {:else}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                {/if}
+              </button>
+            </div>
           </div>
         {/each}
       </div>
@@ -338,9 +511,9 @@
               <button
                 class="album-artist artist-link"
                 onclick={() => openArtist(album.artist_id, album.artist, '')}
-                title="Browse {album.artist}'s discography"
+                title={$_('search.artist.browseDiscography', { values: { artist: album.artist } })}
               >{album.artist}</button>
-              <div class="album-meta">{album.nb_tracks} track{album.nb_tracks !== 1 ? 's' : ''}</div>
+              <div class="album-meta">{$_('search.album.tracks', { values: { count: album.nb_tracks } })}</div>
             </div>
             <button 
               class="btn-download-all"
@@ -349,14 +522,14 @@
               disabled={downloadingAlbums.has(album.id)}
             >
               {#if downloadingAlbums.has(album.id)}
-                <span class="spinner"></span> Adding...
+                <span class="spinner"></span> {$_('search.album.adding')}
               {:else}
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                   <polyline points="7 10 12 15 17 10"/>
                   <line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
-                Download All
+                {$_('search.album.downloadAll')}
               {/if}
             </button>
           </div>
@@ -379,7 +552,7 @@
             {/if}
             <div class="artist-card-name">{artist.name}</div>
             <div class="artist-card-meta">
-              {artist.nb_album} album{artist.nb_album !== 1 ? 's' : ''} · {formatFans(artist.nb_fan)}
+              {$_('search.artistCard.albums', { values: { count: artist.nb_album } })} · {$_('search.artistCard.fans', { values: { count: formatFans(artist.nb_fan) } })}
             </div>
           </button>
         {/each}
@@ -387,6 +560,10 @@
     {/if}
   {/if}
 </div>
+
+{#if lyricsTrack}
+  <LyricsModal track={lyricsTrack} onClose={closeLyrics} />
+{/if}
 
 <style>
   .view {
@@ -433,6 +610,10 @@
     color: white;
   }
   
+  .search-bar-container {
+    position: relative;
+  }
+  
   .search-bar {
     display: flex;
     align-items: center;
@@ -465,6 +646,63 @@
   
   .search-bar input::placeholder {
     color: var(--text-tertiary);
+  }
+
+  .search-history-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+
+  .search-history-header {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .search-history-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .search-history-item:hover {
+    background: var(--bg-hover);
+  }
+
+  .search-history-item svg {
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+  }
+
+  .search-history-item span {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* Artist page header */
@@ -554,7 +792,7 @@
   
   .results-header {
     display: grid;
-    grid-template-columns: 52px 1fr 160px 80px 48px;
+    grid-template-columns: 40px 52px 1fr 160px 80px 132px;
     gap: 12px;
     padding: 8px 16px;
     color: var(--text-tertiary);
@@ -567,7 +805,7 @@
   }
   
   .results-header .col-title {
-    grid-column: 2;
+    grid-column: 3;
   }
   
   .results-list {
@@ -577,7 +815,7 @@
   
   .track-item {
     display: grid;
-    grid-template-columns: 52px 1fr 160px 80px 48px;
+    grid-template-columns: 40px 52px 1fr 160px 80px 132px;
     gap: 12px;
     align-items: center;
     padding: 8px 16px;
@@ -590,6 +828,36 @@
     background: var(--bg-hover);
   }
   
+  .btn-play-track {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+
+  .btn-play-track:hover:not(:disabled) {
+    background: var(--accent);
+    color: white;
+    transform: scale(1.1);
+  }
+
+  .btn-play-track.playing {
+    background: var(--accent);
+    color: white;
+  }
+
+  .btn-play-track:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
   .track-cover {
     width: 44px;
     height: 44px;
@@ -645,6 +913,33 @@
     font-size: 13px;
     color: var(--text-tertiary);
     text-align: right;
+  }
+
+  .track-actions {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .btn-lyrics {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+
+  .btn-lyrics:hover {
+    background: var(--accent);
+    color: white;
+    transform: scale(1.1);
   }
   
   .btn-download {

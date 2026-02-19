@@ -2,9 +2,12 @@ use crate::deezer::download;
 use crate::deezer::models::{AlbumResult, ArtistResult, SearchResult};
 use crate::deezer::DeezerClient;
 use crate::settings::Settings;
+use crate::themes;
+use crate::tray;
 use crate::AppState;
 use serde_json::Value;
 use tauri::{AppHandle, Manager};
+use tauri_plugin_dialog::DialogExt;
 
 #[tauri::command]
 pub async fn save_download_history(history: Vec<serde_json::Value>, app: AppHandle) -> Result<(), String> {
@@ -119,7 +122,7 @@ pub async fn download_track(
     eprintln!("Download track command called for trackId: {}", trackId);
     
     // Get or recreate the client
-    let (mut client, output_dir, quality, arl) = {
+    let (mut client, output_dir, quality, folder_structure, arl) = {
         let lock = state.client.lock().await;
         let settings = state.settings.lock().await;
         eprintln!("Settings - output_dir: {}, quality: {}", settings.output_dir, settings.quality);
@@ -134,6 +137,7 @@ pub async fn download_track(
             client,
             settings.output_dir.clone(),
             settings.quality.clone(),
+            settings.folder_structure.clone(),
             settings.arl.clone(),
         )
     };
@@ -154,7 +158,7 @@ pub async fn download_track(
     }
 
     eprintln!("Starting download to: {}", output_dir);
-    let mut result = download::download_track(&client, &trackId, &output_dir, &quality, &app).await;
+    let mut result = download::download_track(&client, &trackId, &output_dir, &quality, &folder_structure, &app).await;
     
     // If we get a CSRF error, try to refresh the client and retry once
     if let Err(ref e) = result {
@@ -165,7 +169,7 @@ pub async fn download_track(
                     client = new_client.clone();
                     *state.client.lock().await = Some(new_client);
                     eprintln!("Client refreshed, retrying download...");
-                    result = download::download_track(&client, &trackId, &output_dir, &quality, &app).await;
+                    result = download::download_track(&client, &trackId, &output_dir, &quality, &folder_structure, &app).await;
                 }
                 Err(refresh_err) => {
                     eprintln!("Failed to refresh client: {}", refresh_err);
@@ -223,4 +227,216 @@ pub async fn pick_folder(app: AppHandle) -> Result<Option<String>, String> {
         Ok(path) => Ok(path),
         Err(_) => Ok(None),
     }
+}
+
+#[tauri::command]
+pub async fn add_search_history(
+    query: String,
+    state: tauri::State<'_, AppState>,
+    app: AppHandle,
+) -> Result<(), String> {
+    let mut settings = state.settings.lock().await;
+    
+    if !settings.enable_search_history {
+        return Ok(());
+    }
+    
+    let query = query.trim().to_string();
+    if query.is_empty() {
+        return Ok(());
+    }
+    
+    // Remove duplicate if exists
+    settings.search_history.retain(|q| q != &query);
+    
+    // Add to front
+    settings.search_history.insert(0, query);
+    
+    // Keep only last 20 searches
+    if settings.search_history.len() > 20 {
+        settings.search_history.truncate(20);
+    }
+    
+    settings.save(&app)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_search_history(
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<String>, String> {
+    let settings = state.settings.lock().await;
+    Ok(settings.search_history.clone())
+}
+
+#[tauri::command]
+pub async fn clear_search_history(
+    state: tauri::State<'_, AppState>,
+    app: AppHandle,
+) -> Result<(), String> {
+    let mut settings = state.settings.lock().await;
+    settings.search_history.clear();
+    settings.save(&app)?;
+    Ok(())
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn get_track_lyrics(
+    trackId: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<Value, String> {
+    let lock = state.client.lock().await;
+    let client = lock
+        .as_ref()
+        .ok_or("Not logged in. Set your ARL token in Settings.")?;
+    client.get_track_lyrics(&trackId).await
+}
+
+#[tauri::command]
+pub async fn update_tray_status(
+    downloads_active: bool,
+    downloads_paused: bool,
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    // Update tray state
+    *state.tray_state.downloads_active.lock().await = downloads_active;
+    *state.tray_state.downloads_paused.lock().await = downloads_paused;
+
+    // Update tray menu
+    tray::update_tray_menu(&app, downloads_active, downloads_paused)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn set_tray_tooltip(
+    tooltip: String,
+    app: AppHandle,
+) -> Result<(), String> {
+    tray::set_tray_tooltip(&app, &tooltip)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn export_download_history(
+    history: Vec<serde_json::Value>,
+    format: String,
+    app: AppHandle,
+) -> Result<String, String> {
+    let extension = match format.as_str() {
+        "csv" => "csv",
+        "json" => "json",
+        _ => return Err("Invalid format. Use 'csv' or 'json'.".to_string()),
+    };
+
+    let (tx, rx) = tokio::sync::oneshot::channel();
+
+    app.dialog()
+        .file()
+        .set_title("Export Download History")
+        .add_filter(format.to_uppercase(), &[extension])
+        .set_file_name(&format!("deezy_download_history.{}", extension))
+        .save_file(move |file_path| {
+            let _ = tx.send(file_path.map(|p| p.as_path().unwrap().to_string_lossy().to_string()));
+        });
+
+    let file_path = match rx.await {
+        Ok(Some(path)) => path,
+        Ok(None) => return Err("Export cancelled".to_string()),
+        Err(_) => return Err("Failed to get file path".to_string()),
+    };
+
+    let content = if format == "csv" {
+        generate_csv(&history)?
+    } else {
+        serde_json::to_string_pretty(&history).map_err(|e| e.to_string())?
+    };
+
+    std::fs::write(&file_path, content).map_err(|e| e.to_string())?;
+    Ok(file_path)
+}
+
+fn generate_csv(history: &[serde_json::Value]) -> Result<String, String> {
+    let mut csv = String::from("Title,Artist,Album,Status,Progress,Timestamp,File Path,Error Message\n");
+
+    for item in history {
+        let title = item["title"].as_str().unwrap_or("").replace("\"", "\"\"");
+        let artist = item["artist"].as_str().unwrap_or("").replace("\"", "\"\"");
+        let album = item["album"].as_str().unwrap_or("").replace("\"", "\"\"");
+        let status = item["status"].as_str().unwrap_or("");
+        let percent = item["percent"].as_f64().unwrap_or(0.0);
+        let timestamp = item["timestamp"].as_str().unwrap_or("");
+        let file_path = item["filePath"].as_str().unwrap_or("").replace("\"", "\"\"");
+        let error_msg = item["errorMsg"].as_str().unwrap_or("").replace("\"", "\"\"");
+
+        csv.push_str(&format!(
+            "\"{}\",\"{}\",\"{}\",\"{}\",\"{:.1}%\",\"{}\",\"{}\",\"{}\"\n",
+            title, artist, album, status, percent, timestamp, file_path, error_msg
+        ));
+    }
+
+    Ok(csv)
+}
+
+#[tauri::command]
+pub async fn list_custom_themes(app: AppHandle) -> Result<Vec<String>, String> {
+    themes::list_custom_themes(&app)
+}
+
+#[tauri::command]
+pub async fn load_custom_theme(theme_name: String, app: AppHandle) -> Result<themes::CustomTheme, String> {
+    themes::load_custom_theme(&app, &theme_name)
+}
+
+#[tauri::command]
+pub async fn save_custom_theme(theme: themes::CustomTheme, app: AppHandle) -> Result<(), String> {
+    themes::save_custom_theme(&app, &theme)
+}
+
+#[tauri::command]
+pub async fn delete_custom_theme(theme_name: String, app: AppHandle) -> Result<(), String> {
+    themes::delete_custom_theme(&app, &theme_name)
+}
+
+#[tauri::command]
+pub async fn export_current_theme(
+    theme_name: String,
+    author: Option<String>,
+    description: Option<String>,
+    is_light: bool,
+) -> Result<themes::CustomTheme, String> {
+    Ok(themes::export_current_theme(theme_name, author, description, is_light))
+}
+
+#[tauri::command]
+pub async fn import_theme_file(app: AppHandle) -> Result<String, String> {
+    let (tx, rx) = tokio::sync::oneshot::channel();
+
+    app.dialog()
+        .file()
+        .set_title("Import Theme File")
+        .add_filter("JSON", &["json"])
+        .pick_file(move |file_path| {
+            let _ = tx.send(file_path.map(|p| p.to_string()));
+        });
+
+    let file_path = match rx.await {
+        Ok(Some(path)) => path,
+        Ok(None) => return Err("Import cancelled".to_string()),
+        Err(_) => return Err("Failed to get file path".to_string()),
+    };
+
+    let data = std::fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
+    let theme: themes::CustomTheme = serde_json::from_str(&data).map_err(|e| e.to_string())?;
+    theme.validate()?;
+    
+    themes::save_custom_theme(&app, &theme)?;
+    
+    Ok(theme.name.clone())
+}
+
+#[tauri::command]
+pub async fn create_example_themes(app: AppHandle) -> Result<(), String> {
+    themes::create_example_themes(&app)
 }

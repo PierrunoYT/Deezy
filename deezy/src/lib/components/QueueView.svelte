@@ -1,0 +1,234 @@
+<script lang="ts">
+  import { downloadQueue, type QueuedDownload } from '$lib/stores';
+  import { downloadQueueManager } from '$lib/downloadQueue';
+  import { dndzone, type DndEvent } from 'svelte-dnd-action';
+  import { _ } from 'svelte-i18n';
+
+  type QueueItemWithId = QueuedDownload & { id: string };
+
+  let queueItems = $state<QueueItemWithId[]>([]);
+  let dragDisabled = $state(true);
+
+  // Subscribe to the download queue store
+  $effect(() => {
+    try {
+      const unsubscribe = downloadQueue.subscribe(val => {
+        queueItems = val.map((item) => ({
+          ...item,
+          id: String(item.track.id)
+        }));
+      });
+      return unsubscribe;
+    } catch (err) {
+      console.error('Error in effect:', err);
+    }
+  });
+
+  function handleDndConsider(e: CustomEvent<DndEvent<QueueItemWithId>>) {
+    queueItems = e.detail.items;
+  }
+
+  function handleDndFinalize(e: CustomEvent<DndEvent<QueueItemWithId>>) {
+    queueItems = e.detail.items;
+    
+    // Update the queue with the new order
+    const reorderedQueue = queueItems.map(item => ({
+      track: item.track,
+      priority: item.priority
+    }));
+    
+    downloadQueueManager.reorderQueue(reorderedQueue);
+  }
+
+  function removeFromQueue(trackId: string) {
+    downloadQueueManager.removeFromQueue(trackId);
+  }
+
+  function startDrag() {
+    dragDisabled = false;
+  }
+
+  function endDrag() {
+    dragDisabled = true;
+  }
+</script>
+
+{#if queueItems.length > 0}
+  <div class="queue-section">
+    <h3>{$_('downloads.queue.title')} ({queueItems.length})</h3>
+    <div 
+      class="queue-list"
+      use:dndzone={{items: queueItems, dragDisabled, dropTargetStyle: {}}}
+      onconsider={handleDndConsider}
+      onfinalize={handleDndFinalize}
+    >
+      {#each queueItems as item (item.id)}
+        <div class="queue-item" data-id={item.id}>
+          <button 
+            class="drag-handle" 
+            aria-label={$_('downloads.queue.moveUp')}
+            onmousedown={startDrag}
+            onmouseup={endDrag}
+            ontouchstart={startDrag}
+            ontouchend={endDrag}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
+          
+          {#if item.track.cover_medium || item.track.cover_small}
+            <img 
+              class="queue-cover" 
+              src={item.track.cover_medium || item.track.cover_small} 
+              alt="" 
+            />
+          {:else}
+            <div class="queue-cover"></div>
+          {/if}
+          
+          <div class="queue-details">
+            <div class="queue-title">{item.track.title}</div>
+            <div class="queue-sub">
+              {#if item.track.artist}
+                <span>{item.track.artist}</span>
+              {/if}
+              {#if item.track.artist && item.track.album}
+                <span class="separator">•</span>
+              {/if}
+              {#if item.track.album}
+                <span>{item.track.album}</span>
+              {/if}
+            </div>
+          </div>
+          
+          <button 
+            class="remove-btn" 
+            title={$_('downloads.queue.remove')}
+            onclick={() => removeFromQueue(String(item.track.id))}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      {/each}
+    </div>
+  </div>
+{/if}
+
+<style>
+  .queue-section {
+    margin-bottom: 32px;
+  }
+
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-secondary);
+  }
+
+  .queue-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .queue-item {
+    display: grid;
+    grid-template-columns: 32px 44px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    transition: all 0.15s ease;
+  }
+
+  .queue-item:hover {
+    background: var(--bg-elevated);
+  }
+
+  .drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: grab;
+    border-radius: var(--radius-sm);
+    transition: all 0.15s ease;
+    padding: 0;
+  }
+
+  .drag-handle:hover {
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+  }
+
+  .drag-handle:active {
+    cursor: grabbing;
+  }
+
+  .queue-cover {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    background: var(--bg-elevated);
+  }
+
+  .queue-details {
+    overflow: hidden;
+  }
+
+  .queue-title {
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .queue-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .queue-sub .separator {
+    opacity: 0.5;
+  }
+
+  .remove-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    padding: 0;
+  }
+
+  .remove-btn:hover {
+    background: var(--bg-elevated);
+    color: var(--error);
+    border-color: var(--error);
+  }
+</style>

@@ -1,0 +1,23 @@
+{
+  "name": "Midnight Blue",
+  "author": "Deezy Team",
+  "description": "A deep blue theme inspired by the midnight sky",
+  "version": "1.0.0",
+  "colors": {
+    "bg-darkest": "#0a0e1a",
+    "bg-dark": "#0f1729",
+    "bg-surface": "#162038",
+    "bg-elevated": "#1d2947",
+    "bg-hover": "#243356",
+    "accent": "#4a9eff",
+    "accent-hover": "#6bb0ff",
+    "accent-dim": "rgba(74, 158, 255, 0.15)",
+    "text-primary": "#e8f0ff",
+    "text-secondary": "#a0b8d9",
+    "text-tertiary": "#6b7a94",
+    "success": "#1db954",
+    "error": "#ff5757",
+    "warning": "#ffb347",
+    "border": "#243356"
+  }
+}

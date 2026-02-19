@@ -1,0 +1,23 @@
+{
+  "name": "Forest Green",
+  "author": "Deezy Team",
+  "description": "A calming green theme inspired by nature",
+  "version": "1.0.0",
+  "colors": {
+    "bg-darkest": "#0a1410",
+    "bg-dark": "#0f1f18",
+    "bg-surface": "#162b21",
+    "bg-elevated": "#1d372a",
+    "bg-hover": "#244333",
+    "accent": "#4ade80",
+    "accent-hover": "#6ee7a0",
+    "accent-dim": "rgba(74, 222, 128, 0.15)",
+    "text-primary": "#e8fff2",
+    "text-secondary": "#a0d9b8",
+    "text-tertiary": "#6b9480",
+    "success": "#22c55e",
+    "error": "#ef4444",
+    "warning": "#f59e0b",
+    "border": "#244333"
+  }
+}

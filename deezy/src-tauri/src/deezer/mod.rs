@@ -188,6 +188,7 @@ impl DeezerClient {
                         .as_str()
                         .unwrap_or("")
                         .to_string(),
+                    preview: t["preview"].as_str().map(|s| s.to_string()),
                 })
             })
             .collect();
@@ -291,6 +292,7 @@ impl DeezerClient {
                     duration: t["duration"].as_u64().unwrap_or(0),
                     cover_small: cover_small.clone(),
                     cover_medium: cover_medium.clone(),
+                    preview: t["preview"].as_str().map(|s| s.to_string()),
                 })
             })
             .collect();

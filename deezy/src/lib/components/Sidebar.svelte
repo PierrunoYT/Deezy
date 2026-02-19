@@ -1,14 +1,16 @@
 <script lang="ts">
   import type { UserInfo } from '$lib/stores';
+  import { _ } from 'svelte-i18n';
 
   interface Props {
     currentView: string;
     user: UserInfo | null;
     activeDownloads: number;
     onViewChange: (view: string) => void;
+    onShowHelp?: () => void;
   }
 
-  let { currentView, user, activeDownloads, onViewChange }: Props = $props();
+  let { currentView, user, activeDownloads, onViewChange, onShowHelp }: Props = $props();
 </script>
 
 <nav id="sidebar">
@@ -18,7 +20,7 @@
       <circle cx="6" cy="18" r="3"/>
       <circle cx="18" cy="16" r="3"/>
     </svg>
-    <span>Deezy</span>
+    <span>{$_('app.name')}</span>
   </div>
   
   <div class="nav-items">
@@ -29,7 +31,7 @@
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>
-      Search
+      {$_('nav.search')}
     </button>
     
     <button 
@@ -41,7 +43,7 @@
         <polyline points="7 10 12 15 17 10"/>
         <line x1="12" y1="15" x2="12" y2="3"/>
       </svg>
-      Downloads
+      {$_('nav.downloads')}
       {#if activeDownloads > 0}
         <span class="badge">{activeDownloads}</span>
       {/if}
@@ -55,9 +57,20 @@
         <circle cx="12" cy="12" r="3"/>
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
       </svg>
-      Settings
+      {$_('nav.settings')}
     </button>
   </div>
+  
+  {#if onShowHelp}
+    <button class="help-btn" onclick={onShowHelp} title="{$_('nav.keyboardShortcuts')} (Shift+?)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      <span>{$_('nav.keyboardShortcuts')}</span>
+    </button>
+  {/if}
   
   {#if user}
     <div class="user-info">
@@ -86,7 +99,7 @@
           </svg>
         </span>
       {/if}
-      <span>{user.name || 'Connected'}</span>
+      <span>{user.name || $_('user.connected')}</span>
     </div>
   {/if}
 </nav>
@@ -121,6 +134,7 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    flex: 1;
   }
   
   .nav-btn {
@@ -162,6 +176,32 @@
     padding: 1px 6px;
     border-radius: 10px;
     margin-left: auto;
+  }
+  
+  .help-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border: none;
+    background: transparent;
+    color: var(--text-tertiary);
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: inherit;
+    margin-bottom: 8px;
+  }
+  
+  .help-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+  }
+  
+  .help-btn svg {
+    flex-shrink: 0;
   }
   
   .user-info {

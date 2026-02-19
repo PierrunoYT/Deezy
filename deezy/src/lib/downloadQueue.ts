@@ -5,25 +5,35 @@ import {
   downloadHistory,
   downloadQueue,
   activeDownloads,
+  pausedDownloads,
   MAX_CONCURRENT_DOWNLOADS,
   type Track,
   type QueuedDownload
 } from './stores';
 import { downloadRateLimiter } from './rateLimiter';
+import { notificationManager } from './notifications';
 
 class DownloadQueueManager {
   private processing = false;
   private activeCount = 0;
+  private activeDownloadControllers = new Map<string, AbortController>();
 
   async addToQueue(track: Track, priority: number = 0) {
     const trackId = String(track.id);
     const currentDownloads = get(downloads);
     
-    // Check if already downloading or complete
+    // Check if already downloading or complete (but allow paused to be re-queued)
     const state = currentDownloads.get(trackId);
     if (state === 'downloading' || state === 'complete') {
       console.log('Track already downloading or complete:', trackId);
       return;
+    }
+
+    // Remove from paused set if it was paused
+    const paused = get(pausedDownloads);
+    if (paused.has(trackId)) {
+      paused.delete(trackId);
+      pausedDownloads.set(paused);
     }
 
     // Add to queue
@@ -80,8 +90,19 @@ class DownloadQueueManager {
 
   private async downloadTrack(track: Track) {
     const trackId = String(track.id);
+    
+    // Check if paused before starting
+    if (this.isPaused(trackId)) {
+      console.log('Track is paused, skipping:', trackId);
+      return;
+    }
+
     this.activeCount++;
     activeDownloads.set(this.activeCount);
+
+    // Create abort controller for this download
+    const controller = new AbortController();
+    this.activeDownloadControllers.set(trackId, controller);
 
     // Add to download history with initial state
     downloadHistory.update(history => {
@@ -95,10 +116,18 @@ class DownloadQueueManager {
           cover: track.cover_medium || track.cover_small,
           percent: 0,
           status: 'downloading',
-          track: track
+          track: track,
+          isPaused: false,
+          timestamp: new Date().toISOString()
         }, ...history];
+      } else {
+        // Update existing entry
+        return history.map(item =>
+          item.trackId === trackId
+            ? { ...item, status: 'downloading', percent: 0, isPaused: false, errorMsg: undefined, timestamp: new Date().toISOString() }
+            : item
+        );
       }
-      return history;
     });
 
     downloads.update(d => {
@@ -110,7 +139,20 @@ class DownloadQueueManager {
       // Apply rate limiting before download
       await downloadRateLimiter.throttle();
 
+      // Check if paused again after rate limiting
+      if (this.isPaused(trackId)) {
+        console.log('Track was paused during rate limiting, aborting:', trackId);
+        return;
+      }
+
       const result = await invoke<string>('download_track', { trackId });
+      
+      // Check if paused after download completes
+      if (this.isPaused(trackId)) {
+        console.log('Track was paused, not marking as complete:', trackId);
+        return;
+      }
+
       console.log('Download completed:', result);
       
       downloads.update(d => {
@@ -118,17 +160,22 @@ class DownloadQueueManager {
         return d;
       });
 
-      // Always mark the history entry as 100 % complete regardless of
-      // whether every Tauri progress event was received while the
-      // DownloadsView was mounted.
       downloadHistory.update(history =>
         history.map(item =>
           item.trackId === trackId
-            ? { ...item, percent: 100, status: 'complete' }
+            ? { ...item, percent: 100, status: 'complete', isPaused: false, filePath: result }
             : item
         )
       );
+
+      await notificationManager.notifyDownloadComplete(track.title, track.artist);
     } catch (err) {
+      // Check if it was paused (which causes an error)
+      if (this.isPaused(trackId)) {
+        console.log('Download was paused:', trackId);
+        return;
+      }
+
       console.error('Download failed:', err);
       
       downloads.update(d => {
@@ -136,15 +183,17 @@ class DownloadQueueManager {
         return d;
       });
 
-      // Update download history with error
       downloadHistory.update(history =>
         history.map(item =>
           item.trackId === trackId
-            ? { ...item, status: 'error', errorMsg: String(err) }
+            ? { ...item, status: 'error', errorMsg: String(err), isPaused: false }
             : item
         )
       );
+
+      await notificationManager.notifyDownloadError(track.title, track.artist, String(err));
     } finally {
+      this.activeDownloadControllers.delete(trackId);
       this.activeCount--;
       activeDownloads.set(this.activeCount);
       
@@ -155,12 +204,84 @@ class DownloadQueueManager {
     }
   }
 
+  pauseDownload(trackId: string) {
+    const paused = get(pausedDownloads);
+    paused.add(trackId);
+    pausedDownloads.set(paused);
+
+    // Cancel the active download if it's currently downloading
+    const controller = this.activeDownloadControllers.get(trackId);
+    if (controller) {
+      controller.abort();
+      this.activeDownloadControllers.delete(trackId);
+    }
+
+    // Update download history to show paused state
+    downloadHistory.update(history =>
+      history.map(item =>
+        item.trackId === trackId
+          ? { ...item, status: 'paused', isPaused: true }
+          : item
+      )
+    );
+
+    // Update downloads map
+    downloads.update(d => {
+      d.set(trackId, 'paused');
+      return d;
+    });
+  }
+
+  resumeDownload(trackId: string) {
+    const paused = get(pausedDownloads);
+    paused.delete(trackId);
+    pausedDownloads.set(paused);
+
+    // Find the track in download history
+    const history = get(downloadHistory);
+    const item = history.find(h => h.trackId === trackId);
+    
+    if (item && item.track) {
+      // Reset the download state
+      downloadHistory.update(history =>
+        history.map(h =>
+          h.trackId === trackId
+            ? { ...h, status: 'downloading', percent: 0, isPaused: false, errorMsg: undefined }
+            : h
+        )
+      );
+
+      // Remove from downloads map so it can be re-added
+      downloads.update(d => {
+        d.delete(trackId);
+        return d;
+      });
+
+      // Add back to queue with high priority
+      this.addToQueue(item.track, 100);
+    }
+  }
+
+  isPaused(trackId: string): boolean {
+    return get(pausedDownloads).has(trackId);
+  }
+
   clearQueue() {
     downloadQueue.set([]);
   }
 
   getQueueLength(): number {
     return get(downloadQueue).length;
+  }
+
+  reorderQueue(newQueue: QueuedDownload[]) {
+    downloadQueue.set(newQueue);
+  }
+
+  removeFromQueue(trackId: string) {
+    downloadQueue.update(queue => 
+      queue.filter(item => String(item.track.id) !== trackId)
+    );
   }
 }
 

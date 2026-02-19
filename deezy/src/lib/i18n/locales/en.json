@@ -1,0 +1,202 @@
+{
+  "app": {
+    "name": "Deezy"
+  },
+  "nav": {
+    "search": "Search",
+    "downloads": "Downloads",
+    "settings": "Settings",
+    "keyboardShortcuts": "Keyboard Shortcuts"
+  },
+  "search": {
+    "title": "Search",
+    "placeholder": {
+      "tracks": "Search for tracks...",
+      "albums": "Search for albums...",
+      "artists": "Search for artists..."
+    },
+    "tabs": {
+      "tracks": "Tracks",
+      "albums": "Albums",
+      "artists": "Artists"
+    },
+    "status": {
+      "searching": "Searching...",
+      "noResults": "No results found.",
+      "loginRequired": "Please set your ARL token in Settings first."
+    },
+    "history": {
+      "title": "Recent Searches"
+    },
+    "artist": {
+      "back": "Back",
+      "discography": "Discography",
+      "loadingDiscography": "Loading discography...",
+      "noAlbums": "No albums found for this artist.",
+      "browseDiscography": "Browse {artist}'s discography"
+    },
+    "track": {
+      "title": "Title",
+      "album": "Album",
+      "duration": "Duration",
+      "download": "Download",
+      "viewLyrics": "View Lyrics"
+    },
+    "album": {
+      "downloadAll": "Download All",
+      "adding": "Adding...",
+      "tracks": "{count, plural, =1 {1 track} other {# tracks}}"
+    },
+    "artistCard": {
+      "albums": "{count, plural, =1 {1 album} other {# albums}}",
+      "fans": "{count, number} fans"
+    }
+  },
+  "downloads": {
+    "title": "Downloads",
+    "clearHistory": "Clear history",
+    "exportHistory": "Export History",
+    "empty": {
+      "title": "No downloads yet",
+      "subtitle": "Search for tracks and click the download button"
+    },
+    "history": {
+      "title": "History"
+    },
+    "status": {
+      "complete": "Done",
+      "error": "Error",
+      "paused": "Paused",
+      "downloading": "{percent}%",
+      "tagging": "Writing tags...",
+      "resolving": "Resolving..."
+    },
+    "actions": {
+      "pause": "Pause download",
+      "resume": "Resume download",
+      "retry": "Retry download"
+    },
+    "queue": {
+      "title": "Download Queue",
+      "empty": "Queue is empty",
+      "concurrent": "Downloading {current} of {max}",
+      "waiting": "Waiting...",
+      "remove": "Remove from queue",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "clear": "Clear Queue"
+    },
+    "export": {
+      "title": "Export Download History",
+      "format": "Export Format",
+      "csv": "CSV (Spreadsheet)",
+      "json": "JSON (Data)",
+      "dateRange": "Date Range",
+      "allTime": "All Time",
+      "lastWeek": "Last Week",
+      "lastMonth": "Last Month",
+      "lastYear": "Last Year",
+      "custom": "Custom Range",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "exportButton": "Export",
+      "cancel": "Cancel",
+      "exporting": "Exporting...",
+      "success": "History exported successfully to {path}",
+      "error": "Failed to export history: {error}",
+      "cancelled": "Export cancelled",
+      "emptyHistory": "No download history to export"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "arl": {
+      "label": "ARL Token",
+      "hint": "Log into deezer.com, open DevTools (F12), go to Application > Cookies, and copy the <code>arl</code> value.",
+      "placeholder": "Paste your ARL token here...",
+      "showHide": "Show/hide"
+    },
+    "outputDir": {
+      "label": "Download Folder",
+      "placeholder": "Path to save downloads...",
+      "browse": "Browse"
+    },
+    "quality": {
+      "label": "Audio Quality",
+      "mp3_128": "MP3 128 kbps",
+      "mp3_320": "MP3 320 kbps",
+      "flac": "FLAC (Lossless)"
+    },
+    "folderStructure": {
+      "label": "Folder Structure",
+      "hint": "Choose how files are organized in the download folder.",
+      "flat": "Flat - All files in download folder",
+      "artistTrack": "Artist/Track - Artist Name/Track.mp3",
+      "artistAlbumTrack": "Artist/Album/Track - Artist Name/Album Name/Track.mp3",
+      "albumTrack": "Album/Track - Album Name/Track.mp3"
+    },
+    "theme": {
+      "label": "Theme",
+      "hint": "Choose your preferred color theme. System will follow your OS settings.",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "notifications": {
+      "label": "Notifications",
+      "hint": "Show system notifications when downloads complete or fail.",
+      "enabled": "Enabled",
+      "disabled": "Disabled"
+    },
+    "searchHistory": {
+      "label": "Search History",
+      "hint": "Save your recent searches for quick access. Disable for privacy.",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "clear": "Clear Search History",
+      "clearConfirm": "Are you sure you want to clear your search history?"
+    },
+    "language": {
+      "label": "Language",
+      "hint": "Choose your preferred language for the interface."
+    },
+    "actions": {
+      "save": "Save & Login",
+      "saving": "Connecting..."
+    },
+    "status": {
+      "loggingIn": "Logging in to Deezer...",
+      "loginSuccess": "Logged in successfully!",
+      "loginFailed": "Login failed: {error}",
+      "arlRequired": "ARL token is required.",
+      "arlInvalid": "ARL token appears to be invalid (too short).",
+      "outputDirRequired": "Download folder is required.",
+      "qualityInvalid": "Invalid quality setting.",
+      "historyCleared": "Search history cleared successfully!"
+    }
+  },
+  "user": {
+    "connected": "Connected"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back"
+  },
+  "time": {
+    "duration": "{minutes}:{seconds}"
+  },
+  "notifications": {
+    "downloadComplete": "Download Complete",
+    "downloadCompleteBody": "{title} has been downloaded successfully.",
+    "downloadFailed": "Download Failed",
+    "downloadFailedBody": "Failed to download {title}."
+  }
+}

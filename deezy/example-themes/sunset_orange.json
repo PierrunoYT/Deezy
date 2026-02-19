@@ -1,0 +1,23 @@
+{
+  "name": "Sunset Orange",
+  "author": "Deezy Team",
+  "description": "A warm orange theme inspired by beautiful sunsets",
+  "version": "1.0.0",
+  "colors": {
+    "bg-darkest": "#1a0e0a",
+    "bg-dark": "#291510",
+    "bg-surface": "#381c16",
+    "bg-elevated": "#47231c",
+    "bg-hover": "#562a22",
+    "accent": "#ff7b3d",
+    "accent-hover": "#ff9563",
+    "accent-dim": "rgba(255, 123, 61, 0.15)",
+    "text-primary": "#fff5f0",
+    "text-secondary": "#d9b8a0",
+    "text-tertiary": "#94806b",
+    "success": "#1db954",
+    "error": "#ff5757",
+    "warning": "#ffb347",
+    "border": "#562a22"
+  }
+}

@@ -2,11 +2,50 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tauri::Manager;
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum FolderStructure {
+    Flat,
+    ArtistTrack,
+    ArtistAlbumTrack,
+    AlbumTrack,
+}
+
+impl Default for FolderStructure {
+    fn default() -> Self {
+        FolderStructure::Flat
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
     pub arl: String,
     pub output_dir: String,
     pub quality: String,
+    #[serde(default)]
+    pub folder_structure: FolderStructure,
+    #[serde(default)]
+    pub theme: Option<String>,
+    #[serde(default)]
+    pub custom_theme: Option<String>,
+    #[serde(default)]
+    pub search_history: Vec<String>,
+    #[serde(default = "default_true")]
+    pub enable_search_history: bool,
+    #[serde(default = "default_true")]
+    pub notifications_enabled: bool,
+    #[serde(default = "default_locale")]
+    pub locale: String,
+    #[serde(default = "default_true")]
+    pub close_to_tray: bool,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_locale() -> String {
+    "en".to_string()
 }
 
 impl Default for Settings {
@@ -23,6 +62,14 @@ impl Default for Settings {
             arl: String::new(),
             output_dir: default_dir.to_string_lossy().to_string(),
             quality: "MP3_320".into(),
+            folder_structure: FolderStructure::default(),
+            theme: Some("system".to_string()),
+            custom_theme: None,
+            search_history: Vec::new(),
+            enable_search_history: true,
+            notifications_enabled: true,
+            locale: "en".to_string(),
+            close_to_tray: true,
         }
     }
 }

@@ -34,6 +34,20 @@ All notable changes to Deezy are documented here.
 - **Back navigation** – Discography page includes a back button to return to search results while preserving the current query
 - **Retry failed downloads** – One-click retry button on errored items in Downloads view
 - **Persistent download history** – Saved to disk and restored on app restart
+- **Drag-and-drop queue reordering** – Reorder pending downloads by dragging items with visual feedback and drag handles
+- **Pause/resume downloads** – Pause active downloads and resume them later with high priority
+- **Folder structure options** – Configure download organization (Flat, Artist/Track, Artist/Album/Track, Album/Track) with automatic directory creation
+- **Theme system** – Light, Dark, and System themes with instant switching and OS theme detection
+- **Keyboard shortcuts** – Comprehensive shortcuts (Ctrl+F for search, Ctrl+1/2/3 for navigation, Escape to clear, Shift+? for help)
+- **Download notifications** – System toast notifications for completed and failed downloads with toggle in settings
+- **Search history** – Recent searches dropdown with click-to-search and privacy toggle
+- **Lyrics viewer** – Modal display for track lyrics with synced/plain text support and scrollable view
+- **Audio preview** – 30-second preview playback with mini player, seek bar, volume control, and Space bar shortcut
+- **Internationalization** – Full i18n support with English, Spanish, French, and German translations
+- **Auto-update system** – Automatic update checks with download progress and one-click installation
+- **System tray** – Tray icon with menu, minimize to tray, download status, and Ctrl+H shortcut
+- **Export history** – Export download history as CSV or JSON with file picker
+- **Custom themes** – Import/export custom theme files with JSON-based color definitions and theme manager UI
 
 ### Removed
 

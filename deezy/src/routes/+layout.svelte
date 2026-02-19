@@ -3,14 +3,24 @@
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { listen } from '@tauri-apps/api/event';
-  import { loggedIn, userInfo, downloads, activeDownloads, downloadHistory, type UserInfo, type DownloadItem } from '$lib/stores';
+  import { check } from '@tauri-apps/plugin-updater';
+  import { loggedIn, userInfo, downloads, activeDownloads, downloadHistory, theme, updateState, currentLocale, type UserInfo, type DownloadItem, type Theme } from '$lib/stores';
+  import UpdateModal from '$lib/components/UpdateModal.svelte';
+  import { initI18n } from '$lib/i18n';
+  import { locale as i18nLocale } from 'svelte-i18n';
+  import { trayManager } from '$lib/tray';
 
   let { children } = $props();
+  
+  let showUpdateModal = $state(false);
 
   interface Settings {
     arl: string;
     output_dir: string;
     quality: string;
+    theme?: Theme;
+    custom_theme?: string;
+    locale?: string;
   }
 
   interface DownloadProgressEvent {
@@ -19,7 +29,97 @@
     percent: number;
     status: string;
   }
+
+  async function applyTheme(themeValue: Theme) {
+    const root = document.documentElement;
+    
+    if (themeValue === 'system') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      root.classList.toggle('light', !prefersDark);
+    } else if (themeValue === 'custom') {
+      try {
+        const settings = await invoke<Settings>('get_settings');
+        if (settings.custom_theme) {
+          const themeData = await invoke<any>('load_custom_theme', { themeName: settings.custom_theme });
+          const colors = themeData.colors;
+          
+          root.style.setProperty('--bg-darkest', colors['bg-darkest']);
+          root.style.setProperty('--bg-dark', colors['bg-dark']);
+          root.style.setProperty('--bg-surface', colors['bg-surface']);
+          root.style.setProperty('--bg-elevated', colors['bg-elevated']);
+          root.style.setProperty('--bg-hover', colors['bg-hover']);
+          root.style.setProperty('--accent', colors.accent);
+          root.style.setProperty('--accent-hover', colors['accent-hover']);
+          root.style.setProperty('--accent-dim', colors['accent-dim']);
+          root.style.setProperty('--text-primary', colors['text-primary']);
+          root.style.setProperty('--text-secondary', colors['text-secondary']);
+          root.style.setProperty('--text-tertiary', colors['text-tertiary']);
+          root.style.setProperty('--success', colors.success);
+          root.style.setProperty('--error', colors.error);
+          root.style.setProperty('--warning', colors.warning);
+          root.style.setProperty('--border', colors.border);
+          
+          root.classList.remove('light');
+        }
+      } catch (err) {
+        console.error('Failed to load custom theme:', err);
+        root.classList.toggle('light', false);
+      }
+    } else {
+      root.classList.toggle('light', themeValue === 'light');
+    }
+  }
   
+  async function checkForUpdates(silent = false) {
+    try {
+      if (!silent) {
+        updateState.update(s => ({ ...s, checking: true, error: null }));
+      }
+      
+      const update = await check();
+      
+      if (update?.available) {
+        console.log('Update available:', update.version);
+        updateState.update(s => ({
+          ...s,
+          available: true,
+          checking: false,
+          updateInfo: {
+            version: update.version,
+            currentVersion: update.currentVersion,
+            date: update.date,
+            body: update.body
+          }
+        }));
+        
+        showUpdateModal = true;
+      } else {
+        console.log('No updates available');
+        updateState.update(s => ({
+          ...s,
+          available: false,
+          checking: false,
+          updateInfo: null
+        }));
+        
+        if (!silent) {
+          // Show a brief notification that app is up to date
+          setTimeout(() => {
+            updateState.update(s => ({ ...s, error: null }));
+          }, 3000);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to check for updates:', err);
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      updateState.update(s => ({
+        ...s,
+        checking: false,
+        error: errorMsg
+      }));
+    }
+  }
+
   onMount(() => {
     // Load persisted download history
     (async () => {
@@ -33,10 +133,26 @@
       }
     })();
 
-    // Auto-login
+    // Auto-login, load theme, and initialize i18n
     (async () => {
       try {
         const settings = await invoke<Settings>('get_settings');
+        
+        // Initialize i18n with saved locale
+        const savedLocale = settings.locale || 'en';
+        await initI18n(savedLocale);
+        currentLocale.set(savedLocale);
+        
+        // Load theme preference
+        if (settings.theme) {
+          theme.set(settings.theme);
+          applyTheme(settings.theme);
+        } else {
+          // Default to system theme
+          theme.set('system');
+          applyTheme('system');
+        }
+        
         if (settings.arl) {
           try {
             console.log('Auto-logging in with saved ARL...');
@@ -46,14 +162,47 @@
             console.log('Auto-login successful:', user);
           } catch (err) {
             console.error('Auto-login failed:', err);
-            // ARL expired or invalid
           }
         }
       } catch (err) {
         console.error('Failed to load settings:', err);
-        // First run, no settings yet
+        // First run, initialize with default locale and system theme
+        await initI18n('en');
+        currentLocale.set('en');
+        theme.set('system');
+        applyTheme('system');
       }
     })();
+    
+    // Initialize tray manager
+    trayManager.init().catch(err => {
+      console.error('Failed to initialize tray manager:', err);
+    });
+    
+    // Check for updates on startup (silently)
+    setTimeout(() => {
+      checkForUpdates(true);
+    }, 3000);
+
+    // Listen for theme changes
+    const unsubscribeTheme = theme.subscribe(applyTheme);
+
+    // Listen for locale changes and update i18n
+    const unsubscribeLocale = currentLocale.subscribe(newLocale => {
+      i18nLocale.set(newLocale);
+    });
+
+    // Listen for system theme changes when in system mode
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleSystemThemeChange = () => {
+      theme.update(t => {
+        if (t === 'system') {
+          applyTheme('system');
+        }
+        return t;
+      });
+    };
+    mediaQuery.addEventListener('change', handleSystemThemeChange);
 
     // Debounce-save download history on changes
     let saveTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -107,9 +256,19 @@
         unlisten();
       }
       unsubscribe();
+      unsubscribeTheme();
+      unsubscribeLocale();
+      mediaQuery.removeEventListener('change', handleSystemThemeChange);
       if (saveTimeout) clearTimeout(saveTimeout);
     };
   });
+  
+  // Export checkForUpdates so it can be called from Settings
+  if (typeof window !== 'undefined') {
+    (window as any).checkForUpdates = () => checkForUpdates(false);
+  }
 </script>
+
+<UpdateModal bind:show={showUpdateModal} onClose={() => showUpdateModal = false} />
 
 {@render children()}

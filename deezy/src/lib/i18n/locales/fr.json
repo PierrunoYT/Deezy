@@ -1,0 +1,202 @@
+{
+  "app": {
+    "name": "Deezy"
+  },
+  "nav": {
+    "search": "Rechercher",
+    "downloads": "Téléchargements",
+    "settings": "Paramètres",
+    "keyboardShortcuts": "Raccourcis Clavier"
+  },
+  "search": {
+    "title": "Rechercher",
+    "placeholder": {
+      "tracks": "Rechercher des morceaux...",
+      "albums": "Rechercher des albums...",
+      "artists": "Rechercher des artistes..."
+    },
+    "tabs": {
+      "tracks": "Morceaux",
+      "albums": "Albums",
+      "artists": "Artistes"
+    },
+    "status": {
+      "searching": "Recherche en cours...",
+      "noResults": "Aucun résultat trouvé.",
+      "loginRequired": "Veuillez d'abord configurer votre jeton ARL dans les Paramètres."
+    },
+    "history": {
+      "title": "Recherches Récentes"
+    },
+    "artist": {
+      "back": "Retour",
+      "discography": "Discographie",
+      "loadingDiscography": "Chargement de la discographie...",
+      "noAlbums": "Aucun album trouvé pour cet artiste.",
+      "browseDiscography": "Parcourir la discographie de {artist}"
+    },
+    "track": {
+      "title": "Titre",
+      "album": "Album",
+      "duration": "Durée",
+      "download": "Télécharger",
+      "viewLyrics": "Voir les Paroles"
+    },
+    "album": {
+      "downloadAll": "Tout Télécharger",
+      "adding": "Ajout...",
+      "tracks": "{count, plural, =1 {1 morceau} other {# morceaux}}"
+    },
+    "artistCard": {
+      "albums": "{count, plural, =1 {1 album} other {# albums}}",
+      "fans": "{count, number} fans"
+    }
+  },
+  "downloads": {
+    "title": "Téléchargements",
+    "clearHistory": "Effacer l'historique",
+    "exportHistory": "Exporter l'Historique",
+    "empty": {
+      "title": "Aucun téléchargement pour le moment",
+      "subtitle": "Recherchez des morceaux et cliquez sur le bouton de téléchargement"
+    },
+    "history": {
+      "title": "Historique"
+    },
+    "status": {
+      "complete": "Terminé",
+      "error": "Erreur",
+      "paused": "En pause",
+      "downloading": "{percent}%",
+      "tagging": "Écriture des tags...",
+      "resolving": "Résolution..."
+    },
+    "actions": {
+      "pause": "Mettre en pause",
+      "resume": "Reprendre le téléchargement",
+      "retry": "Réessayer le téléchargement"
+    },
+    "queue": {
+      "title": "File d'Attente",
+      "empty": "La file est vide",
+      "concurrent": "Téléchargement de {current} sur {max}",
+      "waiting": "En attente...",
+      "remove": "Retirer de la file",
+      "moveUp": "Monter",
+      "moveDown": "Descendre",
+      "clear": "Vider la File"
+    },
+    "export": {
+      "title": "Exporter l'Historique des Téléchargements",
+      "format": "Format d'Export",
+      "csv": "CSV (Tableur)",
+      "json": "JSON (Données)",
+      "dateRange": "Période",
+      "allTime": "Tout le Temps",
+      "lastWeek": "Dernière Semaine",
+      "lastMonth": "Dernier Mois",
+      "lastYear": "Dernière Année",
+      "custom": "Personnalisé",
+      "startDate": "Date de Début",
+      "endDate": "Date de Fin",
+      "exportButton": "Exporter",
+      "cancel": "Annuler",
+      "exporting": "Export en cours...",
+      "success": "Historique exporté avec succès vers {path}",
+      "error": "Échec de l'export : {error}",
+      "cancelled": "Export annulé",
+      "emptyHistory": "Aucun historique de téléchargement à exporter"
+    }
+  },
+  "settings": {
+    "title": "Paramètres",
+    "arl": {
+      "label": "Jeton ARL",
+      "hint": "Connectez-vous à deezer.com, ouvrez DevTools (F12), allez dans Application > Cookies et copiez la valeur <code>arl</code>.",
+      "placeholder": "Collez votre jeton ARL ici...",
+      "showHide": "Afficher/masquer"
+    },
+    "outputDir": {
+      "label": "Dossier de Téléchargement",
+      "placeholder": "Chemin pour enregistrer les téléchargements...",
+      "browse": "Parcourir"
+    },
+    "quality": {
+      "label": "Qualité Audio",
+      "mp3_128": "MP3 128 kbps",
+      "mp3_320": "MP3 320 kbps",
+      "flac": "FLAC (Sans perte)"
+    },
+    "folderStructure": {
+      "label": "Structure des Dossiers",
+      "hint": "Choisissez comment les fichiers sont organisés dans le dossier de téléchargement.",
+      "flat": "Plat - Tous les fichiers dans le dossier de téléchargement",
+      "artistTrack": "Artiste/Morceau - Nom de l'Artiste/Morceau.mp3",
+      "artistAlbumTrack": "Artiste/Album/Morceau - Nom de l'Artiste/Nom de l'Album/Morceau.mp3",
+      "albumTrack": "Album/Morceau - Nom de l'Album/Morceau.mp3"
+    },
+    "theme": {
+      "label": "Thème",
+      "hint": "Choisissez votre thème de couleur préféré. Système suivra les paramètres de votre OS.",
+      "light": "Clair",
+      "dark": "Sombre",
+      "system": "Système"
+    },
+    "notifications": {
+      "label": "Notifications",
+      "hint": "Afficher les notifications système lorsque les téléchargements se terminent ou échouent.",
+      "enabled": "Activé",
+      "disabled": "Désactivé"
+    },
+    "searchHistory": {
+      "label": "Historique de Recherche",
+      "hint": "Enregistrez vos recherches récentes pour un accès rapide. Désactivez pour la confidentialité.",
+      "enabled": "Activé",
+      "disabled": "Désactivé",
+      "clear": "Effacer l'Historique de Recherche",
+      "clearConfirm": "Êtes-vous sûr de vouloir effacer votre historique de recherche ?"
+    },
+    "language": {
+      "label": "Langue",
+      "hint": "Choisissez votre langue préférée pour l'interface."
+    },
+    "actions": {
+      "save": "Enregistrer et Se Connecter",
+      "saving": "Connexion..."
+    },
+    "status": {
+      "loggingIn": "Connexion à Deezer...",
+      "loginSuccess": "Connexion réussie !",
+      "loginFailed": "Échec de la connexion : {error}",
+      "arlRequired": "Le jeton ARL est requis.",
+      "arlInvalid": "Le jeton ARL semble invalide (trop court).",
+      "outputDirRequired": "Le dossier de téléchargement est requis.",
+      "qualityInvalid": "Paramètre de qualité invalide.",
+      "historyCleared": "Historique de recherche effacé avec succès !"
+    }
+  },
+  "user": {
+    "connected": "Connecté"
+  },
+  "common": {
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "close": "Fermer",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "back": "Retour"
+  },
+  "time": {
+    "duration": "{minutes}:{seconds}"
+  },
+  "notifications": {
+    "downloadComplete": "Téléchargement Terminé",
+    "downloadCompleteBody": "{title} a été téléchargé avec succès.",
+    "downloadFailed": "Échec du Téléchargement",
+    "downloadFailedBody": "Échec du téléchargement de {title}."
+  }
+}

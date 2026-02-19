@@ -1,0 +1,202 @@
+{
+  "app": {
+    "name": "Deezy"
+  },
+  "nav": {
+    "search": "Suchen",
+    "downloads": "Downloads",
+    "settings": "Einstellungen",
+    "keyboardShortcuts": "Tastenkombinationen"
+  },
+  "search": {
+    "title": "Suchen",
+    "placeholder": {
+      "tracks": "Nach Titeln suchen...",
+      "albums": "Nach Alben suchen...",
+      "artists": "Nach Künstlern suchen..."
+    },
+    "tabs": {
+      "tracks": "Titel",
+      "albums": "Alben",
+      "artists": "Künstler"
+    },
+    "status": {
+      "searching": "Suche läuft...",
+      "noResults": "Keine Ergebnisse gefunden.",
+      "loginRequired": "Bitte konfigurieren Sie zuerst Ihr ARL-Token in den Einstellungen."
+    },
+    "history": {
+      "title": "Letzte Suchen"
+    },
+    "artist": {
+      "back": "Zurück",
+      "discography": "Diskografie",
+      "loadingDiscography": "Diskografie wird geladen...",
+      "noAlbums": "Keine Alben für diesen Künstler gefunden.",
+      "browseDiscography": "Diskografie von {artist} durchsuchen"
+    },
+    "track": {
+      "title": "Titel",
+      "album": "Album",
+      "duration": "Dauer",
+      "download": "Herunterladen",
+      "viewLyrics": "Songtexte Anzeigen"
+    },
+    "album": {
+      "downloadAll": "Alles Herunterladen",
+      "adding": "Wird hinzugefügt...",
+      "tracks": "{count, plural, =1 {1 Titel} other {# Titel}}"
+    },
+    "artistCard": {
+      "albums": "{count, plural, =1 {1 Album} other {# Alben}}",
+      "fans": "{count, number} Fans"
+    }
+  },
+  "downloads": {
+    "title": "Downloads",
+    "clearHistory": "Verlauf löschen",
+    "exportHistory": "Verlauf Exportieren",
+    "empty": {
+      "title": "Noch keine Downloads",
+      "subtitle": "Suchen Sie nach Titeln und klicken Sie auf die Download-Schaltfläche"
+    },
+    "history": {
+      "title": "Verlauf"
+    },
+    "status": {
+      "complete": "Fertig",
+      "error": "Fehler",
+      "paused": "Pausiert",
+      "downloading": "{percent}%",
+      "tagging": "Tags werden geschrieben...",
+      "resolving": "Wird aufgelöst..."
+    },
+    "actions": {
+      "pause": "Download pausieren",
+      "resume": "Download fortsetzen",
+      "retry": "Download wiederholen"
+    },
+    "queue": {
+      "title": "Download-Warteschlange",
+      "empty": "Warteschlange ist leer",
+      "concurrent": "{current} von {max} werden heruntergeladen",
+      "waiting": "Warten...",
+      "remove": "Aus Warteschlange entfernen",
+      "moveUp": "Nach oben",
+      "moveDown": "Nach unten",
+      "clear": "Warteschlange Leeren"
+    },
+    "export": {
+      "title": "Download-Verlauf Exportieren",
+      "format": "Exportformat",
+      "csv": "CSV (Tabelle)",
+      "json": "JSON (Daten)",
+      "dateRange": "Zeitraum",
+      "allTime": "Alle Zeit",
+      "lastWeek": "Letzte Woche",
+      "lastMonth": "Letzter Monat",
+      "lastYear": "Letztes Jahr",
+      "custom": "Benutzerdefiniert",
+      "startDate": "Startdatum",
+      "endDate": "Enddatum",
+      "exportButton": "Exportieren",
+      "cancel": "Abbrechen",
+      "exporting": "Wird exportiert...",
+      "success": "Verlauf erfolgreich exportiert nach {path}",
+      "error": "Fehler beim Exportieren: {error}",
+      "cancelled": "Export abgebrochen",
+      "emptyHistory": "Kein Download-Verlauf zum Exportieren"
+    }
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "arl": {
+      "label": "ARL-Token",
+      "hint": "Melden Sie sich bei deezer.com an, öffnen Sie DevTools (F12), gehen Sie zu Anwendung > Cookies und kopieren Sie den <code>arl</code>-Wert.",
+      "placeholder": "Fügen Sie Ihr ARL-Token hier ein...",
+      "showHide": "Anzeigen/Verbergen"
+    },
+    "outputDir": {
+      "label": "Download-Ordner",
+      "placeholder": "Pfad zum Speichern von Downloads...",
+      "browse": "Durchsuchen"
+    },
+    "quality": {
+      "label": "Audioqualität",
+      "mp3_128": "MP3 128 kbps",
+      "mp3_320": "MP3 320 kbps",
+      "flac": "FLAC (Verlustfrei)"
+    },
+    "folderStructure": {
+      "label": "Ordnerstruktur",
+      "hint": "Wählen Sie, wie Dateien im Download-Ordner organisiert werden.",
+      "flat": "Flach - Alle Dateien im Download-Ordner",
+      "artistTrack": "Künstler/Titel - Künstlername/Titel.mp3",
+      "artistAlbumTrack": "Künstler/Album/Titel - Künstlername/Albumname/Titel.mp3",
+      "albumTrack": "Album/Titel - Albumname/Titel.mp3"
+    },
+    "theme": {
+      "label": "Design",
+      "hint": "Wählen Sie Ihr bevorzugtes Farbschema. System folgt Ihren Betriebssystemeinstellungen.",
+      "light": "Hell",
+      "dark": "Dunkel",
+      "system": "System"
+    },
+    "notifications": {
+      "label": "Benachrichtigungen",
+      "hint": "Systembenachrichtigungen anzeigen, wenn Downloads abgeschlossen sind oder fehlschlagen.",
+      "enabled": "Aktiviert",
+      "disabled": "Deaktiviert"
+    },
+    "searchHistory": {
+      "label": "Suchverlauf",
+      "hint": "Speichern Sie Ihre letzten Suchen für schnellen Zugriff. Deaktivieren für Datenschutz.",
+      "enabled": "Aktiviert",
+      "disabled": "Deaktiviert",
+      "clear": "Suchverlauf Löschen",
+      "clearConfirm": "Sind Sie sicher, dass Sie Ihren Suchverlauf löschen möchten?"
+    },
+    "language": {
+      "label": "Sprache",
+      "hint": "Wählen Sie Ihre bevorzugte Sprache für die Benutzeroberfläche."
+    },
+    "actions": {
+      "save": "Speichern & Anmelden",
+      "saving": "Verbinden..."
+    },
+    "status": {
+      "loggingIn": "Bei Deezer anmelden...",
+      "loginSuccess": "Erfolgreich angemeldet!",
+      "loginFailed": "Anmeldung fehlgeschlagen: {error}",
+      "arlRequired": "ARL-Token ist erforderlich.",
+      "arlInvalid": "ARL-Token scheint ungültig zu sein (zu kurz).",
+      "outputDirRequired": "Download-Ordner ist erforderlich.",
+      "qualityInvalid": "Ungültige Qualitätseinstellung.",
+      "historyCleared": "Suchverlauf erfolgreich gelöscht!"
+    }
+  },
+  "user": {
+    "connected": "Verbunden"
+  },
+  "common": {
+    "loading": "Laden...",
+    "error": "Fehler",
+    "success": "Erfolg",
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "close": "Schließen",
+    "save": "Speichern",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "back": "Zurück"
+  },
+  "time": {
+    "duration": "{minutes}:{seconds}"
+  },
+  "notifications": {
+    "downloadComplete": "Download Abgeschlossen",
+    "downloadCompleteBody": "{title} wurde erfolgreich heruntergeladen.",
+    "downloadFailed": "Download Fehlgeschlagen",
+    "downloadFailedBody": "Fehler beim Herunterladen von {title}."
+  }
+}

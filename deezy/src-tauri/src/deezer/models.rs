@@ -17,6 +17,7 @@ pub struct SearchResult {
     pub duration: u64,
     pub cover_small: String,
     pub cover_medium: String,
+    pub preview: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
