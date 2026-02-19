@@ -37,7 +37,7 @@
 - [x] Persist download history across app restarts
 
 ### Medium Priority
-- [ ] Artist view / album browsing (click artist name → show discography)
+- [x] Artist view / album browsing (click artist name → show discography)
 - [ ] Drag-and-drop reordering of download queue
 - [ ] Pause / resume downloads
 - [ ] Download folder structure options (e.g. `Artist/Album/Track.mp3`)

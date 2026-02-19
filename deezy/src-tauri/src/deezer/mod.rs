@@ -2,7 +2,7 @@ pub mod crypto;
 pub mod download;
 pub mod models;
 
-use models::{AlbumResult, SearchResult, UserInfo};
+use models::{AlbumResult, ArtistResult, SearchResult, UserInfo};
 use reqwest::cookie::Jar;
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, ACCEPT_LANGUAGE, CACHE_CONTROL, CONNECTION, USER_AGENT};
 use serde_json::Value;
@@ -177,6 +177,7 @@ impl DeezerClient {
                     id: t["id"].as_u64()?,
                     title: t["title"].as_str()?.to_string(),
                     artist: t["artist"]["name"].as_str()?.to_string(),
+                    artist_id: t["artist"]["id"].as_u64().unwrap_or(0),
                     album: t["album"]["title"].as_str().unwrap_or("Unknown").to_string(),
                     duration: t["duration"].as_u64().unwrap_or(0),
                     cover_small: t["album"]["cover_small"]
@@ -240,6 +241,7 @@ impl DeezerClient {
                     id: a["id"].as_u64()?,
                     title: a["title"].as_str()?.to_string(),
                     artist: a["artist"]["name"].as_str()?.to_string(),
+                    artist_id: a["artist"]["id"].as_u64().unwrap_or(0),
                     cover_small: a["cover_small"].as_str().unwrap_or("").to_string(),
                     cover_medium: a["cover_medium"].as_str().unwrap_or("").to_string(),
                     nb_tracks: a["nb_tracks"].as_u64().unwrap_or(0),
@@ -284,6 +286,7 @@ impl DeezerClient {
                     id: t["id"].as_u64()?,
                     title: t["title"].as_str()?.to_string(),
                     artist: t["artist"]["name"].as_str()?.to_string(),
+                    artist_id: t["artist"]["id"].as_u64().unwrap_or(0),
                     album: album_title.clone(),
                     duration: t["duration"].as_u64().unwrap_or(0),
                     cover_small: cover_small.clone(),
@@ -293,6 +296,101 @@ impl DeezerClient {
             .collect();
 
         Ok(tracks)
+    }
+
+    pub async fn search_artists(
+        &self,
+        query: &str,
+        limit: u32,
+    ) -> Result<Vec<ArtistResult>, String> {
+        let url = format!("{}/search/artist", LEGACY_API_URL);
+
+        let res = self
+            .http
+            .get(&url)
+            .query(&[
+                ("q", query),
+                ("limit", &limit.to_string()),
+                ("index", "0"),
+            ])
+            .send()
+            .await
+            .map_err(|e| format!("Search failed: {}", e))?;
+
+        let data: Value = res
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse results: {}", e))?;
+
+        if let Some(error) = data.get("error") {
+            if let Some(obj) = error.as_object() {
+                if !obj.is_empty() {
+                    let msg = obj
+                        .values()
+                        .next()
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("Unknown error");
+                    return Err(format!("API error: {}", msg));
+                }
+            }
+        }
+
+        let artists = data["data"]
+            .as_array()
+            .ok_or("No results found")?
+            .iter()
+            .filter_map(|a| {
+                Some(ArtistResult {
+                    id: a["id"].as_u64()?,
+                    name: a["name"].as_str()?.to_string(),
+                    picture_small: a["picture_small"].as_str().unwrap_or("").to_string(),
+                    picture_medium: a["picture_medium"].as_str().unwrap_or("").to_string(),
+                    nb_album: a["nb_album"].as_u64().unwrap_or(0),
+                    nb_fan: a["nb_fan"].as_u64().unwrap_or(0),
+                })
+            })
+            .collect();
+
+        Ok(artists)
+    }
+
+    pub async fn get_artist_albums(
+        &self,
+        artist_id: &str,
+    ) -> Result<Vec<AlbumResult>, String> {
+        let url = format!("{}/artist/{}/albums", LEGACY_API_URL, artist_id);
+
+        let res = self
+            .http
+            .get(&url)
+            .query(&[("limit", "100")])
+            .send()
+            .await
+            .map_err(|e| format!("Failed to get artist albums: {}", e))?;
+
+        let data: Value = res
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse artist albums: {}", e))?;
+
+        let albums = data["data"]
+            .as_array()
+            .ok_or("No albums found for artist")?
+            .iter()
+            .filter_map(|a| {
+                Some(AlbumResult {
+                    id: a["id"].as_u64()?,
+                    title: a["title"].as_str()?.to_string(),
+                    artist: a["artist"]["name"].as_str().unwrap_or("").to_string(),
+                    artist_id: a["artist"]["id"].as_u64().unwrap_or(0),
+                    cover_small: a["cover_small"].as_str().unwrap_or("").to_string(),
+                    cover_medium: a["cover_medium"].as_str().unwrap_or("").to_string(),
+                    nb_tracks: a["nb_tracks"].as_u64().unwrap_or(0),
+                })
+            })
+            .collect();
+
+        Ok(albums)
     }
 
     pub async fn get_track(&self, track_id: &str) -> Result<Value, String> {

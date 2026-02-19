@@ -22,6 +22,7 @@ export interface Track {
   id: number;
   title: string;
   artist: string;
+  artist_id: number;
   album: string;
   duration: number;
   cover_small: string;

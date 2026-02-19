@@ -4,7 +4,8 @@ A desktop Deezer downloader built with [Tauri](https://tauri.app), [SvelteKit](h
 
 ## Features
 
-- **Search** – Find tracks or albums with debounced search and rate limiting
+- **Search** – Find tracks, albums, or artists with debounced search and rate limiting
+- **Artist browsing** – Click any artist name to open their full discography; or use the Artists tab to search directly
 - **Album download** – Browse albums and batch-download all tracks with one click
 - **Download queue** – Up to 3 concurrent downloads with progress tracking
 - **Retry failed downloads** – One-click retry button on any failed download
@@ -46,10 +47,11 @@ npm run tauri build
 
 1. Open the app → you'll land on **Settings**
 2. Paste your ARL token, choose a download folder and quality, then click **Save & Login**
-3. Switch to **Search**, type a track or album name, and hit Enter
-4. Toggle between **Tracks** and **Albums** tabs
-5. Click the download button on a track, or **Download All** on an album
-6. Switch to **Downloads** to see progress — retry any failures with one click
+3. Switch to **Search**, type a query, and hit Enter
+4. Toggle between **Tracks**, **Albums**, and **Artists** tabs
+5. Click an artist name anywhere to browse their full discography
+6. Click the download button on a track, or **Download All** on an album
+7. Switch to **Downloads** to see progress — retry any failures with one click
 
 ## Tech Stack
 

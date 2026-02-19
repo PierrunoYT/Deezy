@@ -27,6 +27,11 @@ All notable changes to Deezy are documented here.
 - **Tag error handling** – Non-blocking warnings emitted to frontend when tag writing fails
 - **Album search** – Tracks/Albums tab toggle in search view
 - **Album download** – "Download All" button to batch-queue every track in an album
+- **Artist search** – "Artists" tab in search view with dedicated search functionality via Deezer API
+- **Artist cards grid** – Artist search results displayed in a responsive card grid showing artist photo, album count, and fan count
+- **Artist discography view** – Clicking any artist opens a dedicated page listing all their albums with download buttons
+- **Clickable artist names** – Artist names in track and album rows are now interactive links that navigate to the artist's discography
+- **Back navigation** – Discography page includes a back button to return to search results while preserving the current query
 - **Retry failed downloads** – One-click retry button on errored items in Downloads view
 - **Persistent download history** – Saved to disk and restored on app restart
 
