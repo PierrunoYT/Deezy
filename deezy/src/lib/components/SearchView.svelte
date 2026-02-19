@@ -1,24 +1,30 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
-  import { loggedIn, downloads, downloadHistory, type DownloadItem } from '$lib/stores';
+  import { loggedIn, downloads, type Track } from '$lib/stores';
+  import { downloadQueueManager } from '$lib/downloadQueue';
+  import { searchRateLimiter } from '$lib/rateLimiter';
 
-  let searchQuery = $state('');
-  let results = $state<any[]>([]);
-  let searching = $state(false);
-  let errorMsg = $state('');
-  let isLoggedIn = $state(false);
+  let searchQuery = $state<string>('');
+  let results = $state<Track[]>([]);
+  let searching = $state<boolean>(false);
+  let errorMsg = $state<string>('');
+  let isLoggedIn = $state<boolean>(false);
   let downloadStates = $state<Map<string, string>>(new Map());
 
-  let searchTimeout: any = null;
+  let searchTimeout: ReturnType<typeof setTimeout> | undefined;
 
   // Use idiomatic Svelte 5 pattern with proper cleanup
   $effect(() => {
-    const unsubscribe1 = loggedIn.subscribe(val => isLoggedIn = val);
-    const unsubscribe2 = downloads.subscribe(val => downloadStates = val);
-    return () => {
-      unsubscribe1();
-      unsubscribe2();
-    };
+    try {
+      const unsubscribe1 = loggedIn.subscribe(val => isLoggedIn = val);
+      const unsubscribe2 = downloads.subscribe(val => downloadStates = val);
+      return () => {
+        unsubscribe1();
+        unsubscribe2();
+      };
+    } catch (err) {
+      console.error('Error in effect:', err);
+    }
   });
   
   function handleInput() {
@@ -45,15 +51,18 @@
       errorMsg = 'Please set your ARL token in Settings first.';
       return;
     }
-    
+
     searching = true;
     errorMsg = '';
     results = [];
-    
+
     try {
-      const data = await invoke('search_tracks', { query: searchQuery.trim() });
-      results = data as any[];
-      
+      // Apply rate limiting
+      await searchRateLimiter.throttle();
+
+      const data = await invoke<Track[]>('search_tracks', { query: searchQuery.trim() });
+      results = data;
+
       if (results.length === 0) {
         errorMsg = 'No results found.';
       }
@@ -63,8 +72,8 @@
       searching = false;
     }
   }
-  
-  async function downloadTrack(track: any) {
+
+  async function downloadTrack(track: Track) {
     const trackId = String(track.id);
     const state = downloadStates.get(trackId);
 
@@ -75,55 +84,8 @@
       return;
     }
 
-    // Add to download history with initial state
-    downloadHistory.update(history => {
-      const existing = history.find(item => item.trackId === trackId);
-      if (!existing) {
-        return [{
-          trackId,
-          title: track.title,
-          artist: track.artist,
-          album: track.album,
-          cover: track.cover_medium || track.cover_small,
-          percent: 0,
-          status: 'downloading'
-        }, ...history];
-      }
-      return history;
-    });
-
-    downloads.update(d => {
-      d.set(trackId, 'downloading');
-      return d;
-    });
-
-    console.log('Starting download for track:', trackId);
-
-    try {
-      const result = await invoke('download_track', { trackId });
-      console.log('Download completed:', result);
-      downloads.update(d => {
-        d.set(trackId, 'complete');
-        return d;
-      });
-    } catch (err) {
-      console.error('Download failed:', err);
-      downloads.update(d => {
-        d.set(trackId, 'error');
-        return d;
-      });
-
-      // Update download history with error
-      downloadHistory.update(history =>
-        history.map(item =>
-          item.trackId === trackId
-            ? { ...item, status: 'error', errorMsg: String(err) }
-            : item
-        )
-      );
-
-      alert(`Download failed: ${err}`);
-    }
+    // Add to download queue (queue manager handles the rest)
+    await downloadQueueManager.addToQueue(track);
   }
   
   function formatDuration(seconds: number): string {

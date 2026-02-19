@@ -59,7 +59,21 @@ pub async fn download_track(
     let filename = clean_filename(&format!("{} - {}{}", artist, full_title, ext));
     let download_dir = Path::new(output_dir);
     std::fs::create_dir_all(download_dir).map_err(|e| e.to_string())?;
-    let download_path = download_dir.join(&filename);
+
+    // Check if file exists and create unique filename if needed
+    let mut download_path = download_dir.join(&filename);
+    let mut counter = 1;
+    while download_path.exists() {
+        let base_name = clean_filename(&format!("{} - {}", artist, full_title));
+        let new_filename = format!("{} ({}){}", base_name, counter, ext);
+        download_path = download_dir.join(&new_filename);
+        counter += 1;
+
+        // Prevent infinite loop
+        if counter > 1000 {
+            return Err("Too many files with the same name".to_string());
+        }
+    }
 
     emit_progress(app, track_id, &full_title, 5.0, "downloading");
 
@@ -115,6 +129,12 @@ pub async fn download_track(
             write_mp3_tags(&download_path, &full_title, &artist, &album_title, track_data, client, &album_id).await
         {
             eprintln!("Warning: failed to write tags: {}", e);
+            // Emit warning event to frontend
+            let _ = app.emit("tag-writing-error", serde_json::json!({
+                "track_id": track_id,
+                "title": full_title,
+                "error": e.to_string()
+            }));
         }
     }
 

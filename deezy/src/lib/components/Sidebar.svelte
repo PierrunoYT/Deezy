@@ -1,0 +1,170 @@
+<script lang="ts">
+  import type { UserInfo } from '$lib/stores';
+
+  interface Props {
+    currentView: string;
+    user: UserInfo | null;
+    activeDownloads: number;
+    onViewChange: (view: string) => void;
+  }
+
+  let { currentView, user, activeDownloads, onViewChange }: Props = $props();
+</script>
+
+<nav id="sidebar">
+  <div class="logo">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M9 18V5l12-2v13"/>
+      <circle cx="6" cy="18" r="3"/>
+      <circle cx="18" cy="16" r="3"/>
+    </svg>
+    <span>Deezy</span>
+  </div>
+  
+  <div class="nav-items">
+    <button 
+      class="nav-btn {currentView === 'search' ? 'active' : ''}" 
+      onclick={() => onViewChange('search')}
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      Search
+    </button>
+    
+    <button 
+      class="nav-btn {currentView === 'downloads' ? 'active' : ''}" 
+      onclick={() => onViewChange('downloads')}
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Downloads
+      {#if activeDownloads > 0}
+        <span class="badge">{activeDownloads}</span>
+      {/if}
+    </button>
+    
+    <button 
+      class="nav-btn {currentView === 'settings' ? 'active' : ''}" 
+      onclick={() => onViewChange('settings')}
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+      Settings
+    </button>
+  </div>
+  
+  {#if user}
+    <div class="user-info">
+      {#if user.image}
+        <img src={user.image} alt={user.name} />
+      {/if}
+      <span>{user.name || 'Connected'}</span>
+    </div>
+  {/if}
+</nav>
+
+<style>
+  #sidebar {
+    width: var(--sidebar-width);
+    background: var(--bg-darkest);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 12px;
+    flex-shrink: 0;
+  }
+  
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px 24px;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+  
+  .logo svg {
+    color: var(--accent);
+  }
+  
+  .nav-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+    font-family: inherit;
+  }
+  
+  .nav-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+  
+  .nav-btn.active {
+    background: var(--accent-dim);
+    color: var(--accent);
+  }
+  
+  .nav-btn.active svg {
+    color: var(--accent);
+  }
+  
+  .badge {
+    background: var(--accent);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-left: auto;
+  }
+  
+  .user-info {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border-radius: var(--radius);
+    background: var(--bg-surface);
+  }
+  
+  .user-info img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  
+  .user-info span {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+</style>

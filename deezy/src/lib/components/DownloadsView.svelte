@@ -3,19 +3,33 @@
   import { onMount } from 'svelte';
   import { downloadHistory, type DownloadItem } from '$lib/stores';
 
+  interface DownloadProgressEvent {
+    track_id: string;
+    title: string;
+    percent: number;
+    status: string;
+  }
+
   let downloadItems = $state<DownloadItem[]>([]);
 
   // Subscribe to the download history store using idiomatic Svelte 5 pattern
   $effect(() => {
-    const unsubscribe = downloadHistory.subscribe(val => {
-      downloadItems = val;
-    });
-    return unsubscribe;
+    try {
+      const unsubscribe = downloadHistory.subscribe(val => {
+        downloadItems = val;
+      });
+      return unsubscribe;
+    } catch (err) {
+      console.error('Error in effect:', err);
+    }
   });
 
-  onMount(async () => {
+  onMount(() => {
     // Listen for download progress events to update the store
-    const unlisten = await listen('download-progress', (event: any) => {
+    let unlistenProgress: (() => void) | undefined;
+    let unlistenTagError: (() => void) | undefined;
+
+    listen<DownloadProgressEvent>('download-progress', (event) => {
       const { track_id, title, percent, status } = event.payload;
 
       console.log('Download progress event:', { track_id, title, percent, status });
@@ -46,11 +60,35 @@
       });
 
       console.log('Updated downloadHistory');
+    }).then(fn => {
+      unlistenProgress = fn;
     });
 
-    // Cleanup event listener on unmount
+    // Listen for tag writing errors
+    listen<{track_id: string, title: string, error: string}>('tag-writing-error', (event) => {
+      const { track_id, title, error } = event.payload;
+      console.warn('Tag writing failed for', title, ':', error);
+
+      // Update download history with warning
+      downloadHistory.update(history =>
+        history.map(item =>
+          item.trackId === track_id
+            ? { ...item, errorMsg: `Warning: Tags not written - ${error}` }
+            : item
+        )
+      );
+    }).then(fn => {
+      unlistenTagError = fn;
+    });
+
+    // Cleanup event listeners on unmount
     return () => {
-      unlisten();
+      if (unlistenProgress) {
+        unlistenProgress();
+      }
+      if (unlistenTagError) {
+        unlistenTagError();
+      }
     };
   });
 

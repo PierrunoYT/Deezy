@@ -34,6 +34,42 @@ impl Settings {
         Ok(dir.join("settings.json"))
     }
 
+    pub fn validate(&self) -> Result<(), String> {
+        // Validate ARL
+        if self.arl.trim().is_empty() {
+            return Err("ARL token is required".to_string());
+        }
+
+        if self.arl.trim().len() < 100 {
+            return Err("ARL token appears to be invalid (too short)".to_string());
+        }
+
+        // Validate output directory
+        if self.output_dir.trim().is_empty() {
+            return Err("Output directory is required".to_string());
+        }
+
+        // Try to create the directory if it doesn't exist
+        let output_path = PathBuf::from(&self.output_dir);
+        if !output_path.exists() {
+            std::fs::create_dir_all(&output_path)
+                .map_err(|e| format!("Cannot create output directory: {}", e))?;
+        }
+
+        // Check if directory is writable
+        if !output_path.is_dir() {
+            return Err("Output path is not a directory".to_string());
+        }
+
+        // Validate quality
+        let valid_qualities = ["MP3_128", "MP3_320", "FLAC"];
+        if !valid_qualities.contains(&self.quality.as_str()) {
+            return Err(format!("Invalid quality '{}'. Must be one of: MP3_128, MP3_320, FLAC", self.quality));
+        }
+
+        Ok(())
+    }
+
     pub fn load(app: &tauri::AppHandle) -> Result<Self, String> {
         let path = Self::path(app)?;
         if path.exists() {
@@ -45,6 +81,9 @@ impl Settings {
     }
 
     pub fn save(&self, app: &tauri::AppHandle) -> Result<(), String> {
+        // Validate before saving
+        self.validate()?;
+
         let path = Self::path(app)?;
         let data = serde_json::to_string_pretty(self).map_err(|e| e.to_string())?;
         std::fs::write(&path, data).map_err(|e| e.to_string())
