@@ -54,3 +54,6 @@
 - [x] Tray icon with minimize to tray
 - [x] Export download history as CSV/JSON
 - [x] Custom CSS theme support
+- [x] Fix i18n startup race causing blank/black UI before locale initialization
+- [x] Handle unavailable lyrics (`No lyrics id`) gracefully without surfacing backend errors
+- [x] Remove sensitive auth/session values from backend terminal logs

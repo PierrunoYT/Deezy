@@ -57,7 +57,7 @@ impl DeezerClient {
     }
 
     async fn login(&mut self) -> Result<(), String> {
-        eprintln!("Logging in with ARL: {}...", &self.arl[..20.min(self.arl.len())]);
+        eprintln!("Logging in with ARL token");
         
         // Make initial request to establish session and get SID cookie
         let _ = self.http
@@ -76,7 +76,7 @@ impl DeezerClient {
             .ok_or("Failed to get auth token from Deezer")?
             .to_string();
         
-        eprintln!("Got CSRF token: {} (full: {})", &self.token[..20.min(self.token.len())], self.token);
+        eprintln!("Got CSRF token from Deezer session");
 
         self.license_token = results
             .get("USER")
@@ -507,8 +507,17 @@ impl DeezerClient {
 
     pub async fn get_track_lyrics(&self, track_id: &str) -> Result<Value, String> {
         let params = serde_json::json!({ "SNG_ID": track_id });
-        let data = self.api_call("song.getLyrics", Some(params)).await?;
-        Ok(data["results"].clone())
+        match self.api_call("song.getLyrics", Some(params)).await {
+            Ok(data) => Ok(data["results"].clone()),
+            Err(err) => {
+                // Some tracks have no lyrics in specific regions/accounts.
+                // Treat this as a normal "no lyrics available" case instead of an error.
+                if err.to_lowercase().contains("no lyrics id") {
+                    return Ok(serde_json::json!({}));
+                }
+                Err(err)
+            }
+        }
     }
 
     async fn get_media_url(
@@ -591,7 +600,7 @@ impl DeezerClient {
 
         let body = params.unwrap_or(serde_json::json!({}));
         
-        eprintln!("API call: method={}, token_len={}", method, token.len());
+        eprintln!("API call: method={}", method);
 
         let res = self
             .http
@@ -620,7 +629,11 @@ impl DeezerClient {
                         .next()
                         .and_then(|v| v.as_str())
                         .unwrap_or("Unknown error");
-                    eprintln!("Deezer API error: {}", msg);
+                    let is_missing_lyrics = method == "song.getLyrics"
+                        && msg.to_lowercase().contains("no lyrics id");
+                    if !is_missing_lyrics {
+                        eprintln!("Deezer API error: {}", msg);
+                    }
                     return Err(format!("Deezer error: {}", msg));
                 }
             }

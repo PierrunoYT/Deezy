@@ -8,7 +8,7 @@ A desktop Deezer downloader built with [Tauri](https://tauri.app), [SvelteKit](h
 - **Multi-tab search** – Find tracks, albums, or artists with debounced search and rate limiting
 - **Artist browsing** – Click any artist name to open their full discography; or use the Artists tab to search directly
 - **Search history** – Recent searches dropdown with one-click re-search and privacy controls
-- **Lyrics viewer** – View track lyrics in a beautiful modal with synced/plain text support
+- **Lyrics viewer** – View track lyrics in a beautiful modal with synced/plain text support (with graceful fallback when lyrics are unavailable in your region/catalog)
 - **Audio preview** – Play 30-second previews with mini player, seek bar, and volume control
 
 ### Downloads
@@ -34,6 +34,7 @@ A desktop Deezer downloader built with [Tauri](https://tauri.app), [SvelteKit](h
 - **Auto-update** – Automatic update checks with one-click installation
 - **Auto-login** – Reconnects on app start using your saved ARL
 - **Settings persistence** – All preferences saved between sessions
+- **Safer runtime logs** – Authentication/session token values are not printed in backend logs
 
 ## Setup
 
