@@ -57,6 +57,13 @@
     }
   }
 
+  function handleBackdropKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClose();
+    }
+  }
+
   function formatLyrics(text: string): string {
     return text.replace(/\n/g, '<br>');
   }
@@ -70,7 +77,14 @@
   });
 </script>
 
-<div class="modal-backdrop" onclick={handleBackdropClick}>
+<div
+  class="modal-backdrop"
+  onclick={handleBackdropClick}
+  onkeydown={handleBackdropKeydown}
+  role="button"
+  tabindex="0"
+  aria-label="Close lyrics dialog"
+>
   <div class="modal-content">
     <div class="modal-header">
       <div class="track-info">

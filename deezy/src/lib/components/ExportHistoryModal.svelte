@@ -109,14 +109,34 @@
       onClose();
     }
   }
+
+  function handleOverlayClick(event: MouseEvent) {
+    if (event.target === event.currentTarget) {
+      handleClose();
+    }
+  }
+
+  function handleOverlayKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleClose();
+    }
+  }
 </script>
 
 {#if show}
-  <div class="modal-overlay" onclick={handleClose}>
-    <div class="modal" onclick={(e) => e.stopPropagation()}>
+  <div
+    class="modal-overlay"
+    onclick={handleOverlayClick}
+    onkeydown={handleOverlayKeydown}
+    role="button"
+    tabindex="0"
+    aria-label="Close export history dialog"
+  >
+    <div class="modal">
       <div class="modal-header">
         <h3>{$_('downloads.export.title')}</h3>
-        <button class="close-btn" onclick={handleClose} disabled={isExporting}>
+        <button class="close-btn" onclick={handleClose} disabled={isExporting} aria-label={$_('downloads.export.cancel')}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
@@ -126,7 +146,7 @@
 
       <div class="modal-body">
         <div class="form-group">
-          <label>{$_('downloads.export.format')}</label>
+          <p class="form-label">{$_('downloads.export.format')}</p>
           <div class="radio-group">
             <label class="radio-option">
               <input type="radio" bind:group={selectedFormat} value="csv" disabled={isExporting} />
@@ -140,8 +160,8 @@
         </div>
 
         <div class="form-group">
-          <label>{$_('downloads.export.dateRange')}</label>
-          <select bind:value={selectedDateRange} disabled={isExporting}>
+          <label for="export-date-range">{$_('downloads.export.dateRange')}</label>
+          <select id="export-date-range" bind:value={selectedDateRange} disabled={isExporting}>
             <option value="all">{$_('downloads.export.allTime')}</option>
             <option value="week">{$_('downloads.export.lastWeek')}</option>
             <option value="month">{$_('downloads.export.lastMonth')}</option>
@@ -153,12 +173,12 @@
         {#if selectedDateRange === 'custom'}
           <div class="date-range">
             <div class="form-group">
-              <label>{$_('downloads.export.startDate')}</label>
-              <input type="date" bind:value={startDate} disabled={isExporting} />
+              <label for="export-start-date">{$_('downloads.export.startDate')}</label>
+              <input id="export-start-date" type="date" bind:value={startDate} disabled={isExporting} />
             </div>
             <div class="form-group">
-              <label>{$_('downloads.export.endDate')}</label>
-              <input type="date" bind:value={endDate} disabled={isExporting} />
+              <label for="export-end-date">{$_('downloads.export.endDate')}</label>
+              <input id="export-end-date" type="date" bind:value={endDate} disabled={isExporting} />
             </div>
           </div>
         {/if}
@@ -262,6 +282,14 @@
     font-weight: 500;
     color: var(--text-secondary);
     margin-bottom: 8px;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin: 0 0 8px 0;
   }
 
 

@@ -58,3 +58,5 @@ All notable changes to Deezy are documented here.
 - **Startup blank screen** – Initialize i18n with a safe default locale before first render to prevent `svelte-i18n` formatter crashes when sidebar/messages are rendered before locale setup finishes
 - **Lyrics availability handling** – Treat Deezer `"No lyrics id ..."` responses as a normal no-lyrics case (instead of surfacing a hard backend error)
 - **Sensitive log output** – Removed ARL/CSRF/token-length details from backend debug logs to avoid leaking auth/session information in terminal output
+- **Startup render timing** – Gate app content rendering until initial settings/i18n/theme bootstrap completes to prevent first-launch blank state that required manual refresh
+- **Svelte a11y warnings** – Resolved modal, icon-button, and form association warnings across Update, Export History, Lyrics, Theme Manager, and Mini Player components

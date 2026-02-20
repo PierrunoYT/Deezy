@@ -253,6 +253,23 @@
       colors.success
     ];
   }
+
+  function closeExportModal() {
+    showExportModal = false;
+  }
+
+  function handleExportOverlayClick(event: MouseEvent) {
+    if (event.target === event.currentTarget) {
+      closeExportModal();
+    }
+  }
+
+  function handleExportOverlayKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      closeExportModal();
+    }
+  }
 </script>
 
 <div class="theme-manager">
@@ -298,7 +315,14 @@
     <div class="themes-grid">
       {#each customThemes as themeName}
         {@const isActive = selectedTheme === themeName}
-        <div class="theme-card {isActive ? 'active' : ''}" onmouseenter={() => loadThemePreview(themeName)}>
+        <div
+          class="theme-card {isActive ? 'active' : ''}"
+          onmouseenter={() => loadThemePreview(themeName)}
+          onfocus={() => loadThemePreview(themeName)}
+          role="button"
+          tabindex="0"
+          aria-label={`Preview theme ${themeName.replace(/_/g, ' ')}`}
+        >
           <div class="theme-info">
             <h4>{themeName.replace(/_/g, ' ')}</h4>
             {#if previewTheme && previewTheme.name.toLowerCase().replace(/\s+/g, '_') === themeName}
@@ -325,6 +349,7 @@
               class="btn-delete" 
               onclick={() => deleteTheme(themeName)}
               disabled={loading}
+              aria-label={`Delete theme ${themeName.replace(/_/g, ' ')}`}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="3 6 5 6 21 6"/>
@@ -355,11 +380,18 @@
 </div>
 
 {#if showExportModal}
-  <div class="modal-overlay" onclick={() => showExportModal = false}>
-    <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+  <div
+    class="modal-overlay"
+    onclick={handleExportOverlayClick}
+    onkeydown={handleExportOverlayKeydown}
+    role="button"
+    tabindex="0"
+    aria-label="Close export theme dialog"
+  >
+    <div class="modal-content">
       <div class="modal-header">
         <h3>Export Current Theme</h3>
-        <button class="btn-close" onclick={() => showExportModal = false}>
+        <button class="btn-close" onclick={closeExportModal} aria-label="Close export theme dialog">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
@@ -410,7 +442,7 @@
       </div>
       
       <div class="modal-footer">
-        <button class="btn-secondary" onclick={() => showExportModal = false}>
+        <button class="btn-secondary" onclick={closeExportModal}>
           Cancel
         </button>
         <button class="btn-primary" onclick={exportTheme} disabled={loading}>

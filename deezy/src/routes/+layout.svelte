@@ -13,6 +13,7 @@
   let { children } = $props();
   
   let showUpdateModal = $state(false);
+  let appInitialized = $state(false);
 
   interface Settings {
     arl: string;
@@ -171,6 +172,8 @@
         currentLocale.set('en');
         theme.set('system');
         applyTheme('system');
+      } finally {
+        appInitialized = true;
       }
     })();
     
@@ -271,4 +274,6 @@
 
 <UpdateModal bind:show={showUpdateModal} onClose={() => showUpdateModal = false} />
 
-{@render children()}
+{#if appInitialized}
+  {@render children()}
+{/if}

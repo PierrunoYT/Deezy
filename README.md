@@ -28,6 +28,7 @@ A desktop Deezer downloader built with [Tauri](https://tauri.app), [SvelteKit](h
 - **Internationalization** – Full support for English, Spanish, French, and German
 - **Notifications** – System toast notifications for completed/failed downloads (optional)
 - **Keyboard shortcuts** – Comprehensive shortcuts (Ctrl+F, Ctrl+1/2/3, Escape, Space, Shift+?)
+- **Accessibility improvements** – Keyboard-accessible modals/overlays, labeled icon buttons, and improved form label associations in key UI dialogs
 
 ### System Integration
 - **System tray** – Minimize to tray with menu, download status, and quick controls

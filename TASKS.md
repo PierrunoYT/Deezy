@@ -57,3 +57,5 @@
 - [x] Fix i18n startup race causing blank/black UI before locale initialization
 - [x] Handle unavailable lyrics (`No lyrics id`) gracefully without surfacing backend errors
 - [x] Remove sensitive auth/session values from backend terminal logs
+- [x] Fix startup first-launch blank state by gating page render until app bootstrap completes
+- [x] Resolve Svelte accessibility warnings in UpdateModal, ExportHistoryModal, LyricsModal, ThemeManager, and MiniPlayer

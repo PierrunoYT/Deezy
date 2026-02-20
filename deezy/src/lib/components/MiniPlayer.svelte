@@ -6,8 +6,8 @@
   let playerState = $state($audioPlayer);
   let isDraggingSeek = $state(false);
   let isDraggingVolume = $state(false);
-  let seekBarRef = $state<HTMLDivElement | undefined>(undefined);
-  let volumeBarRef = $state<HTMLDivElement | undefined>(undefined);
+  let seekBarRef = $state<HTMLButtonElement | undefined>(undefined);
+  let volumeBarRef = $state<HTMLButtonElement | undefined>(undefined);
 
   $effect(() => {
     const unsubscribe = audioPlayer.subscribe(state => {
@@ -129,10 +129,12 @@
         {formatTime(playerState.currentTime)}
       </div>
 
-      <div 
+      <button
         class="seek-bar" 
+        type="button"
         bind:this={seekBarRef}
         onmousedown={handleSeekMouseDown}
+        aria-label="Seek playback position"
       >
         <div class="seek-bar-bg">
           <div 
@@ -140,7 +142,7 @@
             style="width: {playerState.duration > 0 ? (playerState.currentTime / playerState.duration) * 100 : 0}%"
           ></div>
         </div>
-      </div>
+      </button>
 
       <div class="player-time">
         {formatTime(playerState.duration)}
@@ -152,10 +154,12 @@
         <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
         <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
       </svg>
-      <div 
+      <button
         class="volume-bar" 
+        type="button"
         bind:this={volumeBarRef}
         onmousedown={handleVolumeMouseDown}
+        aria-label="Adjust volume"
       >
         <div class="volume-bar-bg">
           <div 
@@ -163,7 +167,7 @@
             style="width: {playerState.volume * 100}%"
           ></div>
         </div>
-      </div>
+      </button>
     </div>
   </div>
 {/if}
@@ -266,6 +270,8 @@
     flex: 1;
     cursor: pointer;
     padding: 8px 0;
+    border: none;
+    background: transparent;
   }
 
   .seek-bar-bg {
@@ -302,6 +308,8 @@
     flex: 1;
     cursor: pointer;
     padding: 8px 0;
+    border: none;
+    background: transparent;
   }
 
   .volume-bar-bg {

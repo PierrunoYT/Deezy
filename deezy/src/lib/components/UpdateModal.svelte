@@ -95,11 +95,31 @@
       onClose();
     }
   }
+
+  function handleOverlayClick(event: MouseEvent) {
+    if (event.target === event.currentTarget) {
+      handleClose();
+    }
+  }
+
+  function handleOverlayKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleClose();
+    }
+  }
 </script>
 
 {#if show}
-  <div class="modal-overlay" onclick={handleClose} role="button" tabindex="-1">
-    <div class="modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+  <div
+    class="modal-overlay"
+    onclick={handleOverlayClick}
+    onkeydown={handleOverlayKeydown}
+    role="button"
+    tabindex="0"
+    aria-label="Close update dialog"
+  >
+    <div class="modal" role="dialog" aria-modal="true" tabindex="-1">
       <div class="modal-header">
         <h2>Update Available</h2>
         {#if !installing}
