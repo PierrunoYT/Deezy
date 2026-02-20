@@ -60,3 +60,5 @@ All notable changes to Deezy are documented here.
 - **Sensitive log output** – Removed ARL/CSRF/token-length details from backend debug logs to avoid leaking auth/session information in terminal output
 - **Startup render timing** – Gate app content rendering until initial settings/i18n/theme bootstrap completes to prevent first-launch blank state that required manual refresh
 - **Svelte a11y warnings** – Resolved modal, icon-button, and form association warnings across Update, Export History, Lyrics, Theme Manager, and Mini Player components
+- **Quality fallback transparency** – Download history now stores and displays requested quality vs actual downloaded quality when fallback occurs
+- **Free tier quality restrictions** – Detect Deezer Free accounts and restrict Settings quality options to MP3 128 kbps (disable MP3 320/FLAC options)

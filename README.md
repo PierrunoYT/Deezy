@@ -19,6 +19,7 @@ A desktop Deezer downloader built with [Tauri](https://tauri.app), [SvelteKit](h
 - **Folder structure** – Organize downloads (Flat, Artist/Track, Artist/Album/Track, Album/Track)
 - **Full metadata** – ID3v2.4 tags for MP3, Vorbis comments for FLAC (title, artist, album, year, track/disc number, genre, label, cover art)
 - **Quality options** – MP3 128, MP3 320, or FLAC with automatic fallback
+- **Quality transparency** – Completed downloads show requested quality and actual downloaded quality when fallback is required
 - **Persistent history** – Download history survives app restarts
 - **Export history** – Export download history as CSV or JSON
 
@@ -36,6 +37,7 @@ A desktop Deezer downloader built with [Tauri](https://tauri.app), [SvelteKit](h
 - **Auto-login** – Reconnects on app start using your saved ARL
 - **Settings persistence** – All preferences saved between sessions
 - **Safer runtime logs** – Authentication/session token values are not printed in backend logs
+- **Account-aware quality settings** – Deezer Free accounts are restricted to MP3 128 kbps in the quality selector
 
 ## Setup
 

@@ -5,6 +5,7 @@ pub struct UserInfo {
     pub id: u64,
     pub name: String,
     pub image: String,
+    pub is_free_account: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,4 +48,11 @@ pub struct DownloadProgress {
     pub title: String,
     pub percent: f64,
     pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DownloadResult {
+    pub file_path: String,
+    pub requested_quality: String,
+    pub actual_quality: String,
 }

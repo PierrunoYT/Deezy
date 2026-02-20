@@ -4,6 +4,7 @@ export interface UserInfo {
   id: number;
   name: string;
   image: string;
+  is_free_account?: boolean;
 }
 
 export interface DownloadItem {
@@ -19,6 +20,8 @@ export interface DownloadItem {
   isPaused?: boolean;
   timestamp?: string;
   filePath?: string;
+  requestedQuality?: string;
+  actualQuality?: string;
 }
 
 export interface Track {

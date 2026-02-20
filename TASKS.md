@@ -59,3 +59,5 @@
 - [x] Remove sensitive auth/session values from backend terminal logs
 - [x] Fix startup first-launch blank state by gating page render until app bootstrap completes
 - [x] Resolve Svelte accessibility warnings in UpdateModal, ExportHistoryModal, LyricsModal, ThemeManager, and MiniPlayer
+- [x] Show requested vs actual download quality in history/status when fallback happens
+- [x] Restrict quality selector for Deezer Free accounts to MP3 128 kbps

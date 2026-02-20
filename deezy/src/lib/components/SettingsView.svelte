@@ -27,6 +27,13 @@
   let statusMsg = $state('');
   let statusType = $state<'success' | 'error' | 'info'>('info');
   let checkingUpdates = $state(false);
+  let isFreeAccount = $derived(Boolean($userInfo?.is_free_account));
+
+  $effect(() => {
+    if (isFreeAccount && quality !== 'MP3_128') {
+      quality = 'MP3_128';
+    }
+  });
   
   onMount(async () => {
     try {
@@ -302,9 +309,16 @@
       <label for="quality-select">{$_('settings.quality.label')}</label>
       <select id="quality-select" bind:value={quality}>
         <option value="MP3_128">{$_('settings.quality.mp3_128')}</option>
-        <option value="MP3_320">{$_('settings.quality.mp3_320')}</option>
-        <option value="FLAC">{$_('settings.quality.flac')}</option>
+        <option value="MP3_320" disabled={isFreeAccount}>
+          {$_('settings.quality.mp3_320')}{isFreeAccount ? ' (Premium)' : ''}
+        </option>
+        <option value="FLAC" disabled={isFreeAccount}>
+          {$_('settings.quality.flac')}{isFreeAccount ? ' (Premium)' : ''}
+        </option>
       </select>
+      {#if isFreeAccount}
+        <p class="form-hint">Your Deezer Free account supports MP3 128 kbps only.</p>
+      {/if}
     </div>
     
     <div class="form-group">

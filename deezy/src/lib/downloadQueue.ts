@@ -13,6 +13,12 @@ import {
 import { downloadRateLimiter } from './rateLimiter';
 import { notificationManager } from './notifications';
 
+interface DownloadResult {
+  file_path: string;
+  requested_quality: string;
+  actual_quality: string;
+}
+
 class DownloadQueueManager {
   private processing = false;
   private activeCount = 0;
@@ -145,7 +151,7 @@ class DownloadQueueManager {
         return;
       }
 
-      const result = await invoke<string>('download_track', { trackId });
+      const result = await invoke<DownloadResult>('download_track', { trackId });
       
       // Check if paused after download completes
       if (this.isPaused(trackId)) {
@@ -153,7 +159,7 @@ class DownloadQueueManager {
         return;
       }
 
-      console.log('Download completed:', result);
+      console.log('Download completed:', result.file_path);
       
       downloads.update(d => {
         d.set(trackId, 'complete');
@@ -163,7 +169,15 @@ class DownloadQueueManager {
       downloadHistory.update(history =>
         history.map(item =>
           item.trackId === trackId
-            ? { ...item, percent: 100, status: 'complete', isPaused: false, filePath: result }
+            ? {
+                ...item,
+                percent: 100,
+                status: 'complete',
+                isPaused: false,
+                filePath: result.file_path,
+                requestedQuality: result.requested_quality,
+                actualQuality: result.actual_quality
+              }
             : item
         )
       );

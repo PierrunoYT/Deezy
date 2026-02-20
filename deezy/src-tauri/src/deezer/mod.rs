@@ -122,10 +122,24 @@ impl DeezerClient {
             hash
         );
 
+        let offer_name = results["OFFER_NAME"]
+            .as_str()
+            .or_else(|| results["USER"]["OFFER_NAME"].as_str())
+            .or_else(|| results["USER"]["OPTIONS"]["offer_name"].as_str())
+            .unwrap_or("")
+            .to_lowercase();
+        let has_ads = results["USER"]["OPTIONS"]["ads_audio"].as_bool().unwrap_or(false)
+            || results["USER"]["OPTIONS"]["ads_display"].as_bool().unwrap_or(false);
+        let is_free_account = offer_name.contains("free")
+            || offer_name.contains("gratuit")
+            || offer_name.contains("kostenlos")
+            || (offer_name.is_empty() && has_ads);
+
         self.user = Some(UserInfo {
             id: user_id,
             name,
             image,
+            is_free_account,
         });
 
         Ok(())
@@ -417,11 +431,24 @@ impl DeezerClient {
         if let (Some(track_token), Some(ref license_token)) =
             (track_data["TRACK_TOKEN"].as_str(), &self.license_token)
         {
+            // Always try requested quality first to avoid unexpectedly
+            // receiving lower quality from a multi-format media request.
             if let Some(result) = self
-                .get_media_url(track_token, license_token, quality, fallback)
+                .get_media_url(track_token, license_token, quality, false)
                 .await
             {
                 return Ok(result);
+            }
+
+            if fallback {
+                for fallback_quality in fallback_qualities(quality) {
+                    if let Some(result) = self
+                        .get_media_url(track_token, license_token, fallback_quality, false)
+                        .await
+                    {
+                        return Ok(result);
+                    }
+                }
             }
         }
 
@@ -458,10 +485,7 @@ impl DeezerClient {
             return Err("Track not available in requested quality".into());
         }
 
-        for q in &["MP3_320", "MP3_128", "FLAC"] {
-            if *q == quality {
-                continue;
-            }
+        for q in fallback_qualities(quality) {
             let qc = get_quality_code(q);
             let url = crypto::encrypt_download_url(md5_origin, qc, &sng_id, media_version);
             let res = self
@@ -653,6 +677,14 @@ fn get_quality_code(quality: &str) -> u32 {
         "MP4_RA2" => 14,
         "MP4_RA3" => 15,
         _ => 3,
+    }
+}
+
+fn fallback_qualities(quality: &str) -> &'static [&'static str] {
+    match quality {
+        "FLAC" => &["MP3_320", "MP3_128"],
+        "MP3_320" => &["MP3_128"],
+        _ => &[],
     }
 }
 

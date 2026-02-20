@@ -7,6 +7,7 @@ use serde_json::Value;
 use tauri::Emitter;
 
 use super::models::DownloadProgress;
+use super::models::DownloadResult;
 use super::{crypto, get_quality_ext, DeezerClient};
 use crate::settings::FolderStructure;
 
@@ -17,7 +18,7 @@ pub async fn download_track(
     quality: &str,
     folder_structure: &FolderStructure,
     app: &tauri::AppHandle,
-) -> Result<String, String> {
+) -> Result<DownloadResult, String> {
     let track = client.get_track(track_id).await?;
 
     let track_data = if track.get("DATA").is_some() {
@@ -169,7 +170,11 @@ pub async fn download_track(
 
     emit_progress(app, track_id, &full_title, 100.0, "complete");
 
-    Ok(download_path.to_string_lossy().to_string())
+    Ok(DownloadResult {
+        file_path: download_path.to_string_lossy().to_string(),
+        requested_quality: quality.to_string(),
+        actual_quality,
+    })
 }
 
 async fn write_mp3_tags(

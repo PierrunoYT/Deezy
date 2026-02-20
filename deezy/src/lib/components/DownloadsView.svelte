@@ -144,6 +144,11 @@
     return status;
   }
 
+  function formatQualityLabel(value?: string): string {
+    if (!value) return '';
+    return value.replace('MP3_', 'MP3 ').replace('_', ' ');
+  }
+
   function openExportModal() {
     showExportModal = true;
   }
@@ -218,6 +223,15 @@
           </div>
           <div class="download-status {item.status === 'complete' ? 'complete' : ''} {item.status === 'error' ? 'error' : ''} {item.status === 'paused' ? 'paused' : ''}">
             {getStatusText(item.status, item.percent)}
+            {#if item.status === 'complete' && item.actualQuality}
+              <span class="quality-info">
+                {#if item.requestedQuality && item.requestedQuality !== item.actualQuality}
+                  Requested {formatQualityLabel(item.requestedQuality)} -> Downloaded {formatQualityLabel(item.actualQuality)}
+                {:else}
+                  Quality: {formatQualityLabel(item.actualQuality)}
+                {/if}
+              </span>
+            {/if}
             {#if item.status === 'downloading' || item.status === 'resolving'}
               <button class="action-btn pause-btn" title={$_('downloads.actions.pause')} onclick={() => pauseDownload(item)}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -433,7 +447,14 @@
     white-space: nowrap;
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 6px;
+  }
+
+  .quality-info {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-left: 2px;
   }
 
   .download-status.complete {

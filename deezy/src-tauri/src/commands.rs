@@ -1,5 +1,5 @@
 use crate::deezer::download;
-use crate::deezer::models::{AlbumResult, ArtistResult, SearchResult};
+use crate::deezer::models::{AlbumResult, ArtistResult, DownloadResult, SearchResult};
 use crate::deezer::DeezerClient;
 use crate::settings::Settings;
 use crate::themes;
@@ -118,7 +118,7 @@ pub async fn download_track(
     trackId: String,
     state: tauri::State<'_, AppState>,
     app: AppHandle,
-) -> Result<String, String> {
+) -> Result<DownloadResult, String> {
     eprintln!("Download track command called for trackId: {}", trackId);
     
     // Get or recreate the client
@@ -180,7 +180,7 @@ pub async fn download_track(
     }
     
     match &result {
-        Ok(path) => eprintln!("Download successful: {}", path),
+        Ok(download) => eprintln!("Download successful: {}", download.file_path),
         Err(e) => eprintln!("Download failed: {}", e),
     }
     
