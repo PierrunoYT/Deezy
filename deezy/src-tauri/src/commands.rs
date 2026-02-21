@@ -119,13 +119,10 @@ pub async fn download_track(
     state: tauri::State<'_, AppState>,
     app: AppHandle,
 ) -> Result<DownloadResult, String> {
-    eprintln!("Download track command called for trackId: {}", trackId);
-    
     // Get or recreate the client
     let (mut client, output_dir, quality, folder_structure, arl) = {
         let lock = state.client.lock().await;
         let settings = state.settings.lock().await;
-        eprintln!("Settings - output_dir: {}, quality: {}", settings.output_dir, settings.quality);
         
         let client = if let Some(c) = lock.as_ref() {
             c.clone()
@@ -144,12 +141,10 @@ pub async fn download_track(
     
     // If token is empty or invalid, try to refresh the client
     if client.token.is_empty() && !arl.is_empty() {
-        eprintln!("Token is empty, recreating client...");
         match DeezerClient::new(&arl).await {
             Ok(new_client) => {
                 client = new_client.clone();
                 *state.client.lock().await = Some(new_client);
-                eprintln!("Client recreated successfully");
             }
             Err(e) => {
                 return Err(format!("Failed to refresh session: {}", e));
@@ -157,31 +152,22 @@ pub async fn download_track(
         }
     }
 
-    eprintln!("Starting download to: {}", output_dir);
     let mut result = download::download_track(&client, &trackId, &output_dir, &quality, &folder_structure, &app).await;
     
     // If we get a CSRF error, try to refresh the client and retry once
     if let Err(ref e) = result {
         if e.contains("CSRF") || e.contains("token") {
-            eprintln!("CSRF error detected, refreshing client and retrying...");
             match DeezerClient::new(&arl).await {
                 Ok(new_client) => {
                     client = new_client.clone();
                     *state.client.lock().await = Some(new_client);
-                    eprintln!("Client refreshed, retrying download...");
                     result = download::download_track(&client, &trackId, &output_dir, &quality, &folder_structure, &app).await;
                 }
-                Err(refresh_err) => {
-                    eprintln!("Failed to refresh client: {}", refresh_err);
+                Err(_) => {
                     return Err(format!("Session expired. Please go to Settings and log in again. Error: {}", e));
                 }
             }
         }
-    }
-    
-    match &result {
-        Ok(download) => eprintln!("Download successful: {}", download.file_path),
-        Err(e) => eprintln!("Download failed: {}", e),
     }
     
     result
@@ -361,22 +347,32 @@ fn generate_csv(history: &[serde_json::Value]) -> Result<String, String> {
     let mut csv = String::from("Title,Artist,Album,Status,Progress,Timestamp,File Path,Error Message\n");
 
     for item in history {
-        let title = item["title"].as_str().unwrap_or("").replace("\"", "\"\"");
-        let artist = item["artist"].as_str().unwrap_or("").replace("\"", "\"\"");
-        let album = item["album"].as_str().unwrap_or("").replace("\"", "\"\"");
-        let status = item["status"].as_str().unwrap_or("");
-        let percent = item["percent"].as_f64().unwrap_or(0.0);
-        let timestamp = item["timestamp"].as_str().unwrap_or("");
-        let file_path = item["filePath"].as_str().unwrap_or("").replace("\"", "\"\"");
-        let error_msg = item["errorMsg"].as_str().unwrap_or("").replace("\"", "\"\"");
+        let title = sanitize_csv_field(item["title"].as_str().unwrap_or(""));
+        let artist = sanitize_csv_field(item["artist"].as_str().unwrap_or(""));
+        let album = sanitize_csv_field(item["album"].as_str().unwrap_or(""));
+        let status = sanitize_csv_field(item["status"].as_str().unwrap_or(""));
+        let percent = format!("{:.1}%", item["percent"].as_f64().unwrap_or(0.0));
+        let timestamp = sanitize_csv_field(item["timestamp"].as_str().unwrap_or(""));
+        let file_path = sanitize_csv_field(item["filePath"].as_str().unwrap_or(""));
+        let error_msg = sanitize_csv_field(item["errorMsg"].as_str().unwrap_or(""));
 
         csv.push_str(&format!(
-            "\"{}\",\"{}\",\"{}\",\"{}\",\"{:.1}%\",\"{}\",\"{}\",\"{}\"\n",
+            "\"{}\",\"{}\",\"{}\",\"{}\",\"{}\",\"{}\",\"{}\",\"{}\"\n",
             title, artist, album, status, percent, timestamp, file_path, error_msg
         ));
     }
 
     Ok(csv)
+}
+
+fn sanitize_csv_field(value: &str) -> String {
+    let escaped = value.replace("\"", "\"\"");
+    if let Some(first) = escaped.chars().next() {
+        if matches!(first, '=' | '+' | '-' | '@' | '\t' | '\r') {
+            return format!("'{}", escaped);
+        }
+    }
+    escaped
 }
 
 #[tauri::command]

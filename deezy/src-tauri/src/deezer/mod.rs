@@ -59,16 +59,12 @@ impl DeezerClient {
     }
 
     async fn login(&mut self) -> Result<(), String> {
-        eprintln!("Logging in with ARL token");
-        
         // Make initial request to establish session and get SID cookie
         let _ = self.http
             .get(API_URL)
             .send()
             .await
             .map_err(|e: reqwest::Error| format!("Failed to get SID: {}", e))?;
-        
-        eprintln!("Session initialized, getting user data...");
         
         let data = self.api_call("deezer.getUserData", None).await?;
         let results = &data["results"];
@@ -77,8 +73,6 @@ impl DeezerClient {
             .as_str()
             .ok_or("Failed to get auth token from Deezer")?
             .to_string();
-        
-        eprintln!("Got CSRF token from Deezer session");
 
         self.license_token = results
             .get("USER")
@@ -99,8 +93,6 @@ impl DeezerClient {
         if user_id == 0 {
             return Err("Invalid ARL token".into());
         }
-        
-        eprintln!("Login successful, user_id: {}", user_id);
 
         let name = results["USER"]["BLOG_NAME"]
             .as_str()
@@ -618,15 +610,10 @@ impl DeezerClient {
         let token = if method == "deezer.getUserData" {
             "null".to_string()
         } else {
-            if self.token.is_empty() {
-                eprintln!("WARNING: Token is empty for method: {}", method);
-            }
             self.token.clone()
         };
 
         let body = params.unwrap_or(serde_json::json!({}));
-        
-        eprintln!("API call: method={}", method);
 
         let res = self
             .http
@@ -655,11 +642,6 @@ impl DeezerClient {
                         .next()
                         .and_then(|v| v.as_str())
                         .unwrap_or("Unknown error");
-                    let is_missing_lyrics = method == "song.getLyrics"
-                        && msg.to_lowercase().contains("no lyrics id");
-                    if !is_missing_lyrics {
-                        eprintln!("Deezer API error: {}", msg);
-                    }
                     return Err(format!("Deezer error: {}", msg));
                 }
             }

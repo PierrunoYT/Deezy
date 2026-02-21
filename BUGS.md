@@ -34,27 +34,24 @@
 - **Description:** `std::fs::write` uses default OS permissions. On some systems the file may be world-readable, exposing the ARL token.
 - **Fix:** Set restrictive file permissions (e.g. `0600` on Unix) when writing `settings.json`.
 
-## 🟡 Medium
+## 🟡 Medium – Fixed
 
-### 7. `withGlobalTauri` enabled
-- **File:** `deezy/src-tauri/tauri.conf.json:13`
-- **Description:** `"withGlobalTauri": true` exposes the Tauri API on `window.__TAURI__`. If any XSS occurs (see #4), the attacker gains full access to all registered Tauri commands.
-- **Fix:** Set to `false` and rely on `@tauri-apps/api` imports only.
+### 7. ~~`withGlobalTauri` enabled~~ ✅
+- **File:** `deezy/src-tauri/tauri.conf.json`
+- **Fixed:** Set `withGlobalTauri` to `false`. The frontend uses `@tauri-apps/api` imports only.
 
-### 8. `'unsafe-inline'` in CSP for styles
+### 8. `'unsafe-inline'` in CSP for styles ⏳ Deferred
 - **File:** `deezy/src-tauri/tauri.conf.json:23`
 - **Description:** `style-src 'self' 'unsafe-inline'` weakens CSP protection and allows injected inline styles.
-- **Fix:** Remove `'unsafe-inline'` if possible, or use nonces/hashes for required inline styles.
+- **Status:** Cannot remove — the app uses dynamic inline styles for progress bars, color swatches, and volume indicators. Would require migrating all dynamic styles to CSS classes or custom properties.
 
-### 9. Sensitive values in stderr logs
-- **Files:** `deezy/src-tauri/src/deezer/mod.rs:60`, `deezy/src-tauri/src/commands.rs:128`
-- **Description:** Debug `eprintln!` calls log settings values (output directory, quality) and login flow details. In debug builds these could inadvertently include or be adjacent to ARL values.
-- **Fix:** Audit all `eprintln!` calls to ensure no auth tokens or session values leak.
+### 9. ~~Sensitive values in stderr logs~~ ✅
+- **Files:** `deezy/src-tauri/src/deezer/mod.rs`, `deezy/src-tauri/src/commands.rs`
+- **Fixed:** Removed all verbose `eprintln!` debug logging that exposed settings values, user IDs, session flow details, and API call traces.
 
-### 10. CSV injection in history export
-- **File:** `deezy/src-tauri/src/commands.rs:364-376`
-- **Description:** CSV field values from track metadata (title, artist) are only double-quote-escaped. A track title starting with `=`, `+`, `-`, or `@` could trigger formula injection when opened in Excel.
-- **Fix:** Prefix cell values that start with `=`, `+`, `-`, `@`, `\t`, or `\r` with a single quote (`'`).
+### 10. ~~CSV injection in history export~~ ✅
+- **File:** `deezy/src-tauri/src/commands.rs`
+- **Fixed:** Added `sanitize_csv_field()` that prefixes values starting with `=`, `+`, `-`, `@`, `\t`, or `\r` with a single quote to prevent formula injection in spreadsheet applications.
 
 ## 🟢 Low – Fixed
 

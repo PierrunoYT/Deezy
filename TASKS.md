@@ -63,3 +63,6 @@
 - [x] Restrict quality selector for Deezer Free accounts to MP3 128 kbps
 - [x] Enforce minimum TLS 1.2 and HTTPS-only on HTTP client
 - [x] Remove overly broad `process:default` capability
+- [x] Disable `withGlobalTauri` to prevent exposing Tauri API on `window.__TAURI__`
+- [x] Remove verbose debug logging that could leak sensitive values
+- [x] Add CSV formula injection protection to history export

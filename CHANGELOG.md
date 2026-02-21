@@ -2,6 +2,16 @@
 
 All notable changes to Deezy are documented here.
 
+## [Unreleased]
+
+### Security
+
+- Enforce minimum TLS 1.2 and HTTPS-only on the HTTP client
+- Remove overly broad `process:default` Tauri capability, scope to `process:allow-restart` only
+- Disable `withGlobalTauri` to prevent exposing Tauri IPC on `window.__TAURI__`
+- Remove all verbose `eprintln!` debug logging that could leak sensitive settings, user IDs, or session details
+- Add CSV formula injection protection to download history export (`sanitize_csv_field`)
+
 ## [0.1.0] – 2026-02-21
 
 ### Added
