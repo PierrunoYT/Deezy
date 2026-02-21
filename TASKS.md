@@ -79,3 +79,8 @@
 - [x] Fix artist album track counts showing "0 tracks" (hide count when unavailable from API)
 - [x] Resolve Svelte a11y warnings in SettingsView (add role and keyboard handlers to toggle wrappers)
 - [x] Fix update checker failing to fetch release JSON (generate latest.json with signatures in release script)
+- [x] Fix race condition in download queue processing that could cause queue to stall
+- [x] Fix keyboard shortcut matching logic for modifier keys
+- [x] Fix memory leak in audio player event listeners
+- [x] Fix potential data corruption in download decryption for partial chunks
+- [x] Fix download progress calculation to track actual bytes instead of assuming 2048

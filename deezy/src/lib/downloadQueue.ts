@@ -62,6 +62,11 @@ class DownloadQueueManager {
   }
 
   private async processQueue() {
+    // Check if already processing to prevent multiple concurrent queue processors
+    if (this.processing) {
+      return;
+    }
+    
     this.processing = true;
 
     while (true) {
@@ -211,8 +216,9 @@ class DownloadQueueManager {
       this.activeCount--;
       activeDownloads.set(this.activeCount);
       
-      // Continue processing queue
-      if (!this.processing && get(downloadQueue).length > 0) {
+      // Continue processing queue if there are items remaining
+      // processQueue will check if it's already processing
+      if (get(downloadQueue).length > 0) {
         this.processQueue();
       }
     }

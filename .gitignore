@@ -81,6 +81,9 @@ logs/
 *.tmp
 *.temp
 
+# Shell scripts
+*.sh
+
 # Build outputs
 dist/
 dist-ssr/

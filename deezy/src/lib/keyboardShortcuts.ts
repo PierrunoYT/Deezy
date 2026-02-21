@@ -87,12 +87,21 @@ export class KeyboardShortcutsManager {
     // Find matching shortcut
     for (const [id, shortcut] of this.shortcuts) {
       const keyMatches = event.key.toLowerCase() === shortcut.key.toLowerCase();
-      const ctrlMatches = shortcut.ctrl ? ctrlOrCmd : !ctrlOrCmd;
+      
+      // Check if the required modifiers match
+      // Only check modifiers if they're explicitly required by the shortcut
+      const ctrlMatches = shortcut.ctrl ? ctrlOrCmd : true;
       const cmdMatches = shortcut.cmd ? (isMac ? event.metaKey : event.ctrlKey) : true;
-      const shiftMatches = shortcut.shift ? event.shiftKey : !event.shiftKey;
-      const altMatches = shortcut.alt ? event.altKey : !event.altKey;
+      const shiftMatches = shortcut.shift ? event.shiftKey : true;
+      const altMatches = shortcut.alt ? event.altKey : true;
+      
+      // Also ensure unwanted modifiers are not pressed
+      const noExtraCtrl = shortcut.ctrl || shortcut.cmd ? true : !ctrlOrCmd;
+      const noExtraShift = shortcut.shift ? true : !event.shiftKey;
+      const noExtraAlt = shortcut.alt ? true : !event.altKey;
 
-      if (keyMatches && ctrlMatches && shiftMatches && altMatches) {
+      if (keyMatches && ctrlMatches && cmdMatches && shiftMatches && altMatches
+          && noExtraCtrl && noExtraShift && noExtraAlt) {
         event.preventDefault();
         shortcut.action();
         return;

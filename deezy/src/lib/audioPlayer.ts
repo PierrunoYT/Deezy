@@ -8,17 +8,22 @@ import { get } from 'svelte/store';
 class AudioPlayerManager {
   private audio: HTMLAudioElement | null = null;
   private updateInterval: ReturnType<typeof setInterval> | null = null;
+  private endedHandler: (() => void) | null = null;
+  private timeupdateHandler: (() => void) | null = null;
+  private loadedmetadataHandler: (() => void) | null = null;
+  private errorHandler: ((e: Event) => void) | null = null;
 
   constructor() {
     if (typeof window !== 'undefined') {
       this.audio = new Audio();
       this.audio.volume = 0.7;
       
-      this.audio.addEventListener('ended', () => {
+      // Store handler references for later cleanup
+      this.endedHandler = () => {
         this.stop();
-      });
+      };
 
-      this.audio.addEventListener('timeupdate', () => {
+      this.timeupdateHandler = () => {
         if (this.audio) {
           audioPlayer.update(state => ({
             ...state,
@@ -26,21 +31,57 @@ class AudioPlayerManager {
             duration: this.audio!.duration || 0,
           }));
         }
-      });
+      };
 
-      this.audio.addEventListener('loadedmetadata', () => {
+      this.loadedmetadataHandler = () => {
         if (this.audio) {
           audioPlayer.update(state => ({
             ...state,
             duration: this.audio!.duration || 0,
           }));
         }
-      });
+      };
 
-      this.audio.addEventListener('error', (e) => {
+      this.errorHandler = (e: Event) => {
         console.error('Audio playback error:', e);
         this.stop();
-      });
+      };
+
+      this.audio.addEventListener('ended', this.endedHandler);
+      this.audio.addEventListener('timeupdate', this.timeupdateHandler);
+      this.audio.addEventListener('loadedmetadata', this.loadedmetadataHandler);
+      this.audio.addEventListener('error', this.errorHandler);
+    }
+  }
+
+  /**
+   * Clean up resources and remove event listeners
+   */
+  destroy() {
+    if (this.audio) {
+      // Stop playback
+      this.stop();
+      
+      // Remove event listeners
+      if (this.endedHandler) {
+        this.audio.removeEventListener('ended', this.endedHandler);
+      }
+      if (this.timeupdateHandler) {
+        this.audio.removeEventListener('timeupdate', this.timeupdateHandler);
+      }
+      if (this.loadedmetadataHandler) {
+        this.audio.removeEventListener('loadedmetadata', this.loadedmetadataHandler);
+      }
+      if (this.errorHandler) {
+        this.audio.removeEventListener('error', this.errorHandler);
+      }
+      
+      // Clear references
+      this.audio = null;
+      this.endedHandler = null;
+      this.timeupdateHandler = null;
+      this.loadedmetadataHandler = null;
+      this.errorHandler = null;
     }
   }
 

@@ -128,17 +128,27 @@ pub async fn download_track(
             }
 
             chunk_index += 1;
-            downloaded += 2048;
+            downloaded += chunk.len() as u64;
 
             if total_size > 0 {
-                let percent = 5.0 + (downloaded as f64 / total_size as f64 * 85.0).min(85.0);
+                let percent = 5.0 + ((downloaded as f64 / total_size as f64) * 85.0).min(85.0);
                 emit_progress(app, track_id, &full_title, percent, "downloading");
             }
         }
     }
 
+    // Handle remaining bytes (less than 2048 bytes)
+    // Check if this partial chunk needs decryption
     if !buffer.is_empty() {
-        file.write_all(&buffer).map_err(|e| e.to_string())?;
+        // Only decrypt if it's a full 2048-byte chunk that would be decrypted
+        // Partial chunks at the end are not decrypted in Deezer's scheme
+        if buffer.len() == 2048 && chunk_index.is_multiple_of(3) {
+            let decrypted = crypto::decrypt_blowfish_chunk(&buffer, &bf_key);
+            file.write_all(&decrypted).map_err(|e| e.to_string())?;
+        } else {
+            file.write_all(&buffer).map_err(|e| e.to_string())?;
+        }
+        downloaded += buffer.len() as u64;
     }
     drop(file);
 
