@@ -2,6 +2,24 @@
 
 A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [SvelteKit 5](https://kit.svelte.dev), and Rust. Search for tracks, albums, and artists, queue downloads, and save them as high-quality MP3 or FLAC with full metadata and cover art.
 
+---
+
+## ⚠️ Important Information
+
+### Legal & Usage Rights
+
+**This tool is for educational and personal use only.** By using Deezy, you acknowledge and agree to the following:
+
+- **Deezer Subscription Required** – You must have an active Deezer subscription to use this application. The ARL token is tied to your account.
+- **Terms of Service** – Downloading music from Deezer may violate their [Terms of Service](https://www.deezer.com/legal/cgu). Use at your own risk.
+- **Copyright Laws** – Respect copyright laws in your jurisdiction. Downloaded content is for personal use only and should not be redistributed or used commercially.
+- **No Warranty** – This software is provided "as is" without warranty of any kind. The authors are not responsible for any misuse or legal consequences.
+- **Educational Purpose** – This project is intended to demonstrate Tauri, Rust, and SvelteKit integration, not to encourage piracy.
+
+**By using this software, you accept full responsibility for your actions and any consequences that may arise.**
+
+---
+
 ## Features
 
 ### Search & Discovery
