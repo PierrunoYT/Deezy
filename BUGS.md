@@ -60,3 +60,7 @@
 ### 13. ~~i18n translation keys showing as raw text~~ ✅
 - **File:** `deezy/src/lib/i18n/index.ts`
 - **Fixed:** Added proper async/await for `init()` and `waitLocale()` to ensure translations are fully loaded before UI renders. Prevents translation keys like `search.tabs.playlists` from displaying as raw text.
+
+### 14. ~~Settings toggle buttons corrupted and non-functional~~ ✅
+- **File:** `deezy/src/lib/components/SettingsView.svelte`
+- **Fixed:** Restructured toggle component HTML and CSS. Separated toggle switch from label text using a wrapper div with click handler. Prevents purple circle from overlapping text and ensures toggles are clickable.

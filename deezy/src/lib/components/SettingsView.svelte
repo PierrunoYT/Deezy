@@ -400,17 +400,19 @@
       <p class="form-hint">
         {$_('settings.notifications.hint')}
       </p>
-      <label class="toggle-container">
-        <input 
-          type="checkbox" 
-          bind:checked={enableNotifications}
-          onchange={toggleNotifications}
-        />
-        <span class="toggle-slider"></span>
+      <div class="toggle-wrapper" onclick={() => enableNotifications = !enableNotifications}>
+        <label class="toggle-container">
+          <input 
+            type="checkbox" 
+            bind:checked={enableNotifications}
+            onchange={toggleNotifications}
+          />
+          <span class="toggle-slider"></span>
+        </label>
         <span class="toggle-label">
           {enableNotifications ? $_('settings.notifications.enabled') : $_('settings.notifications.disabled')}
         </span>
-      </label>
+      </div>
     </div>
 
     <div class="form-group">
@@ -418,17 +420,19 @@
       <p class="form-hint">
         {$_('settings.searchHistory.hint')}
       </p>
-      <label class="toggle-container">
-        <input 
-          type="checkbox" 
-          bind:checked={enableSearchHistory}
-          onchange={toggleSearchHistory}
-        />
-        <span class="toggle-slider"></span>
+      <div class="toggle-wrapper" onclick={() => enableSearchHistory = !enableSearchHistory}>
+        <label class="toggle-container">
+          <input 
+            type="checkbox" 
+            bind:checked={enableSearchHistory}
+            onchange={toggleSearchHistory}
+          />
+          <span class="toggle-slider"></span>
+        </label>
         <span class="toggle-label">
           {enableSearchHistory ? $_('settings.searchHistory.enabled') : $_('settings.searchHistory.disabled')}
         </span>
-      </label>
+      </div>
       <button 
         class="btn-clear-history" 
         onclick={clearSearchHistory}
@@ -447,17 +451,19 @@
       <p class="form-hint">
         Minimize to system tray when closing the window instead of quitting the app.
       </p>
-      <label class="toggle-container">
-        <input 
-          type="checkbox" 
-          bind:checked={closeToTray}
-          onchange={toggleCloseToTray}
-        />
-        <span class="toggle-slider"></span>
+      <div class="toggle-wrapper" onclick={() => closeToTray = !closeToTray}>
+        <label class="toggle-container">
+          <input 
+            type="checkbox" 
+            bind:checked={closeToTray}
+            onchange={toggleCloseToTray}
+          />
+          <span class="toggle-slider"></span>
+        </label>
         <span class="toggle-label">
           {closeToTray ? 'Close to Tray' : 'Close to Quit'}
         </span>
-      </label>
+      </div>
     </div>
 
     <div class="form-group">
@@ -690,12 +696,16 @@
     flex-shrink: 0;
   }
 
-  .toggle-container {
+  .toggle-wrapper {
     display: flex;
     align-items: center;
     gap: 12px;
     cursor: pointer;
     user-select: none;
+  }
+
+  .toggle-container {
+    display: inline-block;
     position: relative;
   }
 
@@ -704,9 +714,11 @@
     opacity: 0;
     width: 0;
     height: 0;
+    pointer-events: none;
   }
 
   .toggle-slider {
+    display: block;
     position: relative;
     width: 48px;
     height: 26px;
@@ -714,7 +726,6 @@
     border: 1px solid var(--border);
     border-radius: 13px;
     transition: all 0.2s;
-    flex-shrink: 0;
   }
 
   .toggle-slider::before {
