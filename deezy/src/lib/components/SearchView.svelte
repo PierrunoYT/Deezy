@@ -512,7 +512,9 @@
             <img class="album-cover" src={album.cover_medium} alt="" loading="lazy" />
             <div class="album-info">
               <div class="album-title">{album.title}</div>
-              <div class="album-meta">{$_('search.album.tracks', { values: { count: album.nb_tracks } })}</div>
+              {#if album.nb_tracks > 0}
+                <div class="album-meta">{$_('search.album.tracks', { values: { count: album.nb_tracks } })}</div>
+              {/if}
             </div>
             <button 
               class="btn-download-all"
@@ -733,7 +735,9 @@
                 onclick={() => openArtist(album.artist_id, album.artist, '')}
                 title={$_('search.artist.browseDiscography', { values: { artist: album.artist } })}
               >{album.artist}</button>
-              <div class="album-meta">{$_('search.album.tracks', { values: { count: album.nb_tracks } })}</div>
+              {#if album.nb_tracks > 0}
+                <div class="album-meta">{$_('search.album.tracks', { values: { count: album.nb_tracks } })}</div>
+              {/if}
             </div>
             <button 
               class="btn-download-all"

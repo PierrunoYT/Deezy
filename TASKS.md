@@ -76,3 +76,6 @@
 - [x] Playlist search & download support (search, browse tracks, batch download)
 - [x] Fix i18n translation loading race condition (translation keys showing as raw text)
 - [x] Fix corrupted toggle buttons in Settings (notifications, search history, system tray)
+- [x] Fix artist album track counts showing "0 tracks" (hide count when unavailable from API)
+- [x] Resolve Svelte a11y warnings in SettingsView (add role and keyboard handlers to toggle wrappers)
+- [x] Fix update checker failing to fetch release JSON (generate latest.json with signatures in release script)

@@ -400,7 +400,7 @@
       <p class="form-hint">
         {$_('settings.notifications.hint')}
       </p>
-      <div class="toggle-wrapper" onclick={() => enableNotifications = !enableNotifications}>
+      <div class="toggle-wrapper" role="button" tabindex="0" onclick={() => enableNotifications = !enableNotifications} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enableNotifications = !enableNotifications; } }}>
         <label class="toggle-container">
           <input 
             type="checkbox" 
@@ -420,7 +420,7 @@
       <p class="form-hint">
         {$_('settings.searchHistory.hint')}
       </p>
-      <div class="toggle-wrapper" onclick={() => enableSearchHistory = !enableSearchHistory}>
+      <div class="toggle-wrapper" role="button" tabindex="0" onclick={() => enableSearchHistory = !enableSearchHistory} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enableSearchHistory = !enableSearchHistory; } }}>
         <label class="toggle-container">
           <input 
             type="checkbox" 
@@ -451,7 +451,7 @@
       <p class="form-hint">
         Minimize to system tray when closing the window instead of quitting the app.
       </p>
-      <div class="toggle-wrapper" onclick={() => closeToTray = !closeToTray}>
+      <div class="toggle-wrapper" role="button" tabindex="0" onclick={() => closeToTray = !closeToTray} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); closeToTray = !closeToTray; } }}>
         <label class="toggle-container">
           <input 
             type="checkbox" 

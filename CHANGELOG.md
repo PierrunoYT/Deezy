@@ -4,6 +4,12 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Artist album track counts** – Hide "0 tracks" display when Deezer API doesn't provide track count data for artist discography albums
+- **Settings accessibility** – Added ARIA roles and keyboard event handlers to toggle wrappers for notifications, search history, and system tray settings to resolve Svelte a11y warnings
+- **Update checker** – Fixed "could not fetch a valid release json" error by updating release script to generate `latest.json` file with proper signature and metadata for Tauri updater plugin
+
 ## [0.2.1] – 2026-02-21
 
 ### Added

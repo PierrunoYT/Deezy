@@ -37,7 +37,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/{{owner}}/{{repo}}/releases/latest/download/latest.json"
+        "https://github.com/PierrunoYT/Deezy/releases/latest/download/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDc0OENBRUMxQjNDQjgwQ0UKUldUT2dNdXp3YTZNZEhBZnZXemlHT0lFWkdXbjNOZENmUFlNL2FwZEt5NGV3dTRJV3prcW93K2MK"
     }
