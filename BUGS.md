@@ -1,21 +1,18 @@
 # Deezy – Security Bugs
 
-## 🔴 Critical
+## 🔴 Critical – Fixed
 
-### 1. ARL token stored in plaintext on disk
-- **File:** `deezy/src-tauri/src/settings.rs:136`
-- **Description:** The Deezer ARL authentication cookie is saved as plain JSON in `settings.json`. Any process or malware on the machine can read it.
-- **Fix:** Use the OS credential store (e.g. `tauri-plugin-stronghold` or Windows Credential Manager) instead of writing secrets to a plain JSON file.
+### 1. ~~ARL token stored in plaintext on disk~~ ✅
+- **File:** `deezy/src-tauri/src/settings.rs`
+- **Fixed:** ARL is now stored in the OS credential store (Windows Credential Manager / macOS Keychain / Linux Secret Service) via the `keyring` crate. The JSON settings file no longer contains the ARL. Existing plaintext ARLs are automatically migrated to the keyring on first load. Falls back to file storage if keyring is unavailable.
 
-### 2. Hardcoded cryptographic keys
-- **File:** `deezy/src-tauri/src/deezer/crypto.rs:9, 40`
-- **Description:** Blowfish secret (`g4el58wc0zvf9na1`) and AES-128 key (`jo6aey6haid2Teih`) are embedded as string literals in source code.
-- **Fix:** Obfuscate or load keys at runtime to reduce exposure.
+### 2. ~~Hardcoded cryptographic keys~~ ✅
+- **File:** `deezy/src-tauri/src/deezer/crypto.rs`
+- **Fixed:** Blowfish and AES-128 keys are stored as XOR-obfuscated byte arrays and deobfuscated at runtime. Keys no longer appear as readable string literals in the binary.
 
-### 3. Auto-updater public key is a placeholder
-- **File:** `deezy/src-tauri/tauri.conf.json:42`
-- **Description:** `"pubkey": "REPLACE_WITH_YOUR_PUBLIC_KEY"` means the updater cannot verify update signatures, allowing malicious update injection.
-- **Fix:** Generate a real Ed25519 keypair and set the public key before shipping.
+### 3. ~~Auto-updater public key is a placeholder~~ ✅
+- **File:** `deezy/src-tauri/tauri.conf.json`
+- **Fixed:** Generated a real Ed25519/minisign keypair. Public key set in config; private key stored in `src-tauri/keys/updater.key` (gitignored). Set `TAURI_SIGNING_PRIVATE_KEY_PATH` in CI to sign releases.
 
 ## 🟠 High – Fixed
 

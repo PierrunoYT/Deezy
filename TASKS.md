@@ -69,3 +69,6 @@
 - [x] Sanitize lyrics `{@html}` output to prevent XSS from API data
 - [x] Add path traversal protection to theme file operations
 - [x] Restrict settings file permissions to owner-only on Unix
+- [x] Move ARL token from plaintext JSON to OS credential store (keyring)
+- [x] Obfuscate hardcoded cryptographic keys in binary
+- [x] Generate real Ed25519 updater signing keypair
