@@ -73,3 +73,4 @@
 - [x] Obfuscate hardcoded cryptographic keys in binary
 - [x] Generate real Ed25519 updater signing keypair
 - [x] Resolve all Clippy warnings (needless borrow, `is_multiple_of`, derivable `Default`)
+- [x] Playlist search & download support (search, browse tracks, batch download)

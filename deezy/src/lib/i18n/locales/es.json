@@ -13,12 +13,14 @@
     "placeholder": {
       "tracks": "Buscar canciones...",
       "albums": "Buscar álbumes...",
-      "artists": "Buscar artistas..."
+      "artists": "Buscar artistas...",
+      "playlists": "Buscar playlists..."
     },
     "tabs": {
       "tracks": "Canciones",
       "albums": "Álbumes",
-      "artists": "Artistas"
+      "artists": "Artistas",
+      "playlists": "Playlists"
     },
     "status": {
       "searching": "Buscando...",
@@ -46,6 +48,16 @@
       "downloadAll": "Descargar Todo",
       "adding": "Agregando...",
       "tracks": "{count, plural, =1 {1 canción} other {# canciones}}"
+    },
+    "playlist": {
+      "downloadAll": "Descargar Todo",
+      "adding": "Agregando...",
+      "tracks": "{count, plural, =1 {1 canción} other {# canciones}}",
+      "by": "por {creator}",
+      "viewTracks": "Ver Canciones",
+      "loadingTracks": "Cargando canciones de la playlist...",
+      "noTracks": "No se encontraron canciones en esta playlist.",
+      "back": "Volver a resultados"
     },
     "artistCard": {
       "albums": "{count, plural, =1 {1 álbum} other {# álbumes}}",

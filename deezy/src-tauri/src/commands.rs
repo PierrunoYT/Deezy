@@ -1,5 +1,5 @@
 use crate::deezer::download;
-use crate::deezer::models::{AlbumResult, ArtistResult, DownloadResult, SearchResult};
+use crate::deezer::models::{AlbumResult, ArtistResult, DownloadResult, PlaylistResult, SearchResult};
 use crate::deezer::DeezerClient;
 use crate::settings::Settings;
 use crate::themes;
@@ -110,6 +110,31 @@ pub async fn get_artist_albums(
         .as_ref()
         .ok_or("Not logged in. Set your ARL token in Settings.")?;
     client.get_artist_albums(&artistId).await
+}
+
+#[tauri::command]
+pub async fn search_playlists(
+    query: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<PlaylistResult>, String> {
+    let lock = state.client.lock().await;
+    let client = lock
+        .as_ref()
+        .ok_or("Not logged in. Set your ARL token in Settings.")?;
+    client.search_playlists(&query, 20).await
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn get_playlist_tracks(
+    playlistId: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<SearchResult>, String> {
+    let lock = state.client.lock().await;
+    let client = lock
+        .as_ref()
+        .ok_or("Not logged in. Set your ARL token in Settings.")?;
+    client.get_playlist_tracks(&playlistId).await
 }
 
 #[tauri::command]

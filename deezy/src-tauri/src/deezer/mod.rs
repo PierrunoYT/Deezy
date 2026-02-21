@@ -2,7 +2,7 @@ pub mod crypto;
 pub mod download;
 pub mod models;
 
-use models::{AlbumResult, ArtistResult, SearchResult, UserInfo};
+use models::{AlbumResult, ArtistResult, PlaylistResult, SearchResult, UserInfo};
 use reqwest::cookie::Jar;
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, ACCEPT_LANGUAGE, CACHE_CONTROL, CONNECTION, USER_AGENT};
 use serde_json::Value;
@@ -401,6 +401,111 @@ impl DeezerClient {
             .collect();
 
         Ok(albums)
+    }
+
+    pub async fn search_playlists(
+        &self,
+        query: &str,
+        limit: u32,
+    ) -> Result<Vec<PlaylistResult>, String> {
+        let url = format!("{}/search/playlist", LEGACY_API_URL);
+
+        let res = self
+            .http
+            .get(&url)
+            .query(&[
+                ("q", query),
+                ("limit", &limit.to_string()),
+                ("index", "0"),
+            ])
+            .send()
+            .await
+            .map_err(|e| format!("Search failed: {}", e))?;
+
+        let data: Value = res
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse results: {}", e))?;
+
+        if let Some(error) = data.get("error") {
+            if let Some(obj) = error.as_object() {
+                if !obj.is_empty() {
+                    let msg = obj
+                        .values()
+                        .next()
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("Unknown error");
+                    return Err(format!("API error: {}", msg));
+                }
+            }
+        }
+
+        let playlists = data["data"]
+            .as_array()
+            .ok_or("No results found")?
+            .iter()
+            .filter_map(|p| {
+                Some(PlaylistResult {
+                    id: p["id"].as_u64()?,
+                    title: p["title"].as_str()?.to_string(),
+                    creator: p["user"]["name"].as_str().unwrap_or("").to_string(),
+                    cover_small: p["picture_small"].as_str().unwrap_or("").to_string(),
+                    cover_medium: p["picture_medium"].as_str().unwrap_or("").to_string(),
+                    nb_tracks: p["nb_tracks"].as_u64().unwrap_or(0),
+                })
+            })
+            .collect();
+
+        Ok(playlists)
+    }
+
+    pub async fn get_playlist_tracks(
+        &self,
+        playlist_id: &str,
+    ) -> Result<Vec<SearchResult>, String> {
+        let url = format!("{}/playlist/{}", LEGACY_API_URL, playlist_id);
+
+        let res = self
+            .http
+            .get(&url)
+            .send()
+            .await
+            .map_err(|e| format!("Failed to get playlist tracks: {}", e))?;
+
+        let data: Value = res
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse playlist tracks: {}", e))?;
+
+        let cover_small = data["picture_small"].as_str().unwrap_or("").to_string();
+        let cover_medium = data["picture_medium"].as_str().unwrap_or("").to_string();
+
+        let tracks = data["tracks"]["data"]
+            .as_array()
+            .ok_or("No tracks found in playlist")?
+            .iter()
+            .filter_map(|t| {
+                Some(SearchResult {
+                    id: t["id"].as_u64()?,
+                    title: t["title"].as_str()?.to_string(),
+                    artist: t["artist"]["name"].as_str()?.to_string(),
+                    artist_id: t["artist"]["id"].as_u64().unwrap_or(0),
+                    album: t["album"]["title"].as_str().unwrap_or("Unknown").to_string(),
+                    duration: t["duration"].as_u64().unwrap_or(0),
+                    cover_small: t["album"]["cover_small"]
+                        .as_str()
+                        .unwrap_or(&cover_small)
+                        .to_string(),
+                    cover_medium: t["album"]["cover_medium"]
+                        .as_str()
+                        .unwrap_or(&cover_medium)
+                        .to_string(),
+                    preview: t["preview"].as_str().map(|s| s.to_string()),
+                })
+            })
+            .collect();
+
+        Ok(tracks)
     }
 
     pub async fn get_track(&self, track_id: &str) -> Result<Value, String> {

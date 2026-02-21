@@ -13,12 +13,14 @@
     "placeholder": {
       "tracks": "Rechercher des morceaux...",
       "albums": "Rechercher des albums...",
-      "artists": "Rechercher des artistes..."
+      "artists": "Rechercher des artistes...",
+      "playlists": "Rechercher des playlists..."
     },
     "tabs": {
       "tracks": "Morceaux",
       "albums": "Albums",
-      "artists": "Artistes"
+      "artists": "Artistes",
+      "playlists": "Playlists"
     },
     "status": {
       "searching": "Recherche en cours...",
@@ -46,6 +48,16 @@
       "downloadAll": "Tout Télécharger",
       "adding": "Ajout...",
       "tracks": "{count, plural, =1 {1 morceau} other {# morceaux}}"
+    },
+    "playlist": {
+      "downloadAll": "Tout Télécharger",
+      "adding": "Ajout...",
+      "tracks": "{count, plural, =1 {1 morceau} other {# morceaux}}",
+      "by": "par {creator}",
+      "viewTracks": "Voir les Morceaux",
+      "loadingTracks": "Chargement des morceaux de la playlist...",
+      "noTracks": "Aucun morceau trouvé dans cette playlist.",
+      "back": "Retour aux résultats"
     },
     "artistCard": {
       "albums": "{count, plural, =1 {1 album} other {# albums}}",
