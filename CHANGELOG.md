@@ -2,7 +2,7 @@
 
 All notable changes to Deezy are documented here.
 
-## [0.1.0] – 2026-02-19
+## [0.1.0] – 2026-02-21
 
 ### Added
 
