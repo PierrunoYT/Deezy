@@ -56,3 +56,7 @@
 ### 12. ~~Overly broad `process` capability~~ ✅
 - **File:** `deezy/src-tauri/capabilities/default.json`
 - **Fixed:** Removed `"process:default"`, keeping only `"process:allow-restart"`.
+
+### 13. ~~i18n translation keys showing as raw text~~ ✅
+- **File:** `deezy/src/lib/i18n/index.ts`
+- **Fixed:** Added proper async/await for `init()` and `waitLocale()` to ensure translations are fully loaded before UI renders. Prevents translation keys like `search.tabs.playlists` from displaying as raw text.

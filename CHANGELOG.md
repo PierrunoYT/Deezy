@@ -12,6 +12,10 @@ All notable changes to Deezy are documented here.
 
 - Resolve all Clippy warnings: remove needless borrow in `commands.rs`, use `.is_multiple_of()` in `download.rs`, derive `Default` for `FolderStructure` in `settings.rs`
 
+### Fixed
+
+- **i18n translation loading** – Fixed race condition where translation keys (e.g. `search.tabs.playlists`) were displayed as raw text instead of translated strings. Now properly awaits locale initialization using `waitLocale()` before rendering UI
+
 ## [0.2.0] – 2026-02-21
 
 ### Security

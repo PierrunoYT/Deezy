@@ -1,4 +1,4 @@
-import { register, init, getLocaleFromNavigator, locale } from 'svelte-i18n';
+import { register, init, getLocaleFromNavigator, locale, isLoading, waitLocale } from 'svelte-i18n';
 
 // Register all locales
 register('en', () => import('./locales/en.json'));
@@ -15,23 +15,22 @@ export const supportedLocales = [
 
 let i18nInitialized = false;
 
-function ensureI18nInitialized() {
+async function ensureI18nInitialized() {
   if (i18nInitialized) return;
 
   // Set a safe initial locale before first component render.
-  init({
+  await init({
     fallbackLocale: 'en',
     initialLocale: 'en'
   });
   i18nInitialized = true;
 }
 
-ensureI18nInitialized();
-
 export async function initI18n(savedLocale?: string) {
-  ensureI18nInitialized();
+  await ensureI18nInitialized();
   const targetLocale = savedLocale || getLocaleFromNavigator() || 'en';
-  await Promise.resolve(locale.set(targetLocale));
+  locale.set(targetLocale);
+  await waitLocale(targetLocale);
 }
 
-export { locale };
+export { locale, isLoading };
