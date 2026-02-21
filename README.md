@@ -10,7 +10,9 @@ A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [Sve
 
 **This tool is for educational and personal use only.** By using Deezy, you acknowledge and agree to the following:
 
-- **Deezer Subscription Required** – You must have an active Deezer subscription to use this application. The ARL token is tied to your account.
+- **Deezer Account Required** – You need a Deezer account (Free or Premium) to use this application. The ARL token is tied to your account.
+  - **Free accounts** are limited to MP3 128 kbps downloads
+  - **Premium accounts** can download MP3 320 kbps or FLAC
 - **Terms of Service** – Downloading music from Deezer may violate their [Terms of Service](https://www.deezer.com/legal/cgu). Use at your own risk.
 - **Copyright Laws** – Respect copyright laws in your jurisdiction. Downloaded content is for personal use only and should not be redistributed or used commercially.
 - **No Warranty** – This software is provided "as is" without warranty of any kind. The authors are not responsible for any misuse or legal consequences.
