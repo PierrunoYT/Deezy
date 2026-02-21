@@ -55,12 +55,20 @@ A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [Sve
 
 ### System Integration
 - **System tray** – Minimize to tray with menu, download status indicator, and quick controls (Ctrl+H to hide)
-- **Auto-update** – Automatic update checks with download progress and one-click installation via Tauri updater plugin
+- **Auto-update** – Automatic update checks with download progress and one-click installation via signed Tauri updater plugin
 - **Auto-login** – Reconnects on app start using your saved ARL token
 - **Settings persistence** – All preferences saved as JSON in app data directory with validation
-- **Safer runtime logs** – Authentication/session token values redacted from backend logs
 - **Account-aware quality** – Deezer Free accounts are restricted to MP3 128 kbps in the quality selector
 - **Close to tray** – Optional setting to minimize to tray instead of closing the app
+
+### Security
+- **Credential storage** – ARL token stored in OS credential store (Windows Credential Manager / macOS Keychain / Linux Secret Service), not in plaintext files
+- **Signed updates** – Ed25519/minisign signed update packages prevent malicious update injection
+- **TLS hardened** – Minimum TLS 1.2 and HTTPS-only enforced on all HTTP connections
+- **XSS protection** – All user/API-facing HTML is sanitized; CSP restricts content sources
+- **Path traversal protection** – Theme filenames validated against directory traversal attacks
+- **CSV injection protection** – Exported CSV fields sanitized against spreadsheet formula injection
+- **Minimal permissions** – Tauri capabilities scoped to only required operations
 
 ## Setup
 
@@ -76,7 +84,7 @@ A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [Sve
 2. Open DevTools (`F12`) → **Application** (Chrome) or **Storage** (Firefox) → **Cookies** → `https://www.deezer.com`
 3. Copy the value of the `arl` cookie (192-character string)
 
-> **Note:** Your ARL token is stored locally and never shared. It expires periodically and will need to be updated.
+> **Note:** Your ARL token is stored securely in your OS credential store (Windows Credential Manager / macOS Keychain / Linux Secret Service) and never shared. It expires periodically and will need to be updated.
 
 ### Build & run
 
@@ -113,13 +121,14 @@ The built application will be in `src-tauri/target/release/bundle/`.
 | -------------- | -------------------------------------------------------------------------- |
 | Frontend       | SvelteKit 2 + Svelte 5 (runes API) + TypeScript                          |
 | Backend        | Rust + Tauri 2 (desktop framework)                                        |
-| HTTP Client    | reqwest (with cookie jar, streaming, and JSON support)                    |
+| HTTP Client    | reqwest (cookie jar, streaming, JSON, TLS 1.2+, HTTPS-only)              |
 | Crypto         | Blowfish CBC (track decryption) + AES + MD5                              |
 | Audio Tags     | id3 v1.x (MP3 ID3v2.4) + metaflac v0.2 (FLAC Vorbis comments)           |
 | API            | Deezer private API (`gw-light.php`) + public REST API                    |
 | Async Runtime  | Tokio (full features) + futures                                           |
 | Image Processing | image v0.25 (cover art embedding)                                       |
 | UI Libraries   | svelte-dnd-action (drag-and-drop) + svelte-i18n (internationalization)  |
+| Credentials    | keyring v3 (OS credential store: Credential Manager / Keychain / Secret Service) |
 | Tauri Plugins  | dialog, notification, process, updater                                    |
 
 ## Project Structure
@@ -172,8 +181,8 @@ deezy/
 - **Cover art embedding** – Downloads 1000×1000 cover art and embeds in audio files
 - **Folder structure** – Configurable directory organization with automatic creation
 - **System tray** – Native tray icon with menu, status updates, and window management
-- **Settings persistence** – JSON-based settings storage in app data directory
-- **Auto-update** – Tauri updater plugin with GitHub releases integration
+- **Credential storage** – ARL stored in OS credential store via keyring crate; settings file contains no secrets
+- **Auto-update** – Tauri updater plugin with Ed25519-signed GitHub releases
 
 ## License
 

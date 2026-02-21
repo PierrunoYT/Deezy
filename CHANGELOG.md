@@ -2,21 +2,21 @@
 
 All notable changes to Deezy are documented here.
 
-## [Unreleased]
+## [0.2.0] – 2026-02-21
 
 ### Security
 
-- Enforce minimum TLS 1.2 and HTTPS-only on the HTTP client
-- Remove overly broad `process:default` Tauri capability, scope to `process:allow-restart` only
-- Disable `withGlobalTauri` to prevent exposing Tauri IPC on `window.__TAURI__`
-- Remove all verbose `eprintln!` debug logging that could leak sensitive settings, user IDs, or session details
-- Add CSV formula injection protection to download history export (`sanitize_csv_field`)
-- Sanitize lyrics HTML output to prevent XSS injection from Deezer API data
-- Add path traversal protection to theme load/save/delete operations (`sanitize_theme_name`)
-- Restrict settings file permissions to `0600` on Unix to protect stored ARL token
 - Move ARL token storage from plaintext JSON to OS credential store (Windows Credential Manager / macOS Keychain / Linux Secret Service) with automatic migration
 - Obfuscate Blowfish and AES cryptographic keys at rest in the binary (XOR deobfuscation at runtime)
 - Generate real Ed25519/minisign updater signing keypair (replaces placeholder public key)
+- Sanitize lyrics HTML output to prevent XSS injection from Deezer API data
+- Add path traversal protection to theme load/save/delete operations (`sanitize_theme_name`)
+- Restrict settings file permissions to `0600` on Unix to protect stored ARL token
+- Disable `withGlobalTauri` to prevent exposing Tauri IPC on `window.__TAURI__`
+- Remove all verbose `eprintln!` debug logging that could leak sensitive settings, user IDs, or session details
+- Add CSV formula injection protection to download history export (`sanitize_csv_field`)
+- Enforce minimum TLS 1.2 and HTTPS-only on the HTTP client
+- Remove overly broad `process:default` Tauri capability, scope to `process:allow-restart` only
 
 ## [0.1.0] – 2026-02-21
 
