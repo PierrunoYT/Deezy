@@ -56,7 +56,6 @@ A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [Sve
 
 ### System Integration
 - **System tray** – Minimize to tray with menu, download status indicator, and quick controls (Ctrl+H to hide)
-- **Auto-update** – Automatic update checks with download progress and one-click installation via signed Tauri updater plugin
 - **Auto-login** – Reconnects on app start using your saved ARL token
 - **Settings persistence** – All preferences saved as JSON in app data directory with validation
 - **Account-aware quality** – Deezer Free accounts are restricted to MP3 128 kbps in the quality selector
@@ -64,7 +63,6 @@ A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [Sve
 
 ### Security
 - **Credential storage** – ARL token stored in OS credential store (Windows Credential Manager / macOS Keychain / Linux Secret Service), not in plaintext files
-- **Signed updates** – Ed25519/minisign signed update packages prevent malicious update injection
 - **TLS hardened** – Minimum TLS 1.2 and HTTPS-only enforced on all HTTP connections
 - **XSS protection** – All user/API-facing HTML is sanitized; CSP restricts content sources
 - **Path traversal protection** – Theme filenames validated against directory traversal attacks
@@ -130,7 +128,7 @@ The built application will be in `src-tauri/target/release/bundle/`.
 | Image Processing | image v0.25 (cover art embedding)                                       |
 | UI Libraries   | svelte-dnd-action (drag-and-drop) + svelte-i18n (internationalization)  |
 | Credentials    | keyring v3 (OS credential store: Credential Manager / Keychain / Secret Service) |
-| Tauri Plugins  | dialog, notification, process, updater                                    |
+| Tauri Plugins  | dialog, notification, process                                             |
 
 ## Project Structure
 
@@ -183,7 +181,6 @@ deezy/
 - **Folder structure** – Configurable directory organization with automatic creation
 - **System tray** – Native tray icon with menu, status updates, and window management
 - **Credential storage** – ARL stored in OS credential store via keyring crate; settings file contains no secrets
-- **Auto-update** – Tauri updater plugin with Ed25519-signed GitHub releases
 
 ## License
 

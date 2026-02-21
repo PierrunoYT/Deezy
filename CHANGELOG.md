@@ -4,11 +4,11 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
-### Fixed
-
-- **Bundle signing configuration** – Added Windows signing configuration to `tauri.conf.json` to enable automatic updater signature generation during build when `TAURI_SIGNING_PRIVATE_KEY` is set
-
 ## [0.2.2] – 2026-02-21
+
+### Removed
+
+- **Auto-update system** – Removed built-in auto-updater (Tauri updater plugin, update check on startup, update modal, "Check for Updates" button in Settings). Signing keys and signature generation are no longer required for builds
 
 ### Fixed
 
@@ -94,7 +94,7 @@ All notable changes to Deezy are documented here.
 - **Lyrics viewer** – Modal display for track lyrics with synced/plain text support and scrollable view
 - **Audio preview** – 30-second preview playback with mini player, seek bar, volume control, and Space bar shortcut
 - **Internationalization** – Full i18n support with English, Spanish, French, and German translations
-- **Auto-update system** – Automatic update checks with download progress and one-click installation
+- ~~**Auto-update system**~~ *(removed in 0.2.2)*
 - **System tray** – Tray icon with menu, minimize to tray, download status, and Ctrl+H shortcut
 - **Export history** – Export download history as CSV or JSON with file picker
 - **Custom themes** – Import/export custom theme files with JSON-based color definitions and theme manager UI

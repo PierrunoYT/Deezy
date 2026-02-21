@@ -33,19 +33,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "windows": {
-      "signCommand": {
-        "cmd": "tauri",
-        "args": ["signer", "sign", "$BUNDLEPATH"]
-      }
-    }
-  },
-  "plugins": {
-    "updater": {
-      "endpoints": [
-        "https://github.com/PierrunoYT/Deezy/releases/latest/download/latest.json"
-      ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDc0OENBRUMxQjNDQjgwQ0UKUldUT2dNdXp3YTZNZEhBZnZXemlHT0lFWkdXbjNOZENmUFlNL2FwZEt5NGV3dTRJV3prcW93K2MK"
-    }
+    "windows": {}
   }
 }

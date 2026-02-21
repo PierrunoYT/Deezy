@@ -1,7 +1,7 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
   import { onMount } from 'svelte';
-  import { loggedIn, userInfo, theme, notificationsEnabled, searchHistory, updateState, currentLocale, type UserInfo, type Theme } from '$lib/stores';
+  import { loggedIn, userInfo, theme, notificationsEnabled, searchHistory, currentLocale, type UserInfo, type Theme } from '$lib/stores';
   import { notificationManager } from '$lib/notifications';
   import { _, locale } from 'svelte-i18n';
   import { supportedLocales } from '$lib/i18n';
@@ -26,7 +26,6 @@
   let saving = $state(false);
   let statusMsg = $state('');
   let statusType = $state<'success' | 'error' | 'info'>('info');
-  let checkingUpdates = $state(false);
   let isFreeAccount = $derived(Boolean($userInfo?.is_free_account));
 
   $effect(() => {
@@ -245,26 +244,6 @@
     statusType = type;
   }
   
-  async function checkForUpdates() {
-    checkingUpdates = true;
-    try {
-      if (typeof window !== 'undefined' && (window as any).checkForUpdates) {
-        await (window as any).checkForUpdates();
-        
-        const state = $updateState;
-        if (!state.available && !state.error) {
-          showStatus('You are running the latest version!', 'success');
-          setTimeout(() => statusMsg = '', 3000);
-        } else if (state.error) {
-          showStatus(`Update check failed: ${state.error}`, 'error');
-        }
-      }
-    } catch (err) {
-      showStatus(`Failed to check for updates: ${err}`, 'error');
-    } finally {
-      checkingUpdates = false;
-    }
-  }
 </script>
 
 <div class="view">
@@ -466,24 +445,6 @@
       </div>
     </div>
 
-    <div class="form-group">
-      <div class="label-text">Updates</div>
-      <p class="form-hint">
-        Check for new versions of Deezy. Updates are automatically checked on startup.
-      </p>
-      <button 
-        class="btn-check-updates" 
-        onclick={checkForUpdates}
-        disabled={checkingUpdates}
-        type="button"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-        </svg>
-        {checkingUpdates ? 'Checking...' : 'Check for Updates'}
-      </button>
-    </div>
-    
     <div class="form-actions">
       <button 
         class="btn-primary" 
@@ -787,38 +748,6 @@
     flex-shrink: 0;
   }
 
-  .btn-check-updates {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 12px;
-    padding: 10px 18px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--bg-elevated);
-    color: var(--text-primary);
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s;
-    font-family: inherit;
-  }
-
-  .btn-check-updates:hover:not(:disabled) {
-    background: var(--bg-hover);
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-
-  .btn-check-updates:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .btn-check-updates svg {
-    flex-shrink: 0;
-  }
-  
   .form-actions {
     margin-top: 32px;
   }

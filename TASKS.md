@@ -50,7 +50,7 @@
 - [x] Lyrics view (backend `song.getLyrics` already exists)
 - [x] Audio preview / playback
 - [x] Localization / i18n
-- [x] Auto-update mechanism
+- [x] ~~Auto-update mechanism~~ (removed)
 - [x] Tray icon with minimize to tray
 - [x] Export download history as CSV/JSON
 - [x] Custom CSS theme support
@@ -58,7 +58,7 @@
 - [x] Handle unavailable lyrics (`No lyrics id`) gracefully without surfacing backend errors
 - [x] Remove sensitive auth/session values from backend terminal logs
 - [x] Fix startup first-launch blank state by gating page render until app bootstrap completes
-- [x] Resolve Svelte accessibility warnings in UpdateModal, ExportHistoryModal, LyricsModal, ThemeManager, and MiniPlayer
+- [x] Resolve Svelte accessibility warnings in ExportHistoryModal, LyricsModal, ThemeManager, and MiniPlayer
 - [x] Show requested vs actual download quality in history/status when fallback happens
 - [x] Restrict quality selector for Deezer Free accounts to MP3 128 kbps
 - [x] Enforce minimum TLS 1.2 and HTTPS-only on HTTP client
@@ -71,17 +71,17 @@
 - [x] Restrict settings file permissions to owner-only on Unix
 - [x] Move ARL token from plaintext JSON to OS credential store (keyring)
 - [x] Obfuscate hardcoded cryptographic keys in binary
-- [x] Generate real Ed25519 updater signing keypair
+- [x] ~~Generate real Ed25519 updater signing keypair~~ (removed with auto-updater)
 - [x] Resolve all Clippy warnings (needless borrow, `is_multiple_of`, derivable `Default`)
 - [x] Playlist search & download support (search, browse tracks, batch download)
 - [x] Fix i18n translation loading race condition (translation keys showing as raw text)
 - [x] Fix corrupted toggle buttons in Settings (notifications, search history, system tray)
 - [x] Fix artist album track counts showing "0 tracks" (hide count when unavailable from API)
 - [x] Resolve Svelte a11y warnings in SettingsView (add role and keyboard handlers to toggle wrappers)
-- [x] Fix update checker failing to fetch release JSON (generate latest.json with signatures in release script)
+- [x] ~~Fix update checker failing to fetch release JSON~~ (removed with auto-updater)
 - [x] Fix race condition in download queue processing that could cause queue to stall
 - [x] Fix keyboard shortcut matching logic for modifier keys
 - [x] Fix memory leak in audio player event listeners
 - [x] Fix potential data corruption in download decryption for partial chunks
 - [x] Fix download progress calculation to track actual bytes instead of assuming 2048
-- [x] Add Windows bundle signing configuration to tauri.conf.json for automatic updater signature generation
+- [x] ~~Add Windows bundle signing configuration~~ (removed with auto-updater)

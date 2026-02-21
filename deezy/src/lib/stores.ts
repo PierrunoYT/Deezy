@@ -74,27 +74,3 @@ export const audioPlayer = writable<AudioPlayerState>({
   volume: 0.7,
 });
 
-export interface UpdateInfo {
-  version: string;
-  currentVersion: string;
-  date?: string;
-  body?: string;
-}
-
-export interface UpdateState {
-  available: boolean;
-  checking: boolean;
-  downloading: boolean;
-  downloadProgress: number;
-  error: string | null;
-  updateInfo: UpdateInfo | null;
-}
-
-export const updateState = writable<UpdateState>({
-  available: false,
-  checking: false,
-  downloading: false,
-  downloadProgress: 0,
-  error: null,
-  updateInfo: null,
-});

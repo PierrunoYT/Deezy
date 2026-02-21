@@ -3,16 +3,13 @@
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { listen } from '@tauri-apps/api/event';
-  import { check } from '@tauri-apps/plugin-updater';
-  import { loggedIn, userInfo, downloads, activeDownloads, downloadHistory, theme, updateState, currentLocale, type UserInfo, type DownloadItem, type Theme } from '$lib/stores';
-  import UpdateModal from '$lib/components/UpdateModal.svelte';
+  import { loggedIn, userInfo, downloads, activeDownloads, downloadHistory, theme, currentLocale, type UserInfo, type DownloadItem, type Theme } from '$lib/stores';
   import { initI18n } from '$lib/i18n';
   import { locale as i18nLocale } from 'svelte-i18n';
   import { trayManager } from '$lib/tray';
 
   let { children } = $props();
   
-  let showUpdateModal = $state(false);
   let appInitialized = $state(false);
 
   interface Settings {
@@ -71,56 +68,6 @@
     }
   }
   
-  async function checkForUpdates(silent = false) {
-    try {
-      if (!silent) {
-        updateState.update(s => ({ ...s, checking: true, error: null }));
-      }
-      
-      const update = await check();
-      
-      if (update?.available) {
-        console.log('Update available:', update.version);
-        updateState.update(s => ({
-          ...s,
-          available: true,
-          checking: false,
-          updateInfo: {
-            version: update.version,
-            currentVersion: update.currentVersion,
-            date: update.date,
-            body: update.body
-          }
-        }));
-        
-        showUpdateModal = true;
-      } else {
-        console.log('No updates available');
-        updateState.update(s => ({
-          ...s,
-          available: false,
-          checking: false,
-          updateInfo: null
-        }));
-        
-        if (!silent) {
-          // Show a brief notification that app is up to date
-          setTimeout(() => {
-            updateState.update(s => ({ ...s, error: null }));
-          }, 3000);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to check for updates:', err);
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      updateState.update(s => ({
-        ...s,
-        checking: false,
-        error: errorMsg
-      }));
-    }
-  }
-
   onMount(() => {
     // Load persisted download history
     (async () => {
@@ -182,11 +129,6 @@
       console.error('Failed to initialize tray manager:', err);
     });
     
-    // Check for updates on startup (silently)
-    setTimeout(() => {
-      checkForUpdates(true);
-    }, 3000);
-
     // Listen for theme changes
     const unsubscribeTheme = theme.subscribe(applyTheme);
 
@@ -265,14 +207,7 @@
       if (saveTimeout) clearTimeout(saveTimeout);
     };
   });
-  
-  // Export checkForUpdates so it can be called from Settings
-  if (typeof window !== 'undefined') {
-    (window as any).checkForUpdates = () => checkForUpdates(false);
-  }
 </script>
-
-<UpdateModal bind:show={showUpdateModal} onClose={() => showUpdateModal = false} />
 
 {#if appInitialized}
   {@render children()}

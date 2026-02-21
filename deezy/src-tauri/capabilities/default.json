@@ -12,10 +12,6 @@
     "core:tray:default",
     "dialog:default",
     "notification:default",
-    "process:allow-restart",
-    "updater:default",
-    "updater:allow-check",
-    "updater:allow-download",
-    "updater:allow-install"
+    "process:allow-restart"
   ]
 }
