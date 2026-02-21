@@ -70,7 +70,12 @@
 - [x] Add path traversal protection to theme file operations
 - [x] Restrict settings file permissions to owner-only on Unix
 - [x] Move ARL token from plaintext JSON to OS credential store (keyring)
+- [x] Make credential storage fail-closed (never write ARL to settings JSON when keyring save fails)
+- [x] Redact ARL from `get_settings` responses and add backend-only auto-login command
 - [x] Obfuscate hardcoded cryptographic keys in binary
+- [x] Remove panic paths in crypto/decryption handling (`expect`, unchecked slice) and return structured errors instead
+- [x] Add network timeouts and per-track download size guardrails to reduce hang/DoS risk
+- [x] Remove `unwrap()` in export save-path handling
 - [x] ~~Generate real Ed25519 updater signing keypair~~ (removed with auto-updater)
 - [x] Resolve all Clippy warnings (needless borrow, `is_multiple_of`, derivable `Default`)
 - [x] Playlist search & download support (search, browse tracks, batch download)
