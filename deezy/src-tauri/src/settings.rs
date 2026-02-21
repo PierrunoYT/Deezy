@@ -133,6 +133,15 @@ impl Settings {
 
         let path = Self::path(app)?;
         let data = serde_json::to_string_pretty(self).map_err(|e| e.to_string())?;
-        std::fs::write(&path, data).map_err(|e| e.to_string())
+        std::fs::write(&path, &data).map_err(|e| e.to_string())?;
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let perms = std::fs::Permissions::from_mode(0o600);
+            std::fs::set_permissions(&path, perms).map_err(|e| e.to_string())?;
+        }
+
+        Ok(())
     }
 }

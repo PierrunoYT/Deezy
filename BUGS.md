@@ -17,22 +17,19 @@
 - **Description:** `"pubkey": "REPLACE_WITH_YOUR_PUBLIC_KEY"` means the updater cannot verify update signatures, allowing malicious update injection.
 - **Fix:** Generate a real Ed25519 keypair and set the public key before shipping.
 
-## 🟠 High
+## 🟠 High – Fixed
 
-### 4. XSS via `{@html}` on Deezer API data
-- **File:** `deezy/src/lib/components/LyricsModal.svelte:152`
-- **Description:** `formatLyrics()` replaces `\n` with `<br>` and renders with `{@html}`. If Deezer returns lyrics containing `<script>` tags or event handler attributes, they execute in the webview.
-- **Fix:** Escape `<`, `>`, `&`, `"`, and `'` before inserting `<br>` tags.
+### 4. ~~XSS via `{@html}` on Deezer API data~~ ✅
+- **File:** `deezy/src/lib/components/LyricsModal.svelte`
+- **Fixed:** `formatLyrics()` now escapes `&`, `<`, `>`, `"`, and `'` before inserting `<br>` tags, preventing script injection from API data.
 
-### 5. Path traversal in theme operations
-- **Files:** `deezy/src-tauri/src/themes.rs:118, 134, 143`
-- **Description:** `load_custom_theme`, `save_custom_theme`, and `delete_custom_theme` build file paths from user-supplied `theme_name` without sanitizing `..` or path separators. A crafted name like `../../settings` could read or overwrite arbitrary files in the app data directory.
-- **Fix:** Validate that the filename contains no path separators (`/`, `\`) or `..` sequences.
+### 5. ~~Path traversal in theme operations~~ ✅
+- **File:** `deezy/src-tauri/src/themes.rs`
+- **Fixed:** Added `sanitize_theme_name()` that rejects names containing `.`, `/`, `\`, or `..`. Applied to `load_custom_theme`, `save_custom_theme`, and `delete_custom_theme`.
 
-### 6. Settings file has no file permissions restriction
-- **File:** `deezy/src-tauri/src/settings.rs:136`
-- **Description:** `std::fs::write` uses default OS permissions. On some systems the file may be world-readable, exposing the ARL token.
-- **Fix:** Set restrictive file permissions (e.g. `0600` on Unix) when writing `settings.json`.
+### 6. ~~Settings file has no file permissions restriction~~ ✅
+- **File:** `deezy/src-tauri/src/settings.rs`
+- **Fixed:** On Unix, settings file permissions are set to `0600` (owner read/write only) after writing. Windows uses ACL-based permissions which default to user-only access.
 
 ## 🟡 Medium – Fixed
 

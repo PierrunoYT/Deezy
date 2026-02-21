@@ -113,9 +113,21 @@ pub fn list_custom_themes(app: &tauri::AppHandle) -> Result<Vec<String>, String>
     Ok(themes)
 }
 
+fn sanitize_theme_name(name: &str) -> Result<String, String> {
+    let sanitized = name.trim().replace(' ', "_").to_lowercase();
+    if sanitized.is_empty() {
+        return Err("Theme name cannot be empty".to_string());
+    }
+    if sanitized.contains('.') || sanitized.contains('/') || sanitized.contains('\\') || sanitized.contains("..") {
+        return Err("Theme name contains invalid characters".to_string());
+    }
+    Ok(sanitized)
+}
+
 pub fn load_custom_theme(app: &tauri::AppHandle, theme_name: &str) -> Result<CustomTheme, String> {
     let dir = themes_dir(app)?;
-    let path = dir.join(format!("{}.json", theme_name));
+    let filename = sanitize_theme_name(theme_name)?;
+    let path = dir.join(format!("{}.json", filename));
 
     if !path.exists() {
         return Err(format!("Theme '{}' not found", theme_name));
@@ -131,7 +143,7 @@ pub fn save_custom_theme(app: &tauri::AppHandle, theme: &CustomTheme) -> Result<
     theme.validate()?;
 
     let dir = themes_dir(app)?;
-    let filename = theme.name.trim().replace(' ', "_").to_lowercase();
+    let filename = sanitize_theme_name(&theme.name)?;
     let path = dir.join(format!("{}.json", filename));
 
     let data = serde_json::to_string_pretty(theme).map_err(|e| e.to_string())?;
@@ -140,7 +152,8 @@ pub fn save_custom_theme(app: &tauri::AppHandle, theme: &CustomTheme) -> Result<
 
 pub fn delete_custom_theme(app: &tauri::AppHandle, theme_name: &str) -> Result<(), String> {
     let dir = themes_dir(app)?;
-    let path = dir.join(format!("{}.json", theme_name));
+    let filename = sanitize_theme_name(theme_name)?;
+    let path = dir.join(format!("{}.json", filename));
 
     if !path.exists() {
         return Err(format!("Theme '{}' not found", theme_name));

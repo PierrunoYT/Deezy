@@ -66,3 +66,6 @@
 - [x] Disable `withGlobalTauri` to prevent exposing Tauri API on `window.__TAURI__`
 - [x] Remove verbose debug logging that could leak sensitive values
 - [x] Add CSV formula injection protection to history export
+- [x] Sanitize lyrics `{@html}` output to prevent XSS from API data
+- [x] Add path traversal protection to theme file operations
+- [x] Restrict settings file permissions to owner-only on Unix

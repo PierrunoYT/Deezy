@@ -11,6 +11,9 @@ All notable changes to Deezy are documented here.
 - Disable `withGlobalTauri` to prevent exposing Tauri IPC on `window.__TAURI__`
 - Remove all verbose `eprintln!` debug logging that could leak sensitive settings, user IDs, or session details
 - Add CSV formula injection protection to download history export (`sanitize_csv_field`)
+- Sanitize lyrics HTML output to prevent XSS injection from Deezer API data
+- Add path traversal protection to theme load/save/delete operations (`sanitize_theme_name`)
+- Restrict settings file permissions to `0600` on Unix to protect stored ARL token
 
 ## [0.1.0] – 2026-02-21
 
