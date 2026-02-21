@@ -4,6 +4,8 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+## [0.2.1] – 2026-02-21
+
 ### Added
 
 - **Playlist search & download** – New "Playlists" tab in search view to find and browse playlists, view tracks, and batch-download all tracks with one click
