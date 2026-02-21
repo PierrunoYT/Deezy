@@ -4,16 +4,18 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+## [0.2.2] – 2026-02-21
+
 ### Fixed
 
-- **Artist album track counts** – Hide "0 tracks" display when Deezer API doesn't provide track count data for artist discography albums
-- **Settings accessibility** – Added ARIA roles and keyboard event handlers to toggle wrappers for notifications, search history, and system tray settings to resolve Svelte a11y warnings
-- **Update checker** – Fixed "could not fetch a valid release json" error by updating release script to generate `latest.json` file with proper signature and metadata for Tauri updater plugin
 - **Download queue race condition** – Fixed race condition in queue processing that could cause downloads to stall when new items are added during processor flag transition. Added concurrency control to prevent multiple queue processors from running simultaneously
 - **Keyboard shortcut logic** – Fixed inverted modifier key matching logic that prevented shortcuts without modifiers from working when any modifier key was pressed. Separated required and unwanted modifier checks for accurate shortcut detection
 - **Audio player memory leak** – Added `destroy()` method to audio player manager with proper event listener cleanup. Event handlers are now stored as references and removed on cleanup to prevent memory leaks
 - **Download decryption corruption** – Fixed critical bug where remaining buffer bytes after chunk processing were written without decryption check, potentially leaving encrypted data in downloaded files. Added proper decryption logic for partial chunks based on Deezer's encryption scheme
 - **Download progress accuracy** – Fixed progress calculation that always incremented by 2048 bytes even when chunks were smaller, causing incorrect progress reporting. Now tracks actual chunk sizes for accurate download progress
+- **Artist album track counts** – Hide "0 tracks" display when Deezer API doesn't provide track count data for artist discography albums
+- **Settings accessibility** – Added ARIA roles and keyboard event handlers to toggle wrappers for notifications, search history, and system tray settings to resolve Svelte a11y warnings
+- **Update checker** – Fixed "could not fetch a valid release json" error by updating release script to generate `latest.json` file with proper signature and metadata for Tauri updater plugin
 
 ## [0.2.1] – 2026-02-21
 
