@@ -120,7 +120,7 @@ pub async fn download_track(
         while buffer.len() >= 2048 {
             let chunk: Vec<u8> = buffer.drain(..2048).collect();
 
-            if chunk_index % 3 == 0 {
+            if chunk_index.is_multiple_of(3) {
                 let decrypted = crypto::decrypt_blowfish_chunk(&chunk, &bf_key);
                 file.write_all(&decrypted).map_err(|e| e.to_string())?;
             } else {

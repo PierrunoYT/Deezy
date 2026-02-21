@@ -322,7 +322,7 @@ pub async fn export_download_history(
         .file()
         .set_title("Export Download History")
         .add_filter(format.to_uppercase(), &[extension])
-        .set_file_name(&format!("deezy_download_history.{}", extension))
+        .set_file_name(format!("deezy_download_history.{}", extension))
         .save_file(move |file_path| {
             let _ = tx.send(file_path.map(|p| p.as_path().unwrap().to_string_lossy().to_string()));
         });

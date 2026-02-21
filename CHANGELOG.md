@@ -2,6 +2,12 @@
 
 All notable changes to Deezy are documented here.
 
+## [Unreleased]
+
+### Changed
+
+- Resolve all Clippy warnings: remove needless borrow in `commands.rs`, use `.is_multiple_of()` in `download.rs`, derive `Default` for `FolderStructure` in `settings.rs`
+
 ## [0.2.0] – 2026-02-21
 
 ### Security

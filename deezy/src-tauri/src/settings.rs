@@ -5,19 +5,14 @@ use tauri::Manager;
 const KEYRING_SERVICE: &str = "com.pierr.deezy";
 const KEYRING_USER: &str = "arl_token";
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum FolderStructure {
+    #[default]
     Flat,
     ArtistTrack,
     ArtistAlbumTrack,
     AlbumTrack,
-}
-
-impl Default for FolderStructure {
-    fn default() -> Self {
-        FolderStructure::Flat
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
