@@ -44,7 +44,7 @@ pub fn encrypt_download_url(
     quality_code: u32,
     track_id: &str,
     media_version: &str,
-) -> String {
+) -> Result<String, String> {
     let sep = '\u{00A4}';
 
     let step1 = format!(
@@ -72,21 +72,25 @@ pub fn encrypt_download_url(
         }
     }
 
-    let cdn = &md5_origin[..1];
-    format!(
+    let cdn = md5_origin
+        .chars()
+        .next()
+        .ok_or("Track unavailable (invalid MD5_ORIGIN)")?;
+
+    Ok(format!(
         "https://e-cdns-proxy-{}.dzcdn.net/mobile/1/{}",
         cdn, result
-    )
+    ))
 }
 
 type BfCbcDec = Decryptor<Blowfish>;
 
-pub fn decrypt_blowfish_chunk(chunk: &[u8], key: &[u8]) -> Vec<u8> {
+pub fn decrypt_blowfish_chunk(chunk: &[u8], key: &[u8]) -> Result<Vec<u8>, String> {
     let iv = [0u8, 1, 2, 3, 4, 5, 6, 7];
     let mut buf = chunk.to_vec();
-    let _ = BfCbcDec::new_from_slices(key, &iv)
-        .expect("Invalid key/iv length")
+    let decrypted = BfCbcDec::new_from_slices(key, &iv)
+        .map_err(|_| "Invalid key/iv length".to_string())?
         .decrypt_padded_mut::<NoPadding>(&mut buf)
-        .expect("Decryption failed");
-    buf
+        .map_err(|_| "Decryption failed".to_string())?;
+    Ok(decrypted.to_vec())
 }

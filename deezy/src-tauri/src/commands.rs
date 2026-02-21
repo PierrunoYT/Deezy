@@ -51,6 +51,25 @@ pub async fn login(
 }
 
 #[tauri::command]
+pub async fn auto_login(
+    state: tauri::State<'_, AppState>,
+    app: AppHandle,
+) -> Result<Option<Value>, String> {
+    let settings = Settings::load(&app)?;
+    if settings.arl.trim().is_empty() {
+        return Ok(None);
+    }
+
+    let client = DeezerClient::new(&settings.arl).await?;
+    let user = serde_json::to_value(&client.user).map_err(|e| e.to_string())?;
+
+    *state.client.lock().await = Some(client);
+    *state.settings.lock().await = settings;
+
+    Ok(Some(user))
+}
+
+#[tauri::command]
 pub async fn search_tracks(
     query: String,
     state: tauri::State<'_, AppState>,
@@ -204,9 +223,15 @@ pub async fn get_settings(
     app: AppHandle,
 ) -> Result<Settings, String> {
     let loaded = Settings::load(&app)?;
-    let mut settings = state.settings.lock().await;
-    *settings = loaded.clone();
-    Ok(loaded)
+    {
+        let mut settings = state.settings.lock().await;
+        *settings = loaded.clone();
+    }
+
+    // Never return ARL to the renderer process.
+    let mut safe = loaded;
+    safe.arl = String::new();
+    Ok(safe)
 }
 
 #[tauri::command]
@@ -216,8 +241,19 @@ pub async fn save_settings(
     app: AppHandle,
 ) -> Result<(), String> {
     let mut settings = state.settings.lock().await;
-    *settings = new_settings.clone();
-    settings.save(&app)?;
+    let mut merged = new_settings.clone();
+
+    // Allow non-auth settings updates without exposing ARL to the renderer.
+    if merged.arl.trim().is_empty() {
+        merged.arl = settings.arl.clone();
+    }
+
+    if merged.arl.trim().is_empty() {
+        return Err("ARL token is required".to_string());
+    }
+
+    merged.save(&app)?;
+    *settings = merged;
     Ok(())
 }
 
@@ -349,7 +385,9 @@ pub async fn export_download_history(
         .add_filter(format.to_uppercase(), &[extension])
         .set_file_name(format!("deezy_download_history.{}", extension))
         .save_file(move |file_path| {
-            let _ = tx.send(file_path.map(|p| p.as_path().unwrap().to_string_lossy().to_string()));
+            let _ = tx.send(
+                file_path.and_then(|p| p.as_path().map(|path| path.to_string_lossy().to_string())),
+            );
         });
 
     let file_path = match rx.await {

@@ -57,6 +57,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::login,
+            commands::auto_login,
             commands::search_tracks,
             commands::search_albums,
             commands::search_artists,

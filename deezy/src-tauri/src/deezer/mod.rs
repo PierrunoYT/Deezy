@@ -7,6 +7,7 @@ use reqwest::cookie::Jar;
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, ACCEPT_LANGUAGE, CACHE_CONTROL, CONNECTION, USER_AGENT};
 use serde_json::Value;
 use std::sync::Arc;
+use std::time::Duration;
 
 const API_URL: &str = "https://www.deezer.com/ajax/gw-light.php";
 const LEGACY_API_URL: &str = "https://api.deezer.com";
@@ -43,6 +44,8 @@ impl DeezerClient {
             .cookie_provider(jar)
             .min_tls_version(reqwest::tls::Version::TLS_1_2)
             .https_only(true)
+            .connect_timeout(Duration::from_secs(10))
+            .read_timeout(Duration::from_secs(30))
             .build()
             .map_err(|e| e.to_string())?;
 
@@ -563,7 +566,7 @@ impl DeezerClient {
             .ok_or("Track unavailable (no MEDIA_VERSION)")?;
 
         let quality_code = get_quality_code(quality);
-        let url = crypto::encrypt_download_url(md5_origin, quality_code, &sng_id, media_version);
+        let url = crypto::encrypt_download_url(md5_origin, quality_code, &sng_id, media_version)?;
 
         let res = self
             .http
@@ -586,7 +589,7 @@ impl DeezerClient {
 
         for q in fallback_qualities(quality) {
             let qc = get_quality_code(q);
-            let url = crypto::encrypt_download_url(md5_origin, qc, &sng_id, media_version);
+            let url = crypto::encrypt_download_url(md5_origin, qc, &sng_id, media_version)?;
             let res = self
                 .http
                 .get(&url)
