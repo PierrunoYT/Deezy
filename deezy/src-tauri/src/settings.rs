@@ -140,7 +140,7 @@ impl Settings {
 
         // Migrate: if ARL was stored in the JSON file, move it to keyring
         if !settings.arl.is_empty() {
-            let _ = save_arl_to_keyring(&settings.arl);
+            save_arl_to_keyring(&settings.arl)?;
             // Re-save settings without the ARL in the file
             let mut clean = settings.clone();
             clean.arl = String::new();
@@ -162,14 +162,13 @@ impl Settings {
         // Validate before saving
         self.validate()?;
 
-        // Save ARL to OS credential store
-        let arl_in_keyring = save_arl_to_keyring(&self.arl).is_ok();
+        // Save ARL to OS credential store.
+        // Do not persist plaintext credentials to disk if credential storage fails.
+        save_arl_to_keyring(&self.arl)?;
 
-        // Write settings to disk without ARL if it's safely in the keyring
+        // Write settings to disk without ARL.
         let mut settings_for_disk = self.clone();
-        if arl_in_keyring {
-            settings_for_disk.arl = String::new();
-        }
+        settings_for_disk.arl = String::new();
 
         let path = Self::path(app)?;
         let data = serde_json::to_string_pretty(&settings_for_disk).map_err(|e| e.to_string())?;

@@ -11,6 +11,8 @@ use super::models::DownloadResult;
 use super::{crypto, get_quality_ext, DeezerClient};
 use crate::settings::FolderStructure;
 
+const MAX_TRACK_DOWNLOAD_BYTES: u64 = 1024 * 1024 * 1024; // 1 GiB safety cap
+
 pub async fn download_track(
     client: &DeezerClient,
     track_id: &str,
@@ -104,7 +106,20 @@ pub async fn download_track(
         .await
         .map_err(|e| format!("Download failed: {}", e))?;
 
-    let total_size = response.content_length().unwrap_or(0);
+    let total_size_opt = response.content_length();
+    if let Some(total_size) = total_size_opt {
+        if total_size == 0 {
+            return Err("Download failed: empty response".to_string());
+        }
+        if total_size > MAX_TRACK_DOWNLOAD_BYTES {
+            return Err(format!(
+                "Download aborted: response too large ({} bytes)",
+                total_size
+            ));
+        }
+    }
+
+    let total_size = total_size_opt.unwrap_or(0);
     let mut stream = response.bytes_stream();
     let mut file =
         std::fs::File::create(&download_path).map_err(|e| format!("Cannot create file: {}", e))?;
@@ -119,9 +134,13 @@ pub async fn download_track(
 
         while buffer.len() >= 2048 {
             let chunk: Vec<u8> = buffer.drain(..2048).collect();
+            if downloaded.saturating_add(chunk.len() as u64) > MAX_TRACK_DOWNLOAD_BYTES {
+                return Err("Download aborted: file exceeds allowed size limit".to_string());
+            }
 
             if chunk_index.is_multiple_of(3) {
-                let decrypted = crypto::decrypt_blowfish_chunk(&chunk, &bf_key);
+                let decrypted = crypto::decrypt_blowfish_chunk(&chunk, &bf_key)
+                    .map_err(|e| format!("Decryption failed: {}", e))?;
                 file.write_all(&decrypted).map_err(|e| e.to_string())?;
             } else {
                 file.write_all(&chunk).map_err(|e| e.to_string())?;
@@ -140,10 +159,14 @@ pub async fn download_track(
     // Handle remaining bytes (less than 2048 bytes)
     // Check if this partial chunk needs decryption
     if !buffer.is_empty() {
+        if downloaded.saturating_add(buffer.len() as u64) > MAX_TRACK_DOWNLOAD_BYTES {
+            return Err("Download aborted: file exceeds allowed size limit".to_string());
+        }
         // Only decrypt if it's a full 2048-byte chunk that would be decrypted
         // Partial chunks at the end are not decrypted in Deezer's scheme
         if buffer.len() == 2048 && chunk_index.is_multiple_of(3) {
-            let decrypted = crypto::decrypt_blowfish_chunk(&buffer, &bf_key);
+            let decrypted = crypto::decrypt_blowfish_chunk(&buffer, &bf_key)
+                .map_err(|e| format!("Decryption failed: {}", e))?;
             file.write_all(&decrypted).map_err(|e| e.to_string())?;
         } else {
             file.write_all(&buffer).map_err(|e| e.to_string())?;

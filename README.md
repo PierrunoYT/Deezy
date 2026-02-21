@@ -63,7 +63,12 @@ A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [Sve
 
 ### Security
 - **Credential storage** – ARL token stored in OS credential store (Windows Credential Manager / macOS Keychain / Linux Secret Service), not in plaintext files
+- **Fail-closed secret persistence** – Settings saves now fail if credential-store writes fail; ARL is never intentionally written back to JSON as a fallback
+- **Renderer-safe settings API** – `get_settings` redacts ARL from renderer responses; startup session restore is handled by a backend-only auto-login command
 - **TLS hardened** – Minimum TLS 1.2 and HTTPS-only enforced on all HTTP connections
+- **Request resilience** – Deezer HTTP client uses connection/read timeouts to avoid indefinite hangs
+- **Download safety cap** – Per-track download size is capped (1 GiB) to reduce disk exhaustion risk from abnormal streams
+- **Panic hardening** – Crypto/decryption edge cases return errors instead of panicking (`expect`/unchecked slicing removed from download-critical paths)
 - **XSS protection** – All user/API-facing HTML is sanitized; CSP restricts content sources
 - **Path traversal protection** – Theme filenames validated against directory traversal attacks
 - **CSV injection protection** – Exported CSV fields sanitized against spreadsheet formula injection

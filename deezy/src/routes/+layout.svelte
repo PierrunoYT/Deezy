@@ -13,7 +13,6 @@
   let appInitialized = $state(false);
 
   interface Settings {
-    arl: string;
     output_dir: string;
     quality: string;
     theme?: Theme;
@@ -101,16 +100,14 @@
           applyTheme('system');
         }
         
-        if (settings.arl) {
-          try {
-            console.log('Auto-logging in with saved ARL...');
-            const user = await invoke<UserInfo>('login', { arl: settings.arl });
+        try {
+          const user = await invoke<UserInfo | null>('auto_login');
+          if (user) {
             loggedIn.set(true);
             userInfo.set(user);
-            console.log('Auto-login successful:', user);
-          } catch (err) {
-            console.error('Auto-login failed:', err);
           }
+        } catch (err) {
+          console.error('Auto-login failed:', err);
         }
       } catch (err) {
         console.error('Failed to load settings:', err);

@@ -37,7 +37,6 @@
   onMount(async () => {
     try {
       const settings: any = await invoke('get_settings');
-      if (settings.arl) arl = settings.arl;
       if (settings.output_dir) outputDir = settings.output_dir;
       if (settings.quality) quality = settings.quality;
       if (settings.folder_structure) folderStructure = settings.folder_structure;
@@ -76,13 +75,10 @@
   }
   
   async function saveSettings() {
-    // Validate ARL
-    if (!arl.trim()) {
-      showStatus($_('settings.status.arlRequired'), 'error');
-      return;
-    }
+    const trimmedArl = arl.trim();
 
-    if (arl.trim().length < 100) {
+    // Validate ARL format only when user is updating it
+    if (trimmedArl && trimmedArl.length < 100) {
       showStatus($_('settings.status.arlInvalid'), 'error');
       return;
     }
@@ -106,7 +102,7 @@
     try {
       await invoke('save_settings', {
         newSettings: {
-          arl: arl.trim(),
+          arl: trimmedArl,
           output_dir: outputDir.trim(),
           quality: quality,
           folder_structure: folderStructure,
@@ -122,7 +118,16 @@
       notificationManager.setEnabled(enableNotifications);
       notificationsEnabled.set(enableNotifications);
 
-      const user = await invoke<UserInfo>('login', { arl: arl.trim() });
+      const user = trimmedArl
+        ? await invoke<UserInfo>('login', { arl: trimmedArl })
+        : await invoke<UserInfo | null>('auto_login');
+
+      if (!user) {
+        showStatus($_('settings.status.arlRequired'), 'error');
+        loggedIn.set(false);
+        return;
+      }
+
       loggedIn.set(true);
       userInfo.set(user);
 
