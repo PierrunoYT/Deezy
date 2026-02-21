@@ -75,3 +75,4 @@
 - [x] Resolve all Clippy warnings (needless borrow, `is_multiple_of`, derivable `Default`)
 - [x] Playlist search & download support (search, browse tracks, batch download)
 - [x] Fix i18n translation loading race condition (translation keys showing as raw text)
+- [x] Fix corrupted toggle buttons in Settings (notifications, search history, system tray)

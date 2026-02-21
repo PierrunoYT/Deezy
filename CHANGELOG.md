@@ -15,6 +15,7 @@ All notable changes to Deezy are documented here.
 ### Fixed
 
 - **i18n translation loading** – Fixed race condition where translation keys (e.g. `search.tabs.playlists`) were displayed as raw text instead of translated strings. Now properly awaits locale initialization using `waitLocale()` before rendering UI
+- **Settings toggle buttons** – Fixed corrupted toggle switches for notifications, search history, and system tray where the purple circle overlapped text and buttons were non-functional. Restructured toggle component with separate wrapper for proper layout and click handling
 
 ## [0.2.0] – 2026-02-21
 
