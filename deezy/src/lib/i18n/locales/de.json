@@ -13,12 +13,14 @@
     "placeholder": {
       "tracks": "Nach Titeln suchen...",
       "albums": "Nach Alben suchen...",
-      "artists": "Nach Künstlern suchen..."
+      "artists": "Nach Künstlern suchen...",
+      "playlists": "Nach Playlists suchen..."
     },
     "tabs": {
       "tracks": "Titel",
       "albums": "Alben",
-      "artists": "Künstler"
+      "artists": "Künstler",
+      "playlists": "Playlists"
     },
     "status": {
       "searching": "Suche läuft...",
@@ -46,6 +48,16 @@
       "downloadAll": "Alles Herunterladen",
       "adding": "Wird hinzugefügt...",
       "tracks": "{count, plural, =1 {1 Titel} other {# Titel}}"
+    },
+    "playlist": {
+      "downloadAll": "Alles Herunterladen",
+      "adding": "Wird hinzugefügt...",
+      "tracks": "{count, plural, =1 {1 Titel} other {# Titel}}",
+      "by": "von {creator}",
+      "viewTracks": "Titel Anzeigen",
+      "loadingTracks": "Playlist-Titel werden geladen...",
+      "noTracks": "Keine Titel in dieser Playlist gefunden.",
+      "back": "Zurück zu Ergebnissen"
     },
     "artistCard": {
       "albums": "{count, plural, =1 {1 Album} other {# Alben}}",

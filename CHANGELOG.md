@@ -4,6 +4,10 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **Playlist search & download** – New "Playlists" tab in search view to find and browse playlists, view tracks, and batch-download all tracks with one click
+
 ### Changed
 
 - Resolve all Clippy warnings: remove needless borrow in `commands.rs`, use `.is_multiple_of()` in `download.rs`, derive `Default` for `FolderStructure` in `settings.rs`

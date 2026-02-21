@@ -63,6 +63,8 @@ pub fn run() {
             commands::search_artists,
             commands::get_album_tracks,
             commands::get_artist_albums,
+            commands::search_playlists,
+            commands::get_playlist_tracks,
             commands::download_track,
             commands::get_settings,
             commands::save_settings,

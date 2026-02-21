@@ -43,6 +43,16 @@ pub struct ArtistResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlaylistResult {
+    pub id: u64,
+    pub title: String,
+    pub creator: String,
+    pub cover_small: String,
+    pub cover_medium: String,
+    pub nb_tracks: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DownloadProgress {
     pub track_id: String,
     pub title: String,

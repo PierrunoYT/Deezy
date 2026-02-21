@@ -29,24 +29,42 @@
     nb_fan: number;
   }
 
+  interface PlaylistResult {
+    id: number;
+    title: string;
+    creator: string;
+    cover_small: string;
+    cover_medium: string;
+    nb_tracks: number;
+  }
+
   interface SelectedArtist {
     id: number;
     name: string;
     picture: string;
   }
 
-  type SearchType = 'tracks' | 'albums' | 'artists';
+  interface SelectedPlaylist {
+    id: number;
+    title: string;
+    cover: string;
+    creator: string;
+  }
+
+  type SearchType = 'tracks' | 'albums' | 'artists' | 'playlists';
 
   let searchQuery = $state<string>('');
   let searchType = $state<SearchType>('tracks');
   let results = $state<Track[]>([]);
   let albumResults = $state<AlbumResult[]>([]);
   let artistResults = $state<ArtistResult[]>([]);
+  let playlistResults = $state<PlaylistResult[]>([]);
   let searching = $state<boolean>(false);
   let errorMsg = $state<string>('');
   let isLoggedIn = $state<boolean>(false);
   let downloadStates = $state<Map<string, string>>(new Map());
   let downloadingAlbums = $state<Set<number>>(new Set());
+  let downloadingPlaylists = $state<Set<number>>(new Set());
   let showSearchHistory = $state<boolean>(false);
   let history = $state<string[]>([]);
   let searchInputRef = $state<HTMLInputElement | undefined>(undefined);
@@ -56,6 +74,12 @@
   let artistAlbums = $state<AlbumResult[]>([]);
   let loadingDiscography = $state<boolean>(false);
   let discographyError = $state<string>('');
+
+  // Playlist detail state
+  let selectedPlaylist = $state<SelectedPlaylist | null>(null);
+  let playlistTracks = $state<Track[]>([]);
+  let loadingPlaylist = $state<boolean>(false);
+  let playlistError = $state<string>('');
 
   // Lyrics modal state
   let lyricsTrack = $state<Track | null>(null);
@@ -119,7 +143,9 @@
       description: 'Clear search / Go back',
       category: 'search',
       action: () => {
-        if (selectedArtist) {
+        if (selectedPlaylist) {
+          closePlaylist();
+        } else if (selectedArtist) {
           closeArtist();
         } else if (lyricsTrack) {
           closeLyrics();
@@ -128,6 +154,7 @@
           results = [];
           albumResults = [];
           artistResults = [];
+          playlistResults = [];
           errorMsg = '';
         }
       }
@@ -168,6 +195,7 @@
       results = [];
       albumResults = [];
       artistResults = [];
+      playlistResults = [];
       return;
     }
     
@@ -200,8 +228,10 @@
     results = [];
     albumResults = [];
     artistResults = [];
+    playlistResults = [];
     errorMsg = '';
     selectedArtist = null;
+    selectedPlaylist = null;
     if (searchQuery.trim().length >= 2) {
       doSearch();
     }
@@ -221,6 +251,7 @@
     results = [];
     albumResults = [];
     artistResults = [];
+    playlistResults = [];
     showSearchHistory = false;
 
     try {
@@ -234,10 +265,14 @@
         const data = await invoke<AlbumResult[]>('search_albums', { query });
         albumResults = data;
         if (albumResults.length === 0) errorMsg = $_('search.status.noResults');
-      } else {
+      } else if (searchType === 'artists') {
         const data = await invoke<ArtistResult[]>('search_artists', { query });
         artistResults = data;
         if (artistResults.length === 0) errorMsg = $_('search.status.noResults');
+      } else {
+        const data = await invoke<PlaylistResult[]>('search_playlists', { query });
+        playlistResults = data;
+        if (playlistResults.length === 0) errorMsg = $_('search.status.noResults');
       }
 
       // Add to search history after successful search
@@ -270,6 +305,65 @@
     selectedArtist = null;
     artistAlbums = [];
     discographyError = '';
+  }
+
+  async function openPlaylist(playlist: PlaylistResult) {
+    selectedPlaylist = { id: playlist.id, title: playlist.title, cover: playlist.cover_medium, creator: playlist.creator };
+    playlistTracks = [];
+    playlistError = '';
+    loadingPlaylist = true;
+
+    try {
+      const data = await invoke<Track[]>('get_playlist_tracks', { playlistId: String(playlist.id) });
+      playlistTracks = data;
+      if (playlistTracks.length === 0) playlistError = $_('search.playlist.noTracks');
+    } catch (err) {
+      playlistError = String(err);
+    } finally {
+      loadingPlaylist = false;
+    }
+  }
+
+  function closePlaylist() {
+    selectedPlaylist = null;
+    playlistTracks = [];
+    playlistError = '';
+  }
+
+  async function downloadPlaylist(playlist: SelectedPlaylist) {
+    if (downloadingPlaylists.has(playlist.id)) return;
+    downloadingPlaylists = new Set([...downloadingPlaylists, playlist.id]);
+
+    try {
+      // If we're inside the playlist view, use already-loaded tracks
+      let tracks = playlistTracks;
+      if (tracks.length === 0) {
+        tracks = await invoke<Track[]>('get_playlist_tracks', { playlistId: String(playlist.id) });
+      }
+      for (const track of tracks) {
+        await downloadQueueManager.addToQueue(track);
+      }
+    } catch (err) {
+      errorMsg = `Failed to get playlist tracks: ${String(err)}`;
+    } finally {
+      downloadingPlaylists = new Set([...downloadingPlaylists].filter(id => id !== playlist.id));
+    }
+  }
+
+  async function downloadPlaylistFromResult(playlist: PlaylistResult) {
+    if (downloadingPlaylists.has(playlist.id)) return;
+    downloadingPlaylists = new Set([...downloadingPlaylists, playlist.id]);
+
+    try {
+      const tracks = await invoke<Track[]>('get_playlist_tracks', { playlistId: String(playlist.id) });
+      for (const track of tracks) {
+        await downloadQueueManager.addToQueue(track);
+      }
+    } catch (err) {
+      errorMsg = `Failed to get playlist tracks: ${String(err)}`;
+    } finally {
+      downloadingPlaylists = new Set([...downloadingPlaylists].filter(id => id !== playlist.id));
+    }
   }
 
   async function downloadTrack(track: Track) {
@@ -338,11 +432,36 @@
           </div>
         </div>
       </div>
+    {:else if selectedPlaylist}
+      <div class="artist-page-header">
+        <button class="btn-back" onclick={closePlaylist}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+          {$_('search.playlist.back')}
+        </button>
+        <div class="artist-hero">
+          {#if selectedPlaylist.cover}
+            <img class="artist-hero-img playlist-cover" src={selectedPlaylist.cover} alt={selectedPlaylist.title} />
+          {:else}
+            <div class="artist-hero-placeholder">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+              </svg>
+            </div>
+          {/if}
+          <div class="artist-hero-info">
+            <div class="artist-hero-name">{selectedPlaylist.title}</div>
+            <div class="artist-hero-meta">{$_('search.playlist.by', { values: { creator: selectedPlaylist.creator } })}</div>
+          </div>
+        </div>
+      </div>
     {:else}
       <div class="search-tabs">
         <button class="tab-btn" class:active={searchType === 'tracks'} onclick={() => switchSearchType('tracks')}>{$_('search.tabs.tracks')}</button>
         <button class="tab-btn" class:active={searchType === 'albums'} onclick={() => switchSearchType('albums')}>{$_('search.tabs.albums')}</button>
         <button class="tab-btn" class:active={searchType === 'artists'} onclick={() => switchSearchType('artists')}>{$_('search.tabs.artists')}</button>
+        <button class="tab-btn" class:active={searchType === 'playlists'} onclick={() => switchSearchType('playlists')}>{$_('search.tabs.playlists')}</button>
       </div>
       <div class="search-bar-container">
         <div class="search-bar">
@@ -412,6 +531,107 @@
                 {$_('search.album.downloadAll')}
               {/if}
             </button>
+          </div>
+        {/each}
+      </div>
+    {/if}
+
+  <!-- Playlist detail view -->
+  {:else if selectedPlaylist}
+    <div class="playlist-header-actions">
+      <button
+        class="btn-download-all"
+        class:downloading={downloadingPlaylists.has(selectedPlaylist.id)}
+        onclick={() => selectedPlaylist && downloadPlaylist(selectedPlaylist)}
+        disabled={downloadingPlaylists.has(selectedPlaylist.id) || loadingPlaylist || playlistTracks.length === 0}
+      >
+        {#if downloadingPlaylists.has(selectedPlaylist.id)}
+          <span class="spinner"></span> {$_('search.playlist.adding')}
+        {:else}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          {$_('search.playlist.downloadAll')} ({playlistTracks.length})
+        {/if}
+      </button>
+    </div>
+    {#if loadingPlaylist}
+      <div class="status-message info"><span class="spinner"></span> {$_('search.playlist.loadingTracks')}</div>
+    {:else if playlistError}
+      <div class="status-message error">{playlistError}</div>
+    {:else if playlistTracks.length > 0}
+      <div class="results-header">
+        <span class="col-title">{$_('search.track.title')}</span>
+        <span class="col-album">{$_('search.track.album')}</span>
+        <span class="col-duration">{$_('search.track.duration')}</span>
+        <span class="col-action"></span>
+      </div>
+      <div class="results-list">
+        {#each playlistTracks as track (track.id)}
+          <div class="track-item">
+            <button 
+              class="btn-play-track"
+              class:playing={isTrackPlaying(track)}
+              onclick={() => playTrack(track)}
+              disabled={!track.preview}
+              title={track.preview ? (isTrackPlaying(track) ? 'Pause' : 'Play preview') : 'No preview available'}
+            >
+              {#if isTrackPlaying(track)}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="4" width="4" height="16" rx="1"/>
+                  <rect x="14" y="4" width="4" height="16" rx="1"/>
+                </svg>
+              {:else}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              {/if}
+            </button>
+            <img class="track-cover" src={track.cover_small} alt="" loading="lazy" />
+            <div class="track-info">
+              <div class="track-title">{track.title}</div>
+              <button
+                class="track-artist artist-link"
+                onclick={() => openArtist(track.artist_id, track.artist, '')}
+                title={$_('search.artist.browseDiscography', { values: { artist: track.artist } })}
+              >{track.artist}</button>
+            </div>
+            <div class="track-album">{track.album}</div>
+            <div class="track-duration">{formatDuration(track.duration)}</div>
+            <div class="track-actions">
+              <button 
+                class="btn-lyrics"
+                onclick={() => openLyrics(track)}
+                title={$_('search.track.viewLyrics')}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18V5l12-2v13"/>
+                  <circle cx="6" cy="18" r="3"/>
+                  <circle cx="18" cy="16" r="3"/>
+                </svg>
+              </button>
+              <button 
+                class="btn-download {downloadStates.get(String(track.id)) === 'downloading' ? 'downloading' : ''} {downloadStates.get(String(track.id)) === 'complete' ? 'done' : ''}"
+                onclick={() => downloadTrack(track)}
+                title={$_('search.track.download')}
+              >
+                {#if downloadStates.get(String(track.id)) === 'downloading'}
+                  <span class="spinner"></span>
+                {:else if downloadStates.get(String(track.id)) === 'complete'}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                {:else}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                {/if}
+              </button>
+            </div>
           </div>
         {/each}
       </div>
@@ -555,6 +775,40 @@
               {$_('search.artistCard.albums', { values: { count: artist.nb_album } })} · {$_('search.artistCard.fans', { values: { count: formatFans(artist.nb_fan) } })}
             </div>
           </button>
+        {/each}
+      </div>
+    {/if}
+
+    {#if searchType === 'playlists' && playlistResults.length > 0}
+      <div class="results-list">
+        {#each playlistResults as playlist (playlist.id)}
+          <div class="album-item">
+            <img class="album-cover" src={playlist.cover_medium} alt="" loading="lazy" />
+            <div class="album-info">
+              <div class="album-title">
+                <button class="playlist-title-link" onclick={() => openPlaylist(playlist)}>{playlist.title}</button>
+              </div>
+              <div class="album-artist">{$_('search.playlist.by', { values: { creator: playlist.creator } })}</div>
+              <div class="album-meta">{$_('search.playlist.tracks', { values: { count: playlist.nb_tracks } })}</div>
+            </div>
+            <button 
+              class="btn-download-all"
+              class:downloading={downloadingPlaylists.has(playlist.id)}
+              onclick={() => downloadPlaylistFromResult(playlist)}
+              disabled={downloadingPlaylists.has(playlist.id)}
+            >
+              {#if downloadingPlaylists.has(playlist.id)}
+                <span class="spinner"></span> {$_('search.playlist.adding')}
+              {:else}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                {$_('search.playlist.downloadAll')}
+              {/if}
+            </button>
+          </div>
         {/each}
       </div>
     {/if}
@@ -1106,5 +1360,44 @@
   .artist-card-meta {
     font-size: 12px;
     color: var(--text-tertiary);
+  }
+
+  .playlist-cover {
+    border-radius: var(--radius-sm);
+  }
+
+  .playlist-title-link {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    width: 100%;
+    transition: color 0.15s;
+  }
+
+  .playlist-title-link:hover {
+    color: var(--accent);
+    text-decoration: underline;
+  }
+
+  .album-artist {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .playlist-header-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 0 12px;
   }
 </style>

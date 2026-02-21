@@ -25,7 +25,7 @@ A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [Sve
 ## Features
 
 ### Search & Discovery
-- **Multi-tab search** – Find tracks, albums, or artists with debounced search and rate limiting (2 req/s)
+- **Multi-tab search** – Find tracks, albums, artists, or playlists with debounced search and rate limiting (2 req/s)
 - **Artist browsing** – Click any artist name to open their full discography, or use the Artists tab to search directly
 - **Search history** – Recent searches dropdown (up to 20 items) with one-click re-search and privacy controls
 - **Lyrics viewer** – View track lyrics in a beautiful modal with synced/plain text support and graceful fallback
@@ -34,6 +34,7 @@ A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [Sve
 ### Downloads
 - **Smart queue** – Up to 3 concurrent downloads with drag-and-drop reordering and priority management
 - **Album download** – Batch-download all tracks from an album with one click
+- **Playlist download** – Browse playlist tracks and batch-download all with one click
 - **Pause/resume** – Pause active downloads and resume them later with high priority
 - **Retry failed** – One-click retry button on any failed download
 - **Folder structure** – Organize downloads in 4 layouts: Flat, Artist/Track, Artist/Album/Track, or Album/Track
