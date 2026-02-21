@@ -5,8 +5,30 @@ use cbc::Decryptor;
 use cipher::block_padding::NoPadding;
 use cipher::{BlockDecryptMut, KeyIvInit};
 
+const XOR_MASK: u8 = 0xAB;
+
+// "g4el58wc0zvf9na1" XOR 0xAB
+const BF_SECRET: [u8; 16] = [
+    0xCC, 0x9F, 0xCE, 0xC7, 0x9E, 0x93, 0xDC, 0xC8,
+    0x9B, 0xD1, 0xDD, 0xCD, 0x92, 0xC5, 0xCA, 0x9A,
+];
+
+// "jo6aey6haid2Teih" XOR 0xAB
+const AES_KEY: [u8; 16] = [
+    0xC1, 0xC4, 0x9D, 0xCA, 0xCE, 0xD2, 0x9D, 0xC3,
+    0xCA, 0xC2, 0xCF, 0x99, 0xFF, 0xCE, 0xC2, 0xC3,
+];
+
+fn deobfuscate(data: &[u8; 16]) -> [u8; 16] {
+    let mut out = [0u8; 16];
+    for i in 0..16 {
+        out[i] = data[i] ^ XOR_MASK;
+    }
+    out
+}
+
 pub fn get_blowfish_key(track_id: &str) -> Vec<u8> {
-    let secret = b"g4el58wc0zvf9na1";
+    let secret = deobfuscate(&BF_SECRET);
     let id_bytes: Vec<u8> = track_id.chars().map(|c| c as u8).collect();
     let hash = md5::compute(&id_bytes);
     let hex = format!("{:x}", hash);
@@ -37,7 +59,8 @@ pub fn encrypt_download_url(
     let step2_padded = format!("{:<80}", step2);
     let step2_bytes: Vec<u8> = step2_padded.chars().map(|c| c as u8).collect();
 
-    let key = GenericArray::from_slice(b"jo6aey6haid2Teih");
+    let aes_key = deobfuscate(&AES_KEY);
+    let key = GenericArray::from_slice(&aes_key);
     let aes = Aes128::new(key);
 
     let mut result = String::new();

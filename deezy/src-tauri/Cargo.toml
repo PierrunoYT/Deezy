@@ -31,4 +31,5 @@ cipher = { version = "0.4", features = ["block-padding"] }
 id3 = "1"
 metaflac = "0.2"
 image = "0.25"
+keyring = { version = "3", features = ["sync-secret-service", "windows-native"] }
 
