@@ -148,6 +148,8 @@ pub async fn download_track(
         } else {
             file.write_all(&buffer).map_err(|e| e.to_string())?;
         }
+        // Note: downloaded counter is updated here for completeness,
+        // though final progress is already set to 100 at line 171
         downloaded += buffer.len() as u64;
     }
     drop(file);

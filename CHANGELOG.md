@@ -4,6 +4,10 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Bundle signing configuration** – Added Windows signing configuration to `tauri.conf.json` to enable automatic updater signature generation during build when `TAURI_SIGNING_PRIVATE_KEY` is set
+
 ## [0.2.2] – 2026-02-21
 
 ### Fixed

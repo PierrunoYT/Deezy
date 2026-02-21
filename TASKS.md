@@ -84,3 +84,4 @@
 - [x] Fix memory leak in audio player event listeners
 - [x] Fix potential data corruption in download decryption for partial chunks
 - [x] Fix download progress calculation to track actual bytes instead of assuming 2048
+- [x] Add Windows bundle signing configuration to tauri.conf.json for automatic updater signature generation
