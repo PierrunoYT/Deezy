@@ -41,6 +41,8 @@ impl DeezerClient {
         let http = reqwest::Client::builder()
             .default_headers(headers)
             .cookie_provider(jar)
+            .min_tls_version(reqwest::tls::Version::TLS_1_2)
+            .https_only(true)
             .build()
             .map_err(|e| e.to_string())?;
 

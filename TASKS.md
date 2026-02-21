@@ -61,3 +61,5 @@
 - [x] Resolve Svelte accessibility warnings in UpdateModal, ExportHistoryModal, LyricsModal, ThemeManager, and MiniPlayer
 - [x] Show requested vs actual download quality in history/status when fallback happens
 - [x] Restrict quality selector for Deezer Free accounts to MP3 128 kbps
+- [x] Enforce minimum TLS 1.2 and HTTPS-only on HTTP client
+- [x] Remove overly broad `process:default` capability
