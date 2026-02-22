@@ -156,23 +156,14 @@ pub async fn download_track(
         }
     }
 
-    // Handle remaining bytes (less than 2048 bytes)
-    // Check if this partial chunk needs decryption
+    // Handle remaining bytes (less than 2048 bytes).
+    // Partial trailing chunks are never encrypted in Deezer's scheme,
+    // so they are always written as-is.
     if !buffer.is_empty() {
         if downloaded.saturating_add(buffer.len() as u64) > MAX_TRACK_DOWNLOAD_BYTES {
             return Err("Download aborted: file exceeds allowed size limit".to_string());
         }
-        // Only decrypt if it's a full 2048-byte chunk that would be decrypted
-        // Partial chunks at the end are not decrypted in Deezer's scheme
-        if buffer.len() == 2048 && chunk_index.is_multiple_of(3) {
-            let decrypted = crypto::decrypt_blowfish_chunk(&buffer, &bf_key)
-                .map_err(|e| format!("Decryption failed: {}", e))?;
-            file.write_all(&decrypted).map_err(|e| e.to_string())?;
-        } else {
-            file.write_all(&buffer).map_err(|e| e.to_string())?;
-        }
-        // Note: downloaded counter is updated here for completeness,
-        // though final progress is already set to 100 at line 171
+        file.write_all(&buffer).map_err(|e| e.to_string())?;
         downloaded += buffer.len() as u64;
     }
     drop(file);

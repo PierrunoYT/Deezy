@@ -4,13 +4,15 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
-### Security
+### Fixed
 
-- **Credential fail-closed behavior** – `Settings::save` now requires successful OS credential-store writes and never falls back to persisting ARL in plaintext JSON
-- **Renderer token exposure removed** – `get_settings` now redacts ARL before returning to the renderer process; new backend `auto_login` command handles session restore without exposing raw tokens
-- **Crash hardening in crypto path** – Replaced panic-prone `expect` and unchecked slicing in download URL/decryption code with fallible error handling
-- **Network/stream guardrails** – Added client connect/read timeouts and a 1 GiB per-track download safety cap to reduce hang/DoS risk
-- **Safer export path handling** – Removed `unwrap()` when resolving save dialog paths during history export
+- **MP4_RA3 file extension** – Fixed `get_quality_ext` returning `.mp3` for `MP4_RA3` quality; it now correctly returns `.mp4`, preventing ID3 tag writes to MP4 files
+- **Missing Sunset Orange example theme** – `create_example_themes` now creates all three built-in themes (Sunset Orange, Forest Green, Midnight Blue) to match the example-themes directory and README
+- **Dead code in download buffer handling** – Removed unreachable `buffer.len() == 2048` condition in the trailing-bytes section of `download_track`; the while-loop above guarantees `buffer.len() < 2048` at that point, so the decryption branch could never execute. Trailing partial chunks are correctly written as-is per Deezer's encryption scheme
+
+### Documentation
+
+- **README intro** – Corrected "SvelteKit 5" to "SvelteKit 2 + Svelte 5" in the introductory paragraph to match the actual dependency versions (`@sveltejs/kit ^2.9.0` + `svelte ^5.0.0`) and the Tech Stack table
 
 ## [0.2.2] – 2026-02-21
 

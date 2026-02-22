@@ -269,5 +269,32 @@ pub fn create_example_themes(app: &tauri::AppHandle) -> Result<(), String> {
     save_custom_theme(app, &midnight_blue)?;
     save_custom_theme(app, &forest_green)?;
 
+    // Sunset Orange theme
+    let sunset_orange = CustomTheme {
+        name: "Sunset Orange".to_string(),
+        author: Some("Deezy Team".to_string()),
+        description: Some("A warm orange theme inspired by beautiful sunsets".to_string()),
+        version: "1.0.0".to_string(),
+        colors: ThemeColors {
+            bg_darkest: "#1a0e0a".to_string(),
+            bg_dark: "#291510".to_string(),
+            bg_surface: "#381c16".to_string(),
+            bg_elevated: "#47231c".to_string(),
+            bg_hover: "#562a22".to_string(),
+            accent: "#ff7b3d".to_string(),
+            accent_hover: "#ff9563".to_string(),
+            accent_dim: "rgba(255, 123, 61, 0.15)".to_string(),
+            text_primary: "#fff5f0".to_string(),
+            text_secondary: "#d9b8a0".to_string(),
+            text_tertiary: "#94806b".to_string(),
+            success: "#1db954".to_string(),
+            error: "#ff5757".to_string(),
+            warning: "#ffb347".to_string(),
+            border: "#562a22".to_string(),
+        },
+    };
+
+    save_custom_theme(app, &sunset_orange)?;
+
     Ok(())
 }
