@@ -5,12 +5,16 @@ register('en', () => import('./locales/en.json'));
 register('es', () => import('./locales/es.json'));
 register('fr', () => import('./locales/fr.json'));
 register('de', () => import('./locales/de.json'));
+register('pt', () => import('./locales/pt.json'));
+register('it', () => import('./locales/it.json'));
 
 export const supportedLocales = [
   { code: 'en', name: 'English' },
   { code: 'es', name: 'Español' },
   { code: 'fr', name: 'Français' },
-  { code: 'de', name: 'Deutsch' }
+  { code: 'de', name: 'Deutsch' },
+  { code: 'pt', name: 'Português' },
+  { code: 'it', name: 'Italiano' }
 ];
 
 let i18nInitialized = false;
