@@ -10,7 +10,9 @@
 
   let { children } = $props();
   
+  const MIN_SPLASH_MS = 2200;
   let appInitialized = $state(false);
+  let uiVisible = $state(false);
 
   interface Settings {
     output_dir: string;
@@ -68,6 +70,8 @@
   }
   
   onMount(() => {
+    const splashStartedAt = Date.now();
+
     // Load persisted download history
     (async () => {
       try {
@@ -117,7 +121,15 @@
         theme.set('system');
         applyTheme('system');
       } finally {
+        const elapsed = Date.now() - splashStartedAt;
+        const remaining = Math.max(0, MIN_SPLASH_MS - elapsed);
+        if (remaining > 0) {
+          await new Promise(resolve => setTimeout(resolve, remaining));
+        }
         appInitialized = true;
+        requestAnimationFrame(() => {
+          uiVisible = true;
+        });
       }
     })();
     
@@ -207,5 +219,51 @@
 </script>
 
 {#if appInitialized}
-  {@render children()}
+  <div class="app-shell" class:visible={uiVisible}>
+    {@render children()}
+  </div>
+{:else}
+  <div class="startup-splash" aria-live="polite" aria-busy="true">
+    <img class="startup-logo" src="/logodeezy.svg" alt="Deezy logo" />
+    <div class="startup-loading">
+      <span class="spinner" aria-hidden="true"></span>
+      <span>Loading Deezy...</span>
+    </div>
+  </div>
 {/if}
+
+<style>
+  .app-shell {
+    opacity: 0;
+    transition: opacity 380ms ease;
+  }
+
+  .app-shell.visible {
+    opacity: 1;
+  }
+
+  .startup-splash {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    background: var(--bg-dark);
+    color: var(--text-secondary);
+  }
+
+  .startup-logo {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 24px rgba(162, 56, 255, 0.25));
+  }
+
+  .startup-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+  }
+</style>
