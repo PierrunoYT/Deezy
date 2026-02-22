@@ -7,10 +7,16 @@ All notable changes to Deezy are documented here.
 ### Added
 
 - **Languages** – Added Portuguese and Italian translations
+- **Open downloaded songs from history** – Added clickable track titles in Downloads history that reveal the downloaded file in the OS file manager (Explorer/Finder/Linux file manager)
 
 ### Fixed
 
 - **Downloads header actions styling** – Scoped status-row icon button styles to prevent them from overriding top-right header actions, fixing merged/stacked labels where `Export History`, `Clear history`, and `History` could render incorrectly
+- **Windows file reveal from history** – Fixed `show_in_folder` Explorer invocation to normalize/canonicalize paths and use proper `/select,"<path>"` formatting so clicking a downloaded track reveals the correct file instead of opening Documents
+
+### Documentation
+
+- **README accuracy** – Updated Usage to include the Playlists tab and clarified settings persistence (non-secret settings in JSON, ARL in OS credential store)
 
 ## [0.2.3] – 2026-02-22
 

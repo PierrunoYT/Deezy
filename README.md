@@ -42,6 +42,7 @@ A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [Sve
 - **Quality options** – MP3 128, MP3 320, or FLAC with automatic fallback chain (FLAC → MP3_320 → MP3_128)
 - **Quality transparency** – Completed downloads show requested quality vs actual downloaded quality when fallback occurs
 - **Persistent history** – Download history saved to disk and restored on app restart
+- **Open in file manager** – Click a downloaded track title in history to reveal the file in Explorer/Finder/Linux file manager
 - **Export history** – Export download history as CSV or JSON with file picker dialog
 - **CSRF auto-refresh** – Automatically retries downloads on token expiry with session refresh
 
@@ -57,7 +58,7 @@ A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [Sve
 ### System Integration
 - **System tray** – Minimize to tray with menu, download status indicator, and quick controls (Ctrl+H to hide)
 - **Auto-login** – Reconnects on app start using your saved ARL token
-- **Settings persistence** – All preferences saved as JSON in app data directory with validation
+- **Settings persistence** – Preferences are saved in app data (JSON for non-secret settings; ARL stored in OS credential store) with validation
 - **Account-aware quality** – Deezer Free accounts are restricted to MP3 128 kbps in the quality selector
 - **Close to tray** – Optional setting to minimize to tray instead of closing the app
 
@@ -110,7 +111,7 @@ The built application will be in `src-tauri/target/release/bundle/`.
 
 1. **Setup** – Open the app, paste your ARL token, choose download folder and quality, then click **Save & Login**
 2. **Search** – Switch to Search (Ctrl+1), type a query, and hit Enter or wait for debounced search
-3. **Browse** – Toggle between **Tracks**, **Albums**, and **Artists** tabs to explore different content types
+3. **Browse** – Toggle between **Tracks**, **Albums**, **Artists**, and **Playlists** tabs to explore different content types
 4. **Preview** – Click the play button (▶) to preview tracks before downloading; use Space bar to play/pause
 5. **View Lyrics** – Click the lyrics button (📄) to view song lyrics in a modal (when available)
 6. **Download** – Click download button on a track, or **Download All** on an album to queue all tracks

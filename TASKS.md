@@ -26,6 +26,9 @@
 - [x] Fix: Mark download history as 100% complete on finish in downloadQueue.ts
 - [x] Add "Clear history" button to Downloads view
 - [x] Fix Downloads header action buttons rendering merged labels (`Export`, `Clear history`, `History`) due to CSS class conflict
+- [x] Add clickable song titles in Downloads history to reveal files in Explorer/Finder
+- [x] Fix Windows file reveal from Downloads history opening Documents instead of selecting the downloaded file
+- [x] Update README usage/settings wording to match current behavior (Playlists tab + ARL in OS credential store)
 - [x] Remove legacy Python files (pydeezer, main.py, requirements.txt)
 
 ## 📋 To Do

@@ -6,6 +6,7 @@ use crate::themes;
 use crate::tray;
 use crate::AppState;
 use serde_json::Value;
+use std::process::Command;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_dialog::DialogExt;
 
@@ -498,4 +499,49 @@ pub async fn import_theme_file(app: AppHandle) -> Result<String, String> {
 #[tauri::command]
 pub async fn create_example_themes(app: AppHandle) -> Result<(), String> {
     themes::create_example_themes(&app)
+}
+
+#[tauri::command]
+pub async fn show_in_folder(file_path: String) -> Result<(), String> {
+    let path = std::path::PathBuf::from(&file_path);
+
+    if !path.exists() {
+        return Err("File not found".to_string());
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let normalized = path
+            .canonicalize()
+            .map_err(|e| format!("Failed to resolve file path: {}", e))?;
+        let windows_path = normalized.to_string_lossy().replace('/', "\\");
+
+        Command::new("explorer")
+            .arg(format!("/select,\"{}\"", windows_path))
+            .spawn()
+            .map_err(|e| format!("Failed to open Explorer: {}", e))?;
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open")
+            .arg("-R")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| format!("Failed to reveal file in Finder: {}", e))?;
+    }
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        let parent = path
+            .parent()
+            .ok_or("Failed to resolve file parent directory")?;
+
+        Command::new("xdg-open")
+            .arg(parent)
+            .spawn()
+            .map_err(|e| format!("Failed to open file manager: {}", e))?;
+    }
+
+    Ok(())
 }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { invoke } from '@tauri-apps/api/core';
   import { listen } from '@tauri-apps/api/event';
   import { onMount } from 'svelte';
   import { downloadHistory, downloads, type DownloadItem } from '$lib/stores';
@@ -134,6 +135,16 @@
     downloadQueueManager.resumeDownload(item.trackId);
   }
 
+  async function openDownloadedFile(item: DownloadItem) {
+    if (!item.filePath) return;
+
+    try {
+      await invoke('show_in_folder', { filePath: item.filePath });
+    } catch (err) {
+      console.error('Failed to open downloaded file in file manager:', err);
+    }
+  }
+
   function getStatusText(status: string, percent: number): string {
     if (status === 'complete') return $_('downloads.status.complete');
     if (status === 'error') return $_('downloads.status.error');
@@ -200,7 +211,13 @@
             <div class="download-cover"></div>
           {/if}
           <div class="download-details">
-            <div class="download-title">{item.title}</div>
+            {#if item.filePath}
+              <button class="download-title download-title-btn" onclick={() => openDownloadedFile(item)}>
+                {item.title}
+              </button>
+            {:else}
+              <div class="download-title">{item.title}</div>
+            {/if}
             <div class="download-sub">
               {#if item.artist}
                 <span>{item.artist}</span>
@@ -396,6 +413,19 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .download-title-btn {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .download-title-btn:hover {
+    text-decoration: underline;
   }
   
   .download-sub {
