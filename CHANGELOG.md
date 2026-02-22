@@ -4,6 +4,16 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+## [0.2.3] – 2026-02-22
+
+### Security
+
+- **Credential fail-closed behavior** – `Settings::save` now requires successful OS credential-store writes and never falls back to persisting ARL in plaintext JSON
+- **Renderer token exposure removed** – `get_settings` now redacts ARL before returning to the renderer process; new backend `auto_login` command handles session restore without exposing raw tokens
+- **Crash hardening in crypto path** – Replaced panic-prone `expect` and unchecked slicing in download URL/decryption code with fallible error handling
+- **Network/stream guardrails** – Added client connect/read timeouts and a 1 GiB per-track download safety cap to reduce hang/DoS risk
+- **Safer export path handling** – Removed `unwrap()` when resolving save dialog paths during history export
+
 ### Fixed
 
 - **MP4_RA3 file extension** – Fixed `get_quality_ext` returning `.mp3` for `MP4_RA3` quality; it now correctly returns `.mp4`, preventing ID3 tag writes to MP4 files
