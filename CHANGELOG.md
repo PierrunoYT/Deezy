@@ -12,7 +12,7 @@ All notable changes to Deezy are documented here.
 ### Fixed
 
 - **Downloads header actions styling** – Scoped status-row icon button styles to prevent them from overriding top-right header actions, fixing merged/stacked labels where `Export History`, `Clear history`, and `History` could render incorrectly
-- **Windows file reveal from history** – Fixed `show_in_folder` Explorer invocation to normalize/canonicalize paths and use proper `/select,"<path>"` formatting so clicking a downloaded track reveals the correct file instead of opening Documents
+- **Windows file reveal from history** – Fixed `show_in_folder` Explorer invocation to use a Windows-safe absolute path and `explorer /select,` argument handling (including `\\?\` prefix cleanup), so clicking a downloaded track reveals the correct file instead of opening Documents
 
 ### Documentation
 

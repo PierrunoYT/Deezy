@@ -511,13 +511,21 @@ pub async fn show_in_folder(file_path: String) -> Result<(), String> {
 
     #[cfg(target_os = "windows")]
     {
-        let normalized = path
-            .canonicalize()
-            .map_err(|e| format!("Failed to resolve file path: {}", e))?;
-        let windows_path = normalized.to_string_lossy().replace('/', "\\");
+        let absolute = if path.is_absolute() {
+            path.clone()
+        } else {
+            std::env::current_dir()
+                .map_err(|e| format!("Failed to get current directory: {}", e))?
+                .join(&path)
+        };
+        let mut windows_path = absolute.to_string_lossy().replace('/', "\\");
+        if let Some(stripped) = windows_path.strip_prefix(r"\\?\") {
+            windows_path = stripped.to_string();
+        }
 
         Command::new("explorer")
-            .arg(format!("/select,\"{}\"", windows_path))
+            .arg("/select,")
+            .arg(windows_path)
             .spawn()
             .map_err(|e| format!("Failed to open Explorer: {}", e))?;
     }

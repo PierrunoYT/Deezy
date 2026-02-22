@@ -28,6 +28,7 @@
 - [x] Fix Downloads header action buttons rendering merged labels (`Export`, `Clear history`, `History`) due to CSS class conflict
 - [x] Add clickable song titles in Downloads history to reveal files in Explorer/Finder
 - [x] Fix Windows file reveal from Downloads history opening Documents instead of selecting the downloaded file
+- [x] Harden Windows Explorer reveal path handling (`/select,` arg split + `\\?\` prefix cleanup)
 - [x] Update README usage/settings wording to match current behavior (Playlists tab + ARL in OS credential store)
 - [x] Remove legacy Python files (pydeezer, main.py, requirements.txt)
 
