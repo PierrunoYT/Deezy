@@ -1,6 +1,6 @@
 # Deezy
 
-A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [SvelteKit 5](https://kit.svelte.dev), and Rust. Search for tracks, albums, and artists, queue downloads, and save them as high-quality MP3 or FLAC with full metadata and cover art.
+A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [SvelteKit 2](https://kit.svelte.dev) + [Svelte 5](https://svelte.dev), and Rust. Search for tracks, albums, and artists, queue downloads, and save them as high-quality MP3 or FLAC with full metadata and cover art.
 
 ---
 

@@ -783,8 +783,8 @@ fn fallback_qualities(quality: &str) -> &'static [&'static str] {
 pub fn get_quality_ext(quality: &str) -> &str {
     match quality {
         "FLAC" => ".flac",
-        "MP3_128" | "MP3_256" | "MP3_320" | "MP4_RA3" => ".mp3",
-        "MP4_RA1" | "MP4_RA2" => ".mp4",
+        "MP3_128" | "MP3_256" | "MP3_320" => ".mp3",
+        "MP4_RA1" | "MP4_RA2" | "MP4_RA3" => ".mp4",
         _ => ".mp3",
     }
 }
