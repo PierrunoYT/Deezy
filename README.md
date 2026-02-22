@@ -147,6 +147,8 @@ deezy/
 │   │   ├── downloadQueue.ts     # Download queue manager
 │   │   ├── audioPlayer.ts       # Audio preview player
 │   │   ├── keyboardShortcuts.ts # Keyboard shortcut system
+│   │   ├── notifications.ts     # System notification manager
+│   │   ├── tray.ts              # System tray integration
 │   │   └── rateLimiter.ts       # Rate limiting for API calls
 │   └── routes/                  # SvelteKit routes
 ├── src-tauri/                    # Rust backend

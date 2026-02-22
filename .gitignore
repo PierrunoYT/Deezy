@@ -56,6 +56,15 @@ src-tauri/target/
 src-tauri/WixTools/
 src-tauri/gen/
 
+# Project docs (local only)
+BUGS_FOUND.md
+BUILD_AND_RELEASE.md
+RELEASE_INSTRUCTIONS.md
+
+# Signing keys (security-sensitive)
+**/keys/
+**/*.backup
+
 # IDEs and Editors
 .vscode/
 .idea/

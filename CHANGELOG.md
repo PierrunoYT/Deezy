@@ -66,7 +66,7 @@ All notable changes to Deezy are documented here.
 
 ### Added
 
-- **Tauri desktop app** – Full rewrite from Python CLI to Tauri 2 + SvelteKit 5 + Rust
+- **Tauri desktop app** – Full rewrite from Python CLI to Tauri 2 + SvelteKit 2 + Svelte 5 + Rust
 - **Rust backend** – Deezer API client with ARL-based authentication
 - **Track search** – Debounced search with rate limiting (2 req/s) via Deezer public API
 - **Track download** – Blowfish CBC decryption, quality fallback (FLAC → MP3_320 → MP3_128)
