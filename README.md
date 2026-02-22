@@ -49,7 +49,7 @@ A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [Sve
 - **Theme system** – Light, Dark, and System themes with instant switching and OS theme detection
 - **Custom themes** – Import/export custom theme files with JSON-based color definitions and theme manager UI
 - **Example themes** – Three built-in custom themes (Sunset Orange, Forest Green, Midnight Blue)
-- **Internationalization** – Full i18n support with English, Spanish, French, and German translations
+- **Internationalization** – Full i18n support with English, Spanish, French, German, Portuguese, and Italian translations
 - **Notifications** – System toast notifications for completed/failed downloads (optional toggle)
 - **Keyboard shortcuts** – Comprehensive shortcuts (Ctrl+F search, Ctrl+1/2/3 navigation, Escape, Space, Shift+?, Ctrl+H minimize, Ctrl+,)
 - **Accessibility improvements** – Keyboard-accessible modals/overlays, labeled icon buttons, and improved form label associations
@@ -142,7 +142,7 @@ deezy/
 ├── src/                          # SvelteKit frontend
 │   ├── lib/
 │   │   ├── components/          # Svelte components (SearchView, DownloadsView, etc.)
-│   │   ├── i18n/                # Internationalization (en, es, fr, de)
+│   │   ├── i18n/                # Internationalization (en, es, fr, de, pt, it)
 │   │   ├── stores.ts            # Svelte stores (loggedIn, downloads, etc.)
 │   │   ├── downloadQueue.ts     # Download queue manager
 │   │   ├── audioPlayer.ts       # Audio preview player
@@ -177,7 +177,7 @@ deezy/
 - **Rate limiting** – Separate limiters for search (2 req/s) and download (3 concurrent) operations
 - **Keyboard shortcuts** – Global shortcut system with registration, categories, and help modal
 - **Audio player** – Mini player with seek bar, volume control, and playback state management
-- **i18n** – svelte-i18n with 4 languages, formatters for duration/fans, and locale persistence
+- **i18n** – svelte-i18n with 6 languages, formatters for duration/fans, and locale persistence
 
 ### Backend (Rust + Tauri)
 - **DeezerClient** – HTTP client with ARL authentication, CSRF token management, and session handling

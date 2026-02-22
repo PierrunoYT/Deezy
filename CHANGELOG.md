@@ -4,6 +4,10 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **Languages** – Added Portuguese and Italian translations
+
 ## [0.2.3] – 2026-02-22
 
 ### Security
