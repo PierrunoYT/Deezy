@@ -31,6 +31,8 @@
 - [x] Harden Windows Explorer reveal path handling (`/select,` arg split + `\\?\` prefix cleanup)
 - [x] Update README usage/settings wording to match current behavior (Playlists tab + ARL in OS credential store)
 - [x] Fix free-account quality reporting in download history (show effective requested `MP3_128` instead of misleading `MP3_320 -> MP3_128`)
+- [x] Update application branding: replace app logo and regenerate Tauri icon assets from `logodeezy.svg`
+- [x] Fix Rust warning in `download.rs` by removing unused trailing `downloaded` assignment
 - [x] Remove legacy Python files (pydeezer, main.py, requirements.txt)
 
 ## 📋 To Do

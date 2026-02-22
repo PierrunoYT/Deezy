@@ -164,7 +164,6 @@ pub async fn download_track(
             return Err("Download aborted: file exceeds allowed size limit".to_string());
         }
         file.write_all(&buffer).map_err(|e| e.to_string())?;
-        downloaded += buffer.len() as u64;
     }
     drop(file);
 

@@ -10,12 +10,14 @@ All notable changes to Deezy are documented here.
 
 - **Languages** – Added Portuguese and Italian translations
 - **Open downloaded songs from history** – Added clickable track titles in Downloads history that reveal the downloaded file in the OS file manager (Explorer/Finder/Linux file manager)
+- **New app logo and icons** – Replaced branding with the new `logodeezy.svg` design and regenerated Tauri icon assets (`.ico`, `.icns`, and PNG/Appx sizes) for desktop packaging
 
 ### Fixed
 
 - **Downloads header actions styling** – Scoped status-row icon button styles to prevent them from overriding top-right header actions, fixing merged/stacked labels where `Export History`, `Clear history`, and `History` could render incorrectly
 - **Windows file reveal from history** – Fixed `show_in_folder` Explorer invocation to use a Windows-safe absolute path and `explorer /select,` argument handling (including `\\?\` prefix cleanup), so clicking a downloaded track reveals the correct file instead of opening Documents
 - **Free-account quality reporting** – Enforced effective quality selection in backend download command so free accounts request `MP3_128`; download history now avoids misleading `Requested MP3 320 -> Downloaded MP3 128` entries
+- **Rust build warning cleanup** – Removed an unused trailing `downloaded` assignment in `download.rs` to eliminate `unused_assignments` warning during `tauri dev/build`
 
 ### Documentation
 
