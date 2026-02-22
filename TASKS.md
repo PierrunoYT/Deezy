@@ -8,7 +8,7 @@
 - [x] Rust backend: Media URL resolution via `media.deezer.com/v1/get_url`
 - [x] Rust backend: Quality fallback (FLAC → MP3_320 → MP3_128)
 - [x] Rust backend: MP3 ID3v2.4 tag writing (title, artist, album, year, track/disc number, genre, label, cover art)
-- [x] Rust backend: Settings persistence (ARL, output dir, quality) as JSON in app data dir
+- [x] Rust backend: Settings persistence as JSON in app data dir (ARL stored in OS credential store/keyring)
 - [x] Rust backend: Settings validation (ARL length, directory, quality)
 - [x] Rust backend: CSRF token auto-refresh on expiry
 - [x] Rust backend: Folder picker dialog
@@ -25,6 +25,7 @@
 - [x] Fix: Track download progress globally in +layout.svelte so progress bar updates even when Downloads view is not mounted
 - [x] Fix: Mark download history as 100% complete on finish in downloadQueue.ts
 - [x] Add "Clear history" button to Downloads view
+- [x] Fix Downloads header action buttons rendering merged labels (`Export`, `Clear history`, `History`) due to CSS class conflict
 - [x] Remove legacy Python files (pydeezer, main.py, requirements.txt)
 
 ## 📋 To Do

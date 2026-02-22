@@ -469,7 +469,7 @@
     color: var(--text-secondary);
   }
 
-  .action-btn {
+  .download-status .action-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -482,7 +482,7 @@
     transition: all 0.15s ease;
   }
 
-  .action-btn:hover {
+  .download-status .action-btn:hover {
     background: var(--bg-elevated);
   }
 

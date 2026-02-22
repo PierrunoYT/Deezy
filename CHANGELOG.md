@@ -8,6 +8,10 @@ All notable changes to Deezy are documented here.
 
 - **Languages** – Added Portuguese and Italian translations
 
+### Fixed
+
+- **Downloads header actions styling** – Scoped status-row icon button styles to prevent them from overriding top-right header actions, fixing merged/stacked labels where `Export History`, `Clear history`, and `History` could render incorrectly
+
 ## [0.2.3] – 2026-02-22
 
 ### Security
