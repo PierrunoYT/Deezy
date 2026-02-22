@@ -4,6 +4,8 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+## [0.2.4] – 2026-02-22
+
 ### Added
 
 - **Languages** – Added Portuguese and Italian translations
@@ -13,6 +15,7 @@ All notable changes to Deezy are documented here.
 
 - **Downloads header actions styling** – Scoped status-row icon button styles to prevent them from overriding top-right header actions, fixing merged/stacked labels where `Export History`, `Clear history`, and `History` could render incorrectly
 - **Windows file reveal from history** – Fixed `show_in_folder` Explorer invocation to use a Windows-safe absolute path and `explorer /select,` argument handling (including `\\?\` prefix cleanup), so clicking a downloaded track reveals the correct file instead of opening Documents
+- **Free-account quality reporting** – Enforced effective quality selection in backend download command so free accounts request `MP3_128`; download history now avoids misleading `Requested MP3 320 -> Downloaded MP3 128` entries
 
 ### Documentation
 

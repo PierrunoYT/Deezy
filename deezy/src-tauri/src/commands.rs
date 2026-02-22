@@ -197,7 +197,26 @@ pub async fn download_track(
         }
     }
 
-    let mut result = download::download_track(&client, &trackId, &output_dir, &quality, &folder_structure, &app).await;
+    let mut effective_quality = quality.clone();
+    if client
+        .user
+        .as_ref()
+        .map(|u| u.is_free_account)
+        .unwrap_or(false)
+        && quality != "MP3_128"
+    {
+        effective_quality = "MP3_128".to_string();
+    }
+
+    let mut result = download::download_track(
+        &client,
+        &trackId,
+        &output_dir,
+        &effective_quality,
+        &folder_structure,
+        &app,
+    )
+    .await;
     
     // If we get a CSRF error, try to refresh the client and retry once
     if let Err(ref e) = result {
@@ -206,7 +225,26 @@ pub async fn download_track(
                 Ok(new_client) => {
                     client = new_client.clone();
                     *state.client.lock().await = Some(new_client);
-                    result = download::download_track(&client, &trackId, &output_dir, &quality, &folder_structure, &app).await;
+                    let mut retry_quality = quality.clone();
+                    if client
+                        .user
+                        .as_ref()
+                        .map(|u| u.is_free_account)
+                        .unwrap_or(false)
+                        && quality != "MP3_128"
+                    {
+                        retry_quality = "MP3_128".to_string();
+                    }
+
+                    result = download::download_track(
+                        &client,
+                        &trackId,
+                        &output_dir,
+                        &retry_quality,
+                        &folder_structure,
+                        &app,
+                    )
+                    .await;
                 }
                 Err(_) => {
                     return Err(format!("Session expired. Please go to Settings and log in again. Error: {}", e));
