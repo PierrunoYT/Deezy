@@ -622,12 +622,26 @@ impl DeezerClient {
     }
 
     pub async fn get_album_cover(&self, cover_id: &str, size: u32) -> Result<Vec<u8>, String> {
+        // Cover images should be well under 10 MiB; cap at 10 MiB to prevent
+        // an unexpectedly large response from exhausting memory.
+        const MAX_COVER_BYTES: u64 = 10 * 1024 * 1024;
+
         let url = format!(
             "https://e-cdns-images.dzcdn.net/images/cover/{}/{}x{}.jpg",
             cover_id, size, size
         );
         let res = self.http.get(&url).send().await.map_err(|e| e.to_string())?;
+
+        if let Some(content_length) = res.content_length() {
+            if content_length > MAX_COVER_BYTES {
+                return Err(format!("Cover image too large: {} bytes", content_length));
+            }
+        }
+
         let bytes = res.bytes().await.map_err(|e| e.to_string())?;
+        if bytes.len() as u64 > MAX_COVER_BYTES {
+            return Err(format!("Cover image too large: {} bytes", bytes.len()));
+        }
         Ok(bytes.to_vec())
     }
 

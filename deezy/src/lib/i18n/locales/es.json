@@ -124,7 +124,7 @@
     "title": "Configuración",
     "arl": {
       "label": "Token ARL",
-      "hint": "Inicia sesión en deezer.com, abre DevTools (F12), ve a Aplicación > Cookies y copia el valor de <code>arl</code>.",
+      "hint": "Inicia sesión en deezer.com, abre DevTools (F12), ve a Aplicación > Cookies y copia el valor de \"arl\".",
       "placeholder": "Pega tu token ARL aquí...",
       "showHide": "Mostrar/ocultar"
     },

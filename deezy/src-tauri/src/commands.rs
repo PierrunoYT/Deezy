@@ -331,7 +331,12 @@ pub async fn add_search_history(
     if query.is_empty() {
         return Ok(());
     }
-    
+
+    // Reject unreasonably long queries to prevent oversized settings file
+    if query.len() > 500 {
+        return Ok(());
+    }
+
     // Remove duplicate if exists
     settings.search_history.retain(|q| q != &query);
     
