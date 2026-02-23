@@ -35,6 +35,10 @@
 - [x] Fix Rust warning in `download.rs` by removing unused trailing `downloaded` assignment
 - [x] Add startup splash screen with logo + spinner and delayed fade-in transition to main UI
 - [x] Remove legacy Python files (pydeezer, main.py, requirements.txt)
+- [x] Fix Settings ARL hint rendering to avoid raw-HTML interpolation (`{@html}`) and reduce XSS risk
+- [x] Enforce 10 MiB maximum album-cover download size to limit memory exhaustion risk
+- [x] Strip null bytes from generated filenames/path components to prevent OS-level truncation edge cases
+- [x] Ignore oversized search-history entries (>500 bytes) to bound persisted settings growth
 
 ## 📋 To Do
 

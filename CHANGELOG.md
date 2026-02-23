@@ -4,6 +4,13 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+### Security
+
+- **Settings hint XSS hardening** – Removed raw HTML rendering from the ARL hint in Settings (`{@html}` replaced with text interpolation) and updated locale strings to plain text
+- **Null-byte filename sanitization** – Strips `\0` from generated filename/path components to prevent OS-level truncation issues
+- **Cover-art memory guardrail** – Enforces a 10 MiB size cap for album-cover downloads to reduce memory-exhaustion risk from abnormal responses
+- **Search history input cap** – Rejects oversized search-history entries (>500 bytes) to prevent unbounded settings-file growth
+
 ## [0.2.5] – 2026-02-22
 
 ### Added
