@@ -124,7 +124,7 @@
     "title": "Paramètres",
     "arl": {
       "label": "Jeton ARL",
-      "hint": "Connectez-vous à deezer.com, ouvrez DevTools (F12), allez dans Application > Cookies et copiez la valeur <code>arl</code>.",
+      "hint": "Connectez-vous à deezer.com, ouvrez DevTools (F12), allez dans Application > Cookies et copiez la valeur \"arl\".",
       "placeholder": "Collez votre jeton ARL ici...",
       "showHide": "Afficher/masquer"
     },

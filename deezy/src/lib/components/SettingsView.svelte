@@ -258,7 +258,7 @@
     <div class="form-group">
       <label for="arl-input">{$_('settings.arl.label')}</label>
       <p class="form-hint">
-        {@html $_('settings.arl.hint')}
+        {$_('settings.arl.hint')}
       </p>
       <div class="input-row">
         <input 

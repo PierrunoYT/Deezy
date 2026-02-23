@@ -376,6 +376,7 @@ fn emit_progress(
 
 fn clean_filename(name: &str) -> String {
     name.chars()
+        .filter(|c| *c != '\0')
         .map(|c| match c {
             '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*' => '_',
             _ => c,
@@ -387,6 +388,7 @@ fn clean_filename(name: &str) -> String {
 
 fn sanitize_path_component(name: &str) -> String {
     name.chars()
+        .filter(|c| *c != '\0')
         .map(|c| match c {
             '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*' => '_',
             _ => c,
