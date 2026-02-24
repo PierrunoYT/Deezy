@@ -111,3 +111,6 @@
 - [x] Fix `dragDisabled` never reset after a completed queue drag — after `handleDndFinalize`, `dragDisabled` stayed `false`, making every queue item draggable from anywhere instead of only from the handle
 - [x] Fix missing `clearTimeout(searchTimeout)` in SearchView `onMount` cleanup — pending debounced search could fire after component unmount
 - [x] Fix ExportHistoryModal overlay keydown handler closing modal on Enter in date inputs — added `target === currentTarget` guard so only keypresses directly on the overlay backdrop are handled
+- [x] Fix rate limiter timing drift where `lastCallTime` update after wait caused cumulative delays
+- [x] Fix keyboard shortcut modifier key matching to require exact matches (prevent plain key shortcuts from firing when modifiers are pressed)
+- [x] Fix tray pause/resume only pausing queued downloads but not active downloads — added `activeTrackIds` tracking to pause all downloads from system tray

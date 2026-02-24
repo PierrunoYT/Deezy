@@ -23,6 +23,7 @@ class DownloadQueueManager {
   private processing = false;
   private activeCount = 0;
   private activeDownloadControllers = new Map<string, AbortController>();
+  private activeTrackIds = new Set<string>();
 
   async addToQueue(track: Track, priority: number = 0) {
     const trackId = String(track.id);
@@ -109,6 +110,7 @@ class DownloadQueueManager {
     }
 
     this.activeCount++;
+    this.activeTrackIds.add(trackId);
     activeDownloads.set(this.activeCount);
 
     // Create abort controller for this download
@@ -213,6 +215,7 @@ class DownloadQueueManager {
       await notificationManager.notifyDownloadError(track.title, track.artist, String(err));
     } finally {
       this.activeDownloadControllers.delete(trackId);
+      this.activeTrackIds.delete(trackId);
       this.activeCount--;
       activeDownloads.set(this.activeCount);
       
@@ -302,6 +305,10 @@ class DownloadQueueManager {
     downloadQueue.update(queue => 
       queue.filter(item => String(item.track.id) !== trackId)
     );
+  }
+
+  getActiveTrackIds(): string[] {
+    return Array.from(this.activeTrackIds);
   }
 }
 

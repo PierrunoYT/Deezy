@@ -42,7 +42,13 @@ class TrayManager {
         downloadQueueManager.resumeDownload(trackId);
       });
     } else if (active > 0 || queue.length > 0) {
-      // Pause all active and queued downloads
+      // Pause all active downloads
+      const activeTrackIds = downloadQueueManager.getActiveTrackIds();
+      activeTrackIds.forEach(trackId => {
+        downloadQueueManager.pauseDownload(trackId);
+      });
+      
+      // Pause all queued downloads
       queue.forEach(item => {
         downloadQueueManager.pauseDownload(String(item.track.id));
       });

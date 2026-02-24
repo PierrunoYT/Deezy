@@ -13,6 +13,9 @@ All notable changes to Deezy are documented here.
 - **QueueView**: Fixed `dragDisabled` never being reset to `true` after a completed drag-and-drop reorder, leaving the entire queue draggable from any point rather than only from the drag handle
 - **SearchView**: Fixed missing `clearTimeout(searchTimeout)` in `onMount` cleanup, which could trigger `doSearch()` after the component was unmounted
 - **ExportHistoryModal**: Fixed `handleOverlayKeydown` closing the modal when Enter is pressed inside the date inputs — added `event.target !== event.currentTarget` guard so only keypresses directly on the overlay backdrop are handled
+- **Rate limiter timing**: Fixed timing drift in rate limiter where `lastCallTime` was updated after the wait period, causing slight cumulative delays over many calls; now updates timestamp correctly based on whether throttling occurred
+- **Keyboard shortcuts**: Simplified and fixed modifier key matching logic to require exact matches — shortcuts now properly distinguish between plain keys and modified keys (e.g., 'K' vs 'Ctrl+K')
+- **Tray pause/resume**: Fixed tray pause/resume toggle only pausing queued downloads but not actively downloading tracks; added tracking of active download IDs so all downloads (active and queued) can be paused from the system tray
 
 ### Security
 
