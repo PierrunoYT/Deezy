@@ -165,6 +165,7 @@
       document.removeEventListener('click', handleClickOutside);
       keyboardShortcuts.unregister('focus-search');
       keyboardShortcuts.unregister('clear-search');
+      clearTimeout(searchTimeout);
     };
   });
 

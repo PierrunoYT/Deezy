@@ -45,12 +45,6 @@
     }
   }
 
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  }
-
   function handleBackdropClick(e: MouseEvent) {
     if (e.target === e.currentTarget) {
       onClose();
@@ -58,6 +52,7 @@
   }
 
   function handleBackdropKeydown(e: KeyboardEvent) {
+    if (e.target !== e.currentTarget) return;
     if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       onClose();
@@ -76,10 +71,6 @@
 
   $effect(() => {
     loadLyrics();
-    window.addEventListener('keydown', handleKeydown);
-    return () => {
-      window.removeEventListener('keydown', handleKeydown);
-    };
   });
 </script>
 

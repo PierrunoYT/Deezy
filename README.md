@@ -36,7 +36,7 @@ A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [Sve
 - **Audio preview** – Play 30-second previews with mini player, seek bar, volume control, and Space bar shortcut
 
 ### Downloads
-- **Smart queue** – Up to 3 concurrent downloads with drag-and-drop reordering and priority management
+- **Smart queue** – Up to 3 concurrent downloads with drag-and-drop reordering via dedicated handle buttons and priority management
 - **Album download** – Batch-download all tracks from an album with one click
 - **Playlist download** – Browse playlist tracks and batch-download all with one click
 - **Pause/resume** – Pause active downloads and resume them later with high priority
@@ -55,9 +55,9 @@ A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [Sve
 - **Custom themes** – Import/export custom theme files with JSON-based color definitions and theme manager UI
 - **Example themes** – Three built-in custom themes (Sunset Orange, Forest Green, Midnight Blue)
 - **Internationalization** – Full i18n support with English, Spanish, French, German, Portuguese, and Italian translations
-- **Notifications** – System toast notifications for completed/failed downloads (optional toggle)
+- **Notifications** – System toast notifications for completed/failed downloads (reliable toggle with single-fire state change)
 - **Keyboard shortcuts** – Comprehensive shortcuts (Ctrl+F search, Ctrl+1/2/3 navigation, Escape, Space, Shift+?, Ctrl+H minimize, Ctrl+,)
-- **Accessibility improvements** – Keyboard-accessible modals/overlays, labeled icon buttons, and improved form label associations
+- **Accessibility improvements** – Keyboard-accessible modals/overlays, labeled icon buttons, improved form label associations, and guarded overlay keydown handlers that ignore events bubbling from inner elements
 
 ### System Integration
 - **System tray** – Minimize to tray with menu, download status indicator, and quick controls (Ctrl+H to hide)
@@ -179,11 +179,11 @@ deezy/
 ## Architecture
 
 ### Frontend (Svelte 5)
-- **Runes API** – Modern reactive state management with `$state`, `$effect`, and `$derived`
-- **Component-based** – Modular UI components (SearchView, DownloadsView, SettingsView, etc.)
-- **Download queue** – Client-side queue manager with drag-and-drop reordering and priority management
+- **Runes API** – Modern reactive state management with `$state`, `$effect`, and `$derived`; all components use Svelte 5 callback props (`onClose`, `onViewChange`, …) rather than Svelte 4 event directives
+- **Component-based** – Modular UI components (SearchView, DownloadsView, SettingsView, etc.) with proper store subscription cleanup on unmount
+- **Download queue** – Client-side queue manager with handle-based drag-and-drop reordering (drag lock resets after every drop) and priority management
 - **Rate limiting** – Separate limiters for search (2 req/s) and download (3 concurrent) operations
-- **Keyboard shortcuts** – Global shortcut system with registration, categories, and help modal
+- **Keyboard shortcuts** – Global shortcut system with registration, categories, and help modal; modals guard all keydown handlers with `target === currentTarget` to prevent inner-element keypresses from closing them unexpectedly
 - **Audio player** – Mini player with seek bar, volume control, and playback state management
 - **i18n** – svelte-i18n with 6 languages, formatters for duration/fans, and locale persistence
 

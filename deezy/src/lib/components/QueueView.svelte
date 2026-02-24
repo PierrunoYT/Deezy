@@ -30,6 +30,7 @@
 
   function handleDndFinalize(e: CustomEvent<DndEvent<QueueItemWithId>>) {
     queueItems = e.detail.items;
+    dragDisabled = true;
     
     // Update the queue with the new order
     const reorderedQueue = queueItems.map(item => ({

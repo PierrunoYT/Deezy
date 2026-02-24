@@ -4,6 +4,16 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- **DownloadsView**: Fixed invalid Svelte 5 prop syntax `{history=downloadItems}` → `history={downloadItems}` and replaced Svelte 4 `on:close` event directive with Svelte 5 `onClose` callback prop for `ExportHistoryModal`, which previously caused the modal close callback to never fire
+- **SettingsView**: Fixed double-toggle bug on all three toggle switches (Notifications, Search History, System Tray) — `bind:checked` and the wrapper `onclick` were both mutating state on a single user click, causing the value to flip twice (no visible change); save functions no longer re-toggle state, label clicks stop propagation, and store subscriptions created in `onMount` are now properly unsubscribed on unmount
+- **Sidebar**: Fixed user avatar fallback icon never being visible when `user.image` is falsy — `.avatar-fallback` CSS sets `display: none` by default (correct for image-error fallback) but the `{:else}` branch fallback was never overridden to `display: flex`
+- **LyricsModal**: Fixed `onClose` being called twice when pressing Escape — both `window.addEventListener('keydown', …)` and `onkeydown` on the backdrop handled the same key; removed the redundant global listener; also added `target === currentTarget` guard to `handleBackdropKeydown` so pressing Enter on the Synced/Plain toggle buttons no longer bubbles up and closes the modal
+- **QueueView**: Fixed `dragDisabled` never being reset to `true` after a completed drag-and-drop reorder, leaving the entire queue draggable from any point rather than only from the drag handle
+- **SearchView**: Fixed missing `clearTimeout(searchTimeout)` in `onMount` cleanup, which could trigger `doSearch()` after the component was unmounted
+- **ExportHistoryModal**: Fixed `handleOverlayKeydown` closing the modal when Enter is pressed inside the date inputs — added `event.target !== event.currentTarget` guard so only keypresses directly on the overlay backdrop are handled
+
 ### Security
 
 - **Settings hint XSS hardening** – Removed raw HTML rendering from the ARL hint in Settings (`{@html}` replaced with text interpolation) and updated locale strings to plain text

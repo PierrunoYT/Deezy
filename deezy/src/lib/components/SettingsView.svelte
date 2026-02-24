@@ -59,10 +59,15 @@
     notificationManager.initialize();
 
     // Subscribe to theme changes
-    theme.subscribe(t => currentTheme = t);
+    const unsubTheme = theme.subscribe(t => currentTheme = t);
     
     // Subscribe to locale changes
-    currentLocale.subscribe(l => selectedLocale = l);
+    const unsubLocale = currentLocale.subscribe(l => selectedLocale = l);
+
+    return () => {
+      unsubTheme();
+      unsubLocale();
+    };
   });
   
   async function pickFolder() {
@@ -161,8 +166,7 @@
     }
   }
 
-  async function toggleNotifications() {
-    enableNotifications = !enableNotifications;
+  async function saveNotifications() {
     notificationManager.setEnabled(enableNotifications);
     notificationsEnabled.set(enableNotifications);
 
@@ -179,9 +183,7 @@
     }
   }
 
-  async function toggleSearchHistory() {
-    enableSearchHistory = !enableSearchHistory;
-
+  async function saveSearchHistory() {
     try {
       const settings: any = await invoke('get_settings');
       await invoke('save_settings', {
@@ -195,9 +197,7 @@
     }
   }
 
-  async function toggleCloseToTray() {
-    closeToTray = !closeToTray;
-
+  async function saveCloseToTray() {
     try {
       const settings: any = await invoke('get_settings');
       await invoke('save_settings', {
@@ -384,12 +384,12 @@
       <p class="form-hint">
         {$_('settings.notifications.hint')}
       </p>
-      <div class="toggle-wrapper" role="button" tabindex="0" onclick={() => enableNotifications = !enableNotifications} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enableNotifications = !enableNotifications; } }}>
-        <label class="toggle-container">
+      <div class="toggle-wrapper" role="button" tabindex="0" onclick={() => { enableNotifications = !enableNotifications; saveNotifications(); }} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enableNotifications = !enableNotifications; saveNotifications(); } }}>
+        <label class="toggle-container" onclick={(e) => e.stopPropagation()}>
           <input 
             type="checkbox" 
             bind:checked={enableNotifications}
-            onchange={toggleNotifications}
+            onchange={saveNotifications}
           />
           <span class="toggle-slider"></span>
         </label>
@@ -404,12 +404,12 @@
       <p class="form-hint">
         {$_('settings.searchHistory.hint')}
       </p>
-      <div class="toggle-wrapper" role="button" tabindex="0" onclick={() => enableSearchHistory = !enableSearchHistory} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enableSearchHistory = !enableSearchHistory; } }}>
-        <label class="toggle-container">
+      <div class="toggle-wrapper" role="button" tabindex="0" onclick={() => { enableSearchHistory = !enableSearchHistory; saveSearchHistory(); }} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enableSearchHistory = !enableSearchHistory; saveSearchHistory(); } }}>
+        <label class="toggle-container" onclick={(e) => e.stopPropagation()}>
           <input 
             type="checkbox" 
             bind:checked={enableSearchHistory}
-            onchange={toggleSearchHistory}
+            onchange={saveSearchHistory}
           />
           <span class="toggle-slider"></span>
         </label>
@@ -435,12 +435,12 @@
       <p class="form-hint">
         Minimize to system tray when closing the window instead of quitting the app.
       </p>
-      <div class="toggle-wrapper" role="button" tabindex="0" onclick={() => closeToTray = !closeToTray} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); closeToTray = !closeToTray; } }}>
-        <label class="toggle-container">
+      <div class="toggle-wrapper" role="button" tabindex="0" onclick={() => { closeToTray = !closeToTray; saveCloseToTray(); }} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); closeToTray = !closeToTray; saveCloseToTray(); } }}>
+        <label class="toggle-container" onclick={(e) => e.stopPropagation()}>
           <input 
             type="checkbox" 
             bind:checked={closeToTray}
-            onchange={toggleCloseToTray}
+            onchange={saveCloseToTray}
           />
           <span class="toggle-slider"></span>
         </label>

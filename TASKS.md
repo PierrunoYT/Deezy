@@ -103,3 +103,11 @@
 - [x] Fix potential data corruption in download decryption for partial chunks
 - [x] Fix download progress calculation to track actual bytes instead of assuming 2048
 - [x] ~~Add Windows bundle signing configuration~~ (removed with auto-updater)
+- [x] Fix invalid Svelte 5 prop syntax `{history=downloadItems}` and Svelte 4 `on:close` event directive in DownloadsView — `ExportHistoryModal` close callback was silently never fired
+- [x] Fix double-toggle bug on all three Settings toggle switches (Notifications, Search History, System Tray) — `bind:checked` + wrapper `onclick` + `onchange` all mutated the same state on a single click, causing the value to flip back instantly with no visible change
+- [x] Fix store subscriptions leaked in SettingsView `onMount` — `theme` and `currentLocale` subscriptions were never unsubscribed, causing memory leaks on navigation
+- [x] Fix sidebar avatar fallback icon never rendering when `user.image` is falsy — `.avatar-fallback` CSS `display: none` was never overridden in the `{:else}` branch
+- [x] Fix duplicate Escape handling in LyricsModal — both `window.addEventListener('keydown', …)` and the backdrop `onkeydown` handled Escape, calling `onClose()` twice; removed the redundant global listener and added `target === currentTarget` guard to prevent inner button keypresses from bubbling and closing the modal
+- [x] Fix `dragDisabled` never reset after a completed queue drag — after `handleDndFinalize`, `dragDisabled` stayed `false`, making every queue item draggable from anywhere instead of only from the handle
+- [x] Fix missing `clearTimeout(searchTimeout)` in SearchView `onMount` cleanup — pending debounced search could fire after component unmount
+- [x] Fix ExportHistoryModal overlay keydown handler closing modal on Enter in date inputs — added `target === currentTarget` guard so only keypresses directly on the overlay backdrop are handled
