@@ -4,6 +4,8 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+## [0.2.6] – 2026-02-24
+
 ### Fixed
 
 - **DownloadsView**: Fixed invalid Svelte 5 prop syntax `{history=downloadItems}` → `history={downloadItems}` and replaced Svelte 4 `on:close` event directive with Svelte 5 `onClose` callback prop for `ExportHistoryModal`, which previously caused the modal close callback to never fire
