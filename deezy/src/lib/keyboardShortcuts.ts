@@ -3,6 +3,8 @@
  * Provides centralized keyboard shortcut management
  */
 
+export type ShortcutCategory = 'navigation' | 'search' | 'general';
+
 export interface KeyboardShortcut {
   key: string;
   ctrl?: boolean;
@@ -11,36 +13,36 @@ export interface KeyboardShortcut {
   alt?: boolean;
   description: string;
   action: () => void;
-  category: 'navigation' | 'search' | 'general';
+  category: ShortcutCategory;
 }
 
+interface ModifierState {
+  ctrl: boolean;
+  shift: boolean;
+  alt: boolean;
+}
+
+const INPUT_TAGS = ['INPUT', 'TEXTAREA'] as const;
+const ALLOWED_KEYS_IN_INPUT = ['Escape', ' '] as const;
+
 export class KeyboardShortcutsManager {
-  private shortcuts: Map<string, KeyboardShortcut> = new Map();
+  private shortcuts = new Map<string, KeyboardShortcut>();
   private enabled = true;
 
   constructor() {
     this.handleKeyDown = this.handleKeyDown.bind(this);
   }
 
-  /**
-   * Register a keyboard shortcut
-   */
-  register(id: string, shortcut: KeyboardShortcut) {
+  register(id: string, shortcut: KeyboardShortcut): void {
     this.shortcuts.set(id, shortcut);
   }
 
-  /**
-   * Unregister a keyboard shortcut
-   */
-  unregister(id: string) {
-    this.shortcuts.delete(id);
+  unregister(id: string): boolean {
+    return this.shortcuts.delete(id);
   }
 
-  /**
-   * Get all registered shortcuts grouped by category
-   */
-  getAllShortcuts(): Record<string, KeyboardShortcut[]> {
-    const grouped: Record<string, KeyboardShortcut[]> = {
+  getAllShortcuts(): Record<ShortcutCategory, KeyboardShortcut[]> {
+    const grouped: Record<ShortcutCategory, KeyboardShortcut[]> = {
       navigation: [],
       search: [],
       general: []
@@ -53,55 +55,81 @@ export class KeyboardShortcutsManager {
     return grouped;
   }
 
-  /**
-   * Enable or disable keyboard shortcuts
-   */
-  setEnabled(enabled: boolean) {
+  setEnabled(enabled: boolean): void {
     this.enabled = enabled;
   }
 
-  /**
-   * Handle keyboard events
-   */
-  handleKeyDown(event: KeyboardEvent) {
+  getEnabled(): boolean {
+    return this.enabled;
+  }
+
+  clear(): void {
+    this.shortcuts.clear();
+  }
+
+  has(id: string): boolean {
+    return this.shortcuts.has(id);
+  }
+
+  getShortcut(id: string): KeyboardShortcut | undefined {
+    return this.shortcuts.get(id);
+  }
+
+  private isMac(): boolean {
+    return navigator.platform.toUpperCase().includes('MAC');
+  }
+
+  private isInputElement(target: HTMLElement): boolean {
+    return INPUT_TAGS.includes(target.tagName as any) || target.isContentEditable;
+  }
+
+  private shouldIgnoreInInput(event: KeyboardEvent, target: HTMLElement): boolean {
+    if (!this.isInputElement(target)) return false;
+
+    if (event.key === 'Escape') return false;
+    
+    if (event.key === ' ' && target.tagName === 'INPUT') return true;
+    
+    return event.key !== 'Escape' && event.key !== ' ';
+  }
+
+  private getModifierState(event: KeyboardEvent): ModifierState {
+    const ctrlOrCmd = this.isMac() ? event.metaKey : event.ctrlKey;
+    
+    return {
+      ctrl: ctrlOrCmd,
+      shift: event.shiftKey,
+      alt: event.altKey
+    };
+  }
+
+  private matchesShortcut(event: KeyboardEvent, shortcut: KeyboardShortcut): boolean {
+    const keyMatches = event.key.toLowerCase() === shortcut.key.toLowerCase();
+    if (!keyMatches) return false;
+
+    const modifiers = this.getModifierState(event);
+    const requiresCtrlOrCmd = shortcut.ctrl || shortcut.cmd || false;
+    const requiresShift = shortcut.shift || false;
+    const requiresAlt = shortcut.alt || false;
+
+    return (
+      requiresCtrlOrCmd === modifiers.ctrl &&
+      requiresShift === modifiers.shift &&
+      requiresAlt === modifiers.alt
+    );
+  }
+
+  handleKeyDown(event: KeyboardEvent): void {
     if (!this.enabled) return;
 
-    // Don't trigger shortcuts when typing in inputs (except for specific cases like Escape and Space)
     const target = event.target as HTMLElement;
-    const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
-
-    // Allow Escape key and Space key even in inputs (Space only if not typing)
-    if (event.key === 'Escape' && isInput) {
-      // Let it pass through
-    } else if (event.key === ' ' && isInput && target.tagName === 'INPUT') {
-      // Don't handle spacebar in input fields
-      return;
-    } else if (isInput && event.key !== 'Escape' && event.key !== ' ') {
-      // Don't handle other shortcuts when in input fields
+    
+    if (this.shouldIgnoreInInput(event, target)) {
       return;
     }
 
-    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-    const ctrlOrCmd = isMac ? event.metaKey : event.ctrlKey;
-
-    // Find matching shortcut
-    for (const [id, shortcut] of this.shortcuts) {
-      const keyMatches = event.key.toLowerCase() === shortcut.key.toLowerCase();
-      if (!keyMatches) continue;
-      
-      // Check modifiers - must match exactly what the shortcut requires
-      const requiresCtrlOrCmd = shortcut.ctrl || shortcut.cmd;
-      const requiresShift = shortcut.shift || false;
-      const requiresAlt = shortcut.alt || false;
-      
-      const hasCtrlOrCmd = ctrlOrCmd;
-      const hasShift = event.shiftKey;
-      const hasAlt = event.altKey;
-      
-      // All modifiers must match exactly
-      if (requiresCtrlOrCmd === hasCtrlOrCmd && 
-          requiresShift === hasShift && 
-          requiresAlt === hasAlt) {
+    for (const [_, shortcut] of this.shortcuts) {
+      if (this.matchesShortcut(event, shortcut)) {
         event.preventDefault();
         shortcut.action();
         return;
@@ -109,25 +137,20 @@ export class KeyboardShortcutsManager {
     }
   }
 
-  /**
-   * Start listening for keyboard events
-   */
-  attach() {
-    window.addEventListener('keydown', this.handleKeyDown);
+  attach(): void {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', this.handleKeyDown);
+    }
   }
 
-  /**
-   * Stop listening for keyboard events
-   */
-  detach() {
-    window.removeEventListener('keydown', this.handleKeyDown);
+  detach(): void {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('keydown', this.handleKeyDown);
+    }
   }
 
-  /**
-   * Format shortcut for display
-   */
   static formatShortcut(shortcut: KeyboardShortcut): string {
-    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const isMac = navigator.platform.toUpperCase().includes('MAC');
     const parts: string[] = [];
 
     if (shortcut.ctrl || shortcut.cmd) {
@@ -140,17 +163,25 @@ export class KeyboardShortcutsManager {
       parts.push(isMac ? '⌥' : 'Alt');
     }
 
-    // Format key name
-    let keyName = shortcut.key.toUpperCase();
-    if (keyName === 'ESCAPE') keyName = 'Esc';
-    if (keyName === ',') keyName = ',';
-    if (keyName === '?') keyName = '?';
-
+    const keyName = KeyboardShortcutsManager.formatKeyName(shortcut.key);
     parts.push(keyName);
 
     return parts.join(isMac ? '' : '+');
   }
+
+  private static formatKeyName(key: string): string {
+    const keyMap: Record<string, string> = {
+      'ESCAPE': 'Esc',
+      'ARROWUP': '↑',
+      'ARROWDOWN': '↓',
+      'ARROWLEFT': '←',
+      'ARROWRIGHT': '→',
+      ' ': 'Space'
+    };
+
+    const upperKey = key.toUpperCase();
+    return keyMap[upperKey] ?? upperKey;
+  }
 }
 
-// Create a singleton instance
 export const keyboardShortcuts = new KeyboardShortcutsManager();

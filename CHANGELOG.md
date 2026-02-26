@@ -21,6 +21,14 @@ All notable changes to Deezy are documented here.
   - Added `formatTime` and `formatFileSize` formatters for better data presentation
   - Better code organization with constants (`DEFAULT_LOCALE`, `MILLION`, `THOUSAND`) and helper functions
   - Enhanced type definitions with `LocaleInfo` interface and readonly arrays
+- **Core library modules**: Refactored all 7 core TypeScript modules with comprehensive improvements
+  - **audioPlayer.ts**: Enhanced type safety, added helper methods (`getVolume`, `getDuration`, `getCurrentTime`), improved event handler management, better error handling with clamping functions
+  - **downloadQueue.ts**: Optimized queue processing with helper functions, improved state management, better type safety with `DownloadStatus` type, enhanced error handling and validation
+  - **keyboardShortcuts.ts**: Improved shortcut matching logic, added utility methods (`has`, `getShortcut`, `clear`), enhanced key formatting with arrow keys support, better input element detection
+  - **notifications.ts**: Added notification batching with configurable limits, improved permission handling, better error truncation, added utility methods (`clearPending`, `getPendingCount`)
+  - **rateLimiter.ts**: Enhanced with utility methods (`reset`, `canCallNow`, `getCallCount`), added input validation, better timing accuracy, improved documentation
+  - **stores.ts**: Added comprehensive type definitions (`DownloadStatus`, `QualityOption`), exported constants (`DEFAULT_VOLUME`, `DEFAULT_THEME`), explicit `Writable` types for all stores
+  - **tray.ts**: Added debounced updates to reduce API calls, improved cleanup with `destroy()` method, better tooltip building logic, enhanced type safety
 
 ### Fixed
 

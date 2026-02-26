@@ -1,27 +1,14 @@
-import { writable } from 'svelte/store';
+import { writable, type Writable } from 'svelte/store';
+
+export type DownloadStatus = 'downloading' | 'complete' | 'error' | 'paused' | 'resolving' | 'tagging';
+export type Theme = 'light' | 'dark' | 'system' | 'custom';
+export type QualityOption = 'MP3_128' | 'MP3_320' | 'FLAC';
 
 export interface UserInfo {
   id: number;
   name: string;
   image: string;
   is_free_account?: boolean;
-}
-
-export interface DownloadItem {
-  trackId: string;
-  title: string;
-  artist: string;
-  album: string;
-  cover: string;
-  percent: number;
-  status: string;
-  errorMsg?: string;
-  track?: Track;
-  isPaused?: boolean;
-  timestamp?: string;
-  filePath?: string;
-  requestedQuality?: string;
-  actualQuality?: string;
 }
 
 export interface Track {
@@ -36,28 +23,28 @@ export interface Track {
   preview?: string;
 }
 
+export interface DownloadItem {
+  trackId: string;
+  title: string;
+  artist: string;
+  album: string;
+  cover: string;
+  percent: number;
+  status: DownloadStatus;
+  errorMsg?: string;
+  track?: Track;
+  isPaused?: boolean;
+  timestamp?: string;
+  filePath?: string;
+  requestedQuality?: QualityOption;
+  actualQuality?: QualityOption;
+}
+
 export interface QueuedDownload {
   track: Track;
   priority: number;
 }
 
-export const loggedIn = writable<boolean>(false);
-export const userInfo = writable<UserInfo | null>(null);
-export const downloads = writable<Map<string, string>>(new Map());
-export const activeDownloads = writable<number>(0);
-export const downloadHistory = writable<DownloadItem[]>([]);
-export const downloadQueue = writable<QueuedDownload[]>([]);
-export const pausedDownloads = writable<Set<string>>(new Set());
-export const MAX_CONCURRENT_DOWNLOADS = 3;
-
-export type Theme = 'light' | 'dark' | 'system' | 'custom';
-export const theme = writable<Theme>('dark');
-export const notificationsEnabled = writable<boolean>(true);
-
-export const searchHistory = writable<string[]>([]);
-export const currentLocale = writable<string>('en');
-
-// Audio player state
 export interface AudioPlayerState {
   currentTrack: Track | null;
   isPlaying: boolean;
@@ -66,11 +53,29 @@ export interface AudioPlayerState {
   volume: number;
 }
 
-export const audioPlayer = writable<AudioPlayerState>({
+export const MAX_CONCURRENT_DOWNLOADS = 3;
+export const DEFAULT_VOLUME = 0.7;
+export const DEFAULT_THEME: Theme = 'dark';
+export const DEFAULT_LOCALE = 'en';
+
+export const loggedIn: Writable<boolean> = writable(false);
+export const userInfo: Writable<UserInfo | null> = writable(null);
+export const downloads: Writable<Map<string, string>> = writable(new Map());
+export const activeDownloads: Writable<number> = writable(0);
+export const downloadHistory: Writable<DownloadItem[]> = writable([]);
+export const downloadQueue: Writable<QueuedDownload[]> = writable([]);
+export const pausedDownloads: Writable<Set<string>> = writable(new Set());
+
+export const theme: Writable<Theme> = writable(DEFAULT_THEME);
+export const notificationsEnabled: Writable<boolean> = writable(true);
+export const searchHistory: Writable<string[]> = writable([]);
+export const currentLocale: Writable<string> = writable(DEFAULT_LOCALE);
+
+export const audioPlayer: Writable<AudioPlayerState> = writable({
   currentTrack: null,
   isPlaying: false,
   currentTime: 0,
   duration: 0,
-  volume: 0.7,
+  volume: DEFAULT_VOLUME,
 });
 

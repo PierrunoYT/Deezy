@@ -1,12 +1,20 @@
 import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification';
 import { invoke } from '@tauri-apps/api/core';
 
+interface PendingNotification {
+  title: string;
+  body: string;
+}
+
+const MAX_PENDING_NOTIFICATIONS = 10;
+const BATCH_NOTIFICATION_THRESHOLD = 2;
+
 class NotificationManager {
   private permissionGranted: boolean | null = null;
-  private notificationsEnabled: boolean = true;
-  private pendingNotifications: Array<{ title: string; body: string }> = [];
+  private notificationsEnabled = true;
+  private pendingNotifications: PendingNotification[] = [];
 
-  async initialize() {
+  async initialize(): Promise<void> {
     try {
       const settings: any = await invoke('get_settings');
       this.notificationsEnabled = settings.notifications_enabled ?? true;
@@ -28,7 +36,7 @@ class NotificationManager {
       }
 
       if (this.permissionGranted && this.pendingNotifications.length > 0) {
-        this.flushPendingNotifications();
+        await this.flushPendingNotifications();
       }
 
       return this.permissionGranted;
@@ -38,28 +46,34 @@ class NotificationManager {
     }
   }
 
-  setEnabled(enabled: boolean) {
+  setEnabled(enabled: boolean): void {
     this.notificationsEnabled = enabled;
   }
 
-  private async flushPendingNotifications() {
-    if (this.pendingNotifications.length === 0) return;
-
-    if (this.pendingNotifications.length === 1) {
-      const notif = this.pendingNotifications[0];
-      await this.sendNotificationInternal(notif.title, notif.body);
-    } else {
-      const count = this.pendingNotifications.length;
-      await this.sendNotificationInternal(
-        'Downloads Complete',
-        `${count} tracks have finished downloading`
-      );
-    }
-
-    this.pendingNotifications = [];
+  getEnabled(): boolean {
+    return this.notificationsEnabled;
   }
 
-  private async sendNotificationInternal(title: string, body: string) {
+  private async flushPendingNotifications(): Promise<void> {
+    if (this.pendingNotifications.length === 0) return;
+
+    try {
+      if (this.pendingNotifications.length === 1) {
+        const notif = this.pendingNotifications[0];
+        await this.sendNotificationInternal(notif.title, notif.body);
+      } else {
+        const count = this.pendingNotifications.length;
+        await this.sendNotificationInternal(
+          'Downloads Complete',
+          `${count} tracks have finished downloading`
+        );
+      }
+    } finally {
+      this.pendingNotifications = [];
+    }
+  }
+
+  private async sendNotificationInternal(title: string, body: string): Promise<void> {
     try {
       await sendNotification({ title, body });
     } catch (err) {
@@ -67,59 +81,63 @@ class NotificationManager {
     }
   }
 
-  async notifyDownloadComplete(title: string, artist: string) {
+  private addToPending(title: string, body: string): void {
+    if (this.pendingNotifications.length >= MAX_PENDING_NOTIFICATIONS) {
+      this.pendingNotifications.shift();
+    }
+    this.pendingNotifications.push({ title, body });
+  }
+
+  private async ensurePermission(): Promise<boolean> {
+    if (this.permissionGranted === null) {
+      await this.checkPermission();
+    }
+    return this.permissionGranted ?? false;
+  }
+
+  private async sendOrQueue(title: string, body: string): Promise<void> {
+    if (await this.ensurePermission()) {
+      await this.sendNotificationInternal(title, body);
+    } else {
+      this.addToPending(title, body);
+    }
+  }
+
+  async notifyDownloadComplete(title: string, artist: string): Promise<void> {
     if (!this.notificationsEnabled) return;
 
     const notificationTitle = 'Download Complete';
     const notificationBody = `${title} - ${artist}`;
 
-    if (this.permissionGranted === null) {
-      await this.checkPermission();
-    }
-
-    if (this.permissionGranted) {
-      await this.sendNotificationInternal(notificationTitle, notificationBody);
-    } else {
-      this.pendingNotifications.push({ 
-        title: notificationTitle, 
-        body: notificationBody 
-      });
-    }
+    await this.sendOrQueue(notificationTitle, notificationBody);
   }
 
-  async notifyDownloadError(title: string, artist: string, error: string) {
+  async notifyDownloadError(title: string, artist: string, error: string): Promise<void> {
     if (!this.notificationsEnabled) return;
 
     const notificationTitle = 'Download Failed';
-    const notificationBody = `${title} - ${artist}\n${error}`;
+    const truncatedError = error.length > 100 ? `${error.substring(0, 100)}...` : error;
+    const notificationBody = `${title} - ${artist}\n${truncatedError}`;
 
-    if (this.permissionGranted === null) {
-      await this.checkPermission();
-    }
-
-    if (this.permissionGranted) {
-      await this.sendNotificationInternal(notificationTitle, notificationBody);
-    } else {
-      this.pendingNotifications.push({ 
-        title: notificationTitle, 
-        body: notificationBody 
-      });
-    }
+    await this.sendOrQueue(notificationTitle, notificationBody);
   }
 
-  async notifyBatchComplete(count: number) {
-    if (!this.notificationsEnabled) return;
+  async notifyBatchComplete(count: number): Promise<void> {
+    if (!this.notificationsEnabled || count <= 0) return;
 
     const notificationTitle = 'Downloads Complete';
-    const notificationBody = `${count} track${count > 1 ? 's' : ''} finished downloading`;
+    const plural = count > 1 ? 's' : '';
+    const notificationBody = `${count} track${plural} finished downloading`;
 
-    if (this.permissionGranted === null) {
-      await this.checkPermission();
-    }
+    await this.sendOrQueue(notificationTitle, notificationBody);
+  }
 
-    if (this.permissionGranted) {
-      await this.sendNotificationInternal(notificationTitle, notificationBody);
-    }
+  clearPending(): void {
+    this.pendingNotifications = [];
+  }
+
+  getPendingCount(): number {
+    return this.pendingNotifications.length;
   }
 }
 

@@ -1,61 +1,88 @@
 import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { get } from 'svelte/store';
 import { activeDownloads, downloadQueue, pausedDownloads } from './stores';
 import { downloadQueueManager } from './downloadQueue';
 
+const DEFAULT_TOOLTIP = 'Deezy';
+
 class TrayManager {
   private initialized = false;
+  private unlistenPauseResume: UnlistenFn | undefined;
+  private updateDebounceTimer: ReturnType<typeof setTimeout> | undefined;
+  private readonly debounceDelay = 100;
 
-  async init() {
+  async init(): Promise<void> {
     if (this.initialized) return;
 
-    // Listen for tray pause/resume event
-    await listen('tray-pause-resume', () => {
+    this.unlistenPauseResume = await listen('tray-pause-resume', () => {
       this.togglePauseResume();
     });
 
-    // Subscribe to download state changes
     activeDownloads.subscribe(() => {
-      this.updateTrayStatus();
+      this.debouncedUpdateTrayStatus();
     });
 
     downloadQueue.subscribe(() => {
-      this.updateTrayStatus();
+      this.debouncedUpdateTrayStatus();
     });
 
     pausedDownloads.subscribe(() => {
-      this.updateTrayStatus();
+      this.debouncedUpdateTrayStatus();
     });
 
     this.initialized = true;
   }
 
-  private togglePauseResume() {
+  destroy(): void {
+    this.unlistenPauseResume?.();
+    if (this.updateDebounceTimer) {
+      clearTimeout(this.updateDebounceTimer);
+    }
+    this.initialized = false;
+  }
+
+  private debouncedUpdateTrayStatus(): void {
+    if (this.updateDebounceTimer) {
+      clearTimeout(this.updateDebounceTimer);
+    }
+    
+    this.updateDebounceTimer = setTimeout(() => {
+      this.updateTrayStatus();
+    }, this.debounceDelay);
+  }
+
+  private togglePauseResume(): void {
     const paused = get(pausedDownloads);
     const active = get(activeDownloads);
     const queue = get(downloadQueue);
 
-    // If there are paused downloads, resume them
     if (paused.size > 0) {
-      paused.forEach(trackId => {
-        downloadQueueManager.resumeDownload(trackId);
-      });
+      this.resumeAllDownloads(paused);
     } else if (active > 0 || queue.length > 0) {
-      // Pause all active downloads
-      const activeTrackIds = downloadQueueManager.getActiveTrackIds();
-      activeTrackIds.forEach(trackId => {
-        downloadQueueManager.pauseDownload(trackId);
-      });
-      
-      // Pause all queued downloads
-      queue.forEach(item => {
-        downloadQueueManager.pauseDownload(String(item.track.id));
-      });
+      this.pauseAllDownloads(queue);
     }
   }
 
-  private async updateTrayStatus() {
+  private resumeAllDownloads(paused: Set<string>): void {
+    paused.forEach(trackId => {
+      downloadQueueManager.resumeDownload(trackId);
+    });
+  }
+
+  private pauseAllDownloads(queue: any[]): void {
+    const activeTrackIds = downloadQueueManager.getActiveTrackIds();
+    
+    activeTrackIds.forEach(trackId => {
+      downloadQueueManager.pauseDownload(trackId);
+    });
+    
+    queue.forEach(item => {
+      downloadQueueManager.pauseDownload(String(item.track.id));
+    });
+  }
+
+  private async updateTrayStatus(): Promise<void> {
     const active = get(activeDownloads);
     const queue = get(downloadQueue);
     const paused = get(pausedDownloads);
@@ -69,18 +96,39 @@ class TrayManager {
         downloadsPaused
       });
 
-      // Update tooltip
-      let tooltip = 'Deezy';
-      if (downloadsActive) {
-        const totalDownloads = active + queue.length;
-        tooltip = `Deezy - ${totalDownloads} download${totalDownloads !== 1 ? 's' : ''} in progress`;
-      } else if (downloadsPaused) {
-        tooltip = `Deezy - ${paused.size} download${paused.size !== 1 ? 's' : ''} paused`;
-      }
-
+      const tooltip = this.buildTooltip(active, queue.length, paused.size, downloadsActive, downloadsPaused);
       await invoke('set_tray_tooltip', { tooltip });
     } catch (error) {
       console.error('Failed to update tray status:', error);
+    }
+  }
+
+  private buildTooltip(
+    active: number, 
+    queueLength: number, 
+    pausedCount: number,
+    downloadsActive: boolean,
+    downloadsPaused: boolean
+  ): string {
+    if (downloadsActive) {
+      const totalDownloads = active + queueLength;
+      const plural = totalDownloads !== 1 ? 's' : '';
+      return `${DEFAULT_TOOLTIP} - ${totalDownloads} download${plural} in progress`;
+    }
+    
+    if (downloadsPaused) {
+      const plural = pausedCount !== 1 ? 's' : '';
+      return `${DEFAULT_TOOLTIP} - ${pausedCount} download${plural} paused`;
+    }
+    
+    return DEFAULT_TOOLTIP;
+  }
+
+  async updateTooltip(text: string): Promise<void> {
+    try {
+      await invoke('set_tray_tooltip', { tooltip: text });
+    } catch (error) {
+      console.error('Failed to update tray tooltip:', error);
     }
   }
 }

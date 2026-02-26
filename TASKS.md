@@ -133,3 +133,11 @@
   - Added new utility functions: `isLocaleSupported`, `getSupportedLocaleOrDefault`, `changeLocale`, `formatTime`, `formatFileSize`
   - Better code organization with constants and helper functions
   - Enhanced type definitions with `LocaleInfo` interface
+- [x] Refactor core library modules (audioPlayer, downloadQueue, keyboardShortcuts, notifications, rateLimiter, stores, tray):
+  - Enhanced type safety with explicit types and interfaces throughout
+  - Improved error handling and validation in all modules
+  - Added utility methods and helper functions to reduce code duplication
+  - Better state management and cleanup with proper lifecycle handling
+  - Optimized performance with debouncing, clamping, and efficient algorithms
+  - Enhanced documentation with JSDoc comments and better naming
+  - Added constants for magic numbers and configuration values

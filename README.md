@@ -186,10 +186,17 @@ deezy/
   - Optimized with helper functions and reduced code duplication
   - Proper lifecycle management with `onMount` and `onDestroy`
   - Enhanced error handling and validation throughout
-- **Download queue** – Client-side queue manager with handle-based drag-and-drop reordering (drag lock resets after every drop) and priority management
-- **Rate limiting** – Separate limiters for search (2 req/s) and download (3 concurrent) operations
+- **Core libraries** – 7 refactored TypeScript modules with enhanced functionality:
+  - **audioPlayer**: Event handler management, volume/time clamping, utility methods
+  - **downloadQueue**: Optimized queue processing, improved state management, helper functions
+  - **keyboardShortcuts**: Enhanced matching logic, utility methods, better key formatting
+  - **notifications**: Batching with limits, improved permission handling, error truncation
+  - **rateLimiter**: Utility methods, input validation, better timing accuracy
+  - **stores**: Comprehensive type definitions, exported constants, explicit types
+  - **tray**: Debounced updates, cleanup methods, optimized tooltip building
+- **Rate limiting** – Separate limiters for search (2 req/s) and download (3 concurrent) operations with call tracking and reset capabilities
 - **Keyboard shortcuts** – Global shortcut system with registration, categories, and help modal; modals guard all keydown handlers with `target === currentTarget` to prevent inner-element keypresses from closing them unexpectedly
-- **Audio player** – Mini player with seek bar, volume control, and playback state management
+- **Audio player** – Mini player with seek bar, volume control, playback state management, and proper resource cleanup
 - **i18n** – svelte-i18n with 6 languages and robust formatting utilities:
   - Locale detection with fallback handling and normalization
   - Comprehensive formatters: duration, numbers, dates, time, file sizes, fan counts

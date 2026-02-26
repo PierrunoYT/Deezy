@@ -8,7 +8,8 @@ import {
   pausedDownloads,
   MAX_CONCURRENT_DOWNLOADS,
   type Track,
-  type QueuedDownload
+  type QueuedDownload,
+  type DownloadItem
 } from './stores';
 import { downloadRateLimiter } from './rateLimiter';
 import { notificationManager } from './notifications';
@@ -19,140 +20,164 @@ interface DownloadResult {
   actual_quality: string;
 }
 
+type DownloadStatus = 'downloading' | 'complete' | 'error' | 'paused' | 'resolving' | 'tagging';
+
+const DEFAULT_PRIORITY = 0;
+const HIGH_PRIORITY = 100;
+const QUEUE_CHECK_INTERVAL = 1000;
+
 class DownloadQueueManager {
   private processing = false;
   private activeCount = 0;
   private activeDownloadControllers = new Map<string, AbortController>();
   private activeTrackIds = new Set<string>();
 
-  async addToQueue(track: Track, priority: number = 0) {
+  async addToQueue(track: Track, priority: number = DEFAULT_PRIORITY): Promise<void> {
     const trackId = String(track.id);
     const currentDownloads = get(downloads);
     
-    // Check if already downloading or complete (but allow paused to be re-queued)
     const state = currentDownloads.get(trackId);
     if (state === 'downloading' || state === 'complete') {
       console.log('Track already downloading or complete:', trackId);
       return;
     }
 
-    // Remove from paused set if it was paused
-    const paused = get(pausedDownloads);
-    if (paused.has(trackId)) {
-      paused.delete(trackId);
-      pausedDownloads.set(paused);
-    }
+    this.removeFromPausedSet(trackId);
 
-    // Add to queue
     downloadQueue.update(queue => {
-      // Check if already in queue
-      if (queue.some(item => String(item.track.id) === trackId)) {
+      if (this.isTrackInQueue(queue, trackId)) {
         return queue;
       }
       
-      const newQueue = [...queue, { track, priority }];
-      // Sort by priority (higher first)
-      newQueue.sort((a, b) => b.priority - a.priority);
-      return newQueue;
+      return this.sortQueueByPriority([...queue, { track, priority }]);
     });
 
-    // Start processing if not already
     if (!this.processing) {
       this.processQueue();
     }
   }
 
-  private async processQueue() {
-    // Check if already processing to prevent multiple concurrent queue processors
+  private removeFromPausedSet(trackId: string): void {
+    const paused = get(pausedDownloads);
+    if (paused.has(trackId)) {
+      paused.delete(trackId);
+      pausedDownloads.set(paused);
+    }
+  }
+
+  private isTrackInQueue(queue: QueuedDownload[], trackId: string): boolean {
+    return queue.some(item => String(item.track.id) === trackId);
+  }
+
+  private sortQueueByPriority(queue: QueuedDownload[]): QueuedDownload[] {
+    return queue.sort((a, b) => b.priority - a.priority);
+  }
+
+  private async processQueue(): Promise<void> {
     if (this.processing) {
       return;
     }
     
     this.processing = true;
 
-    while (true) {
-      const queue = get(downloadQueue);
-      
-      // Stop if queue is empty
-      if (queue.length === 0) {
-        this.processing = false;
-        break;
+    try {
+      while (true) {
+        const queue = get(downloadQueue);
+        
+        if (queue.length === 0) {
+          break;
+        }
+
+        if (this.activeCount >= MAX_CONCURRENT_DOWNLOADS) {
+          await this.waitForSlot();
+          continue;
+        }
+
+        const item = queue[0];
+        if (!item) {
+          break;
+        }
+
+        downloadQueue.update(q => q.slice(1));
+        this.downloadTrack(item.track);
       }
-
-      // Wait if we're at max concurrent downloads
-      if (this.activeCount >= MAX_CONCURRENT_DOWNLOADS) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        continue;
-      }
-
-      // Get next item from queue
-      const item = queue[0];
-      if (!item) {
-        this.processing = false;
-        break;
-      }
-
-      // Remove from queue
-      downloadQueue.update(q => q.slice(1));
-
-      // Start download (don't await - let it run in background)
-      this.downloadTrack(item.track);
+    } finally {
+      this.processing = false;
     }
   }
 
-  private async downloadTrack(track: Track) {
+  private async waitForSlot(): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, QUEUE_CHECK_INTERVAL));
+  }
+
+  private createDownloadHistoryItem(track: Track, trackId: string): DownloadItem {
+    return {
+      trackId,
+      title: track.title,
+      artist: track.artist,
+      album: track.album,
+      cover: track.cover_medium || track.cover_small,
+      percent: 0,
+      status: 'downloading',
+      track: track,
+      isPaused: false,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  private updateDownloadStatus(trackId: string, status: DownloadStatus): void {
+    downloads.update(d => {
+      d.set(trackId, status);
+      return d;
+    });
+  }
+
+  private updateHistoryItem(trackId: string, updates: Partial<DownloadItem>): void {
+    downloadHistory.update(history =>
+      history.map(item =>
+        item.trackId === trackId ? { ...item, ...updates } : item
+      )
+    );
+  }
+
+  private addToHistory(track: Track, trackId: string): void {
+    downloadHistory.update(history => {
+      const existing = history.find(item => item.trackId === trackId);
+      
+      if (!existing) {
+        return [this.createDownloadHistoryItem(track, trackId), ...history];
+      }
+      
+      return history.map(item =>
+        item.trackId === trackId
+          ? { 
+              ...item, 
+              status: 'downloading', 
+              percent: 0, 
+              isPaused: false, 
+              errorMsg: undefined, 
+              timestamp: new Date().toISOString() 
+            }
+          : item
+      );
+    });
+  }
+
+  private async downloadTrack(track: Track): Promise<void> {
     const trackId = String(track.id);
     
-    // Check if paused before starting
     if (this.isPaused(trackId)) {
       console.log('Track is paused, skipping:', trackId);
       return;
     }
 
-    this.activeCount++;
-    this.activeTrackIds.add(trackId);
-    activeDownloads.set(this.activeCount);
-
-    // Create abort controller for this download
-    const controller = new AbortController();
-    this.activeDownloadControllers.set(trackId, controller);
-
-    // Add to download history with initial state
-    downloadHistory.update(history => {
-      const existing = history.find(item => item.trackId === trackId);
-      if (!existing) {
-        return [{
-          trackId,
-          title: track.title,
-          artist: track.artist,
-          album: track.album,
-          cover: track.cover_medium || track.cover_small,
-          percent: 0,
-          status: 'downloading',
-          track: track,
-          isPaused: false,
-          timestamp: new Date().toISOString()
-        }, ...history];
-      } else {
-        // Update existing entry
-        return history.map(item =>
-          item.trackId === trackId
-            ? { ...item, status: 'downloading', percent: 0, isPaused: false, errorMsg: undefined, timestamp: new Date().toISOString() }
-            : item
-        );
-      }
-    });
-
-    downloads.update(d => {
-      d.set(trackId, 'downloading');
-      return d;
-    });
+    this.incrementActiveCount(trackId);
+    this.addToHistory(track, trackId);
+    this.updateDownloadStatus(trackId, 'downloading');
 
     try {
-      // Apply rate limiting before download
       await downloadRateLimiter.throttle();
 
-      // Check if paused again after rate limiting
       if (this.isPaused(trackId)) {
         console.log('Track was paused during rate limiting, aborting:', trackId);
         return;
@@ -160,7 +185,6 @@ class DownloadQueueManager {
 
       const result = await invoke<DownloadResult>('download_track', { trackId });
       
-      // Check if paused after download completes
       if (this.isPaused(trackId)) {
         console.log('Track was paused, not marking as complete:', trackId);
         return;
@@ -168,30 +192,18 @@ class DownloadQueueManager {
 
       console.log('Download completed:', result.file_path);
       
-      downloads.update(d => {
-        d.set(trackId, 'complete');
-        return d;
+      this.updateDownloadStatus(trackId, 'complete');
+      this.updateHistoryItem(trackId, {
+        percent: 100,
+        status: 'complete',
+        isPaused: false,
+        filePath: result.file_path,
+        requestedQuality: result.requested_quality,
+        actualQuality: result.actual_quality
       });
-
-      downloadHistory.update(history =>
-        history.map(item =>
-          item.trackId === trackId
-            ? {
-                ...item,
-                percent: 100,
-                status: 'complete',
-                isPaused: false,
-                filePath: result.file_path,
-                requestedQuality: result.requested_quality,
-                actualQuality: result.actual_quality
-              }
-            : item
-        )
-      );
 
       await notificationManager.notifyDownloadComplete(track.title, track.artist);
     } catch (err) {
-      // Check if it was paused (which causes an error)
       if (this.isPaused(trackId)) {
         console.log('Download was paused:', trackId);
         return;
@@ -199,97 +211,84 @@ class DownloadQueueManager {
 
       console.error('Download failed:', err);
       
-      downloads.update(d => {
-        d.set(trackId, 'error');
-        return d;
+      this.updateDownloadStatus(trackId, 'error');
+      this.updateHistoryItem(trackId, {
+        status: 'error',
+        errorMsg: String(err),
+        isPaused: false
       });
-
-      downloadHistory.update(history =>
-        history.map(item =>
-          item.trackId === trackId
-            ? { ...item, status: 'error', errorMsg: String(err), isPaused: false }
-            : item
-        )
-      );
 
       await notificationManager.notifyDownloadError(track.title, track.artist, String(err));
     } finally {
-      this.activeDownloadControllers.delete(trackId);
-      this.activeTrackIds.delete(trackId);
-      this.activeCount--;
-      activeDownloads.set(this.activeCount);
+      this.decrementActiveCount(trackId);
       
-      // Continue processing queue if there are items remaining
-      // processQueue will check if it's already processing
       if (get(downloadQueue).length > 0) {
         this.processQueue();
       }
     }
   }
 
-  pauseDownload(trackId: string) {
+  private incrementActiveCount(trackId: string): void {
+    this.activeCount++;
+    this.activeTrackIds.add(trackId);
+    activeDownloads.set(this.activeCount);
+    
+    const controller = new AbortController();
+    this.activeDownloadControllers.set(trackId, controller);
+  }
+
+  private decrementActiveCount(trackId: string): void {
+    this.activeDownloadControllers.delete(trackId);
+    this.activeTrackIds.delete(trackId);
+    this.activeCount--;
+    activeDownloads.set(this.activeCount);
+  }
+
+  pauseDownload(trackId: string): void {
     const paused = get(pausedDownloads);
     paused.add(trackId);
     pausedDownloads.set(paused);
 
-    // Cancel the active download if it's currently downloading
     const controller = this.activeDownloadControllers.get(trackId);
     if (controller) {
       controller.abort();
       this.activeDownloadControllers.delete(trackId);
     }
 
-    // Update download history to show paused state
-    downloadHistory.update(history =>
-      history.map(item =>
-        item.trackId === trackId
-          ? { ...item, status: 'paused', isPaused: true }
-          : item
-      )
-    );
-
-    // Update downloads map
-    downloads.update(d => {
-      d.set(trackId, 'paused');
-      return d;
-    });
+    this.updateHistoryItem(trackId, { status: 'paused', isPaused: true });
+    this.updateDownloadStatus(trackId, 'paused');
   }
 
-  resumeDownload(trackId: string) {
+  resumeDownload(trackId: string): void {
     const paused = get(pausedDownloads);
     paused.delete(trackId);
     pausedDownloads.set(paused);
 
-    // Find the track in download history
     const history = get(downloadHistory);
     const item = history.find(h => h.trackId === trackId);
     
-    if (item && item.track) {
-      // Reset the download state
-      downloadHistory.update(history =>
-        history.map(h =>
-          h.trackId === trackId
-            ? { ...h, status: 'downloading', percent: 0, isPaused: false, errorMsg: undefined }
-            : h
-        )
-      );
+    if (!item?.track) return;
 
-      // Remove from downloads map so it can be re-added
-      downloads.update(d => {
-        d.delete(trackId);
-        return d;
-      });
+    this.updateHistoryItem(trackId, {
+      status: 'downloading',
+      percent: 0,
+      isPaused: false,
+      errorMsg: undefined
+    });
 
-      // Add back to queue with high priority
-      this.addToQueue(item.track, 100);
-    }
+    downloads.update(d => {
+      d.delete(trackId);
+      return d;
+    });
+
+    this.addToQueue(item.track, HIGH_PRIORITY);
   }
 
   isPaused(trackId: string): boolean {
     return get(pausedDownloads).has(trackId);
   }
 
-  clearQueue() {
+  clearQueue(): void {
     downloadQueue.set([]);
   }
 
@@ -297,11 +296,11 @@ class DownloadQueueManager {
     return get(downloadQueue).length;
   }
 
-  reorderQueue(newQueue: QueuedDownload[]) {
+  reorderQueue(newQueue: QueuedDownload[]): void {
     downloadQueue.set(newQueue);
   }
 
-  removeFromQueue(trackId: string) {
+  removeFromQueue(trackId: string): void {
     downloadQueue.update(queue => 
       queue.filter(item => String(item.track.id) !== trackId)
     );
@@ -309,6 +308,14 @@ class DownloadQueueManager {
 
   getActiveTrackIds(): string[] {
     return Array.from(this.activeTrackIds);
+  }
+
+  getActiveCount(): number {
+    return this.activeCount;
+  }
+
+  isProcessing(): boolean {
+    return this.processing;
   }
 }
 
