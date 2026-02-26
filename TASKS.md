@@ -127,3 +127,9 @@
   - Added proper focus management for modals and dialogs
   - Improved image loading with lazy loading and proper alt text
   - Enhanced form validation and user feedback
+- [x] Refactor i18n utilities (formatters.ts, index.ts) with improved type safety and functionality:
+  - Added comprehensive input validation for all formatter functions (handles invalid/infinite values)
+  - Enhanced locale detection with fallback handling and normalization
+  - Added new utility functions: `isLocaleSupported`, `getSupportedLocaleOrDefault`, `changeLocale`, `formatTime`, `formatFileSize`
+  - Better code organization with constants and helper functions
+  - Enhanced type definitions with `LocaleInfo` interface

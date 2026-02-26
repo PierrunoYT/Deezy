@@ -190,7 +190,11 @@ deezy/
 - **Rate limiting** – Separate limiters for search (2 req/s) and download (3 concurrent) operations
 - **Keyboard shortcuts** – Global shortcut system with registration, categories, and help modal; modals guard all keydown handlers with `target === currentTarget` to prevent inner-element keypresses from closing them unexpectedly
 - **Audio player** – Mini player with seek bar, volume control, and playback state management
-- **i18n** – svelte-i18n with 6 languages, formatters for duration/fans, and locale persistence
+- **i18n** – svelte-i18n with 6 languages and robust formatting utilities:
+  - Locale detection with fallback handling and normalization
+  - Comprehensive formatters: duration, numbers, dates, time, file sizes, fan counts
+  - Input validation for all formatters (handles invalid/infinite values gracefully)
+  - Type-safe locale management with `LocaleInfo` interface
 
 ### Backend (Rust + Tauri)
 - **DeezerClient** – HTTP client with ARL authentication, CSRF token management, and session handling

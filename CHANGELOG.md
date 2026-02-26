@@ -13,6 +13,14 @@ All notable changes to Deezy are documented here.
   - Optimized event handlers and reduced code duplication
   - Better error handling and validation throughout
   - Enhanced performance with optimized state management and computed values
+- **i18n utilities**: Refactored internationalization modules with improved type safety and functionality
+  - Added comprehensive input validation for all formatter functions (handles invalid/infinite values)
+  - Enhanced locale detection with fallback handling and normalization (strips region codes)
+  - Added new utility functions: `isLocaleSupported`, `getSupportedLocaleOrDefault`, `changeLocale`
+  - Improved error handling for invalid dates and numeric values
+  - Added `formatTime` and `formatFileSize` formatters for better data presentation
+  - Better code organization with constants (`DEFAULT_LOCALE`, `MILLION`, `THOUSAND`) and helper functions
+  - Enhanced type definitions with `LocaleInfo` interface and readonly arrays
 
 ### Fixed
 
