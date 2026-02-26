@@ -18,15 +18,12 @@
   let downloadItems: DownloadItem[] = [];
   let showExportModal = false;
 
-  // Subscribe to the download history store using idiomatic Svelte 5 pattern
-  $: unsubHistory, unsubHistory = (() => {
-    const unsubscribe = downloadHistory.subscribe(val => {
+  onMount(() => {
+    // Subscribe to the download history store
+    const unsubHistory = downloadHistory.subscribe(val => {
       downloadItems = val;
     });
-    return unsubscribe;
-  })();
 
-  onMount(() => {
     // Listen for download progress events to update the store
     let unlistenProgress: (() => void) | undefined;
     let unlistenTagError: (() => void) | undefined;
@@ -77,7 +74,7 @@
       unlistenTagError = fn;
     });
 
-    // Cleanup event listeners on unmount
+    // Cleanup event listeners and subscription on unmount
     return () => {
       if (unlistenProgress) {
         unlistenProgress();
@@ -85,9 +82,7 @@
       if (unlistenTagError) {
         unlistenTagError();
       }
-      if (unsubHistory) {
-        unsubHistory();
-      }
+      unsubHistory();
     };
   });
 
