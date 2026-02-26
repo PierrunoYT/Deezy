@@ -141,3 +141,11 @@
   - Optimized performance with debouncing, clamping, and efficient algorithms
   - Enhanced documentation with JSDoc comments and better naming
   - Added constants for magic numbers and configuration values
+- [x] Refactor route and app configuration files (+layout.svelte, +page.svelte, app.css, app.html):
+  - Extracted helper functions for better code organization
+  - Added constants for configuration values (MIN_SPLASH_MS, HISTORY_SAVE_DELAY)
+  - Improved theme management with separated logic for system/custom themes
+  - Enhanced keyboard shortcut registration with centralized configuration
+  - Added CSS custom properties for transitions, shadows, and new radius sizes
+  - Enhanced global styles with utility animations and better resets
+  - Improved app.html with comprehensive meta tags for SEO and accessibility

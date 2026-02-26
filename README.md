@@ -194,6 +194,11 @@ deezy/
   - **rateLimiter**: Utility methods, input validation, better timing accuracy
   - **stores**: Comprehensive type definitions, exported constants, explicit types
   - **tray**: Debounced updates, cleanup methods, optimized tooltip building
+- **Routes & config** – Refactored SvelteKit routes and app configuration:
+  - **+layout.svelte**: Extracted initialization helpers, improved theme management, better cleanup
+  - **+page.svelte**: Centralized shortcut registration, enhanced type safety, proper lifecycle
+  - **app.css**: Added CSS variables for transitions/shadows, utility animations, better global styles
+  - **app.html**: Enhanced meta tags for SEO/accessibility, theme-color, color-scheme support
 - **Rate limiting** – Separate limiters for search (2 req/s) and download (3 concurrent) operations with call tracking and reset capabilities
 - **Keyboard shortcuts** – Global shortcut system with registration, categories, and help modal; modals guard all keydown handlers with `target === currentTarget` to prevent inner-element keypresses from closing them unexpectedly
 - **Audio player** – Mini player with seek bar, volume control, playback state management, and proper resource cleanup

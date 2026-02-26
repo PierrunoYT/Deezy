@@ -2,12 +2,19 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="A modern desktop Deezer downloader built with Tauri, SvelteKit, and Rust" />
+    <meta name="theme-color" content="#a238ff" />
+    <meta name="color-scheme" content="dark light" />
+    
     <link rel="icon" href="%sveltekit.assets%/favicon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Deezy</title>
+    <link rel="apple-touch-icon" href="%sveltekit.assets%/favicon.png" />
+    
+    <title>Deezy - Music Downloader</title>
+    
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">
-    <div style="display: contents">%sveltekit.body%</div>
+    <div style="display: contents" role="application">%sveltekit.body%</div>
   </body>
 </html>

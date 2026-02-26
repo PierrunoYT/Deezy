@@ -29,6 +29,11 @@ All notable changes to Deezy are documented here.
   - **rateLimiter.ts**: Enhanced with utility methods (`reset`, `canCallNow`, `getCallCount`), added input validation, better timing accuracy, improved documentation
   - **stores.ts**: Added comprehensive type definitions (`DownloadStatus`, `QualityOption`), exported constants (`DEFAULT_VOLUME`, `DEFAULT_THEME`), explicit `Writable` types for all stores
   - **tray.ts**: Added debounced updates to reduce API calls, improved cleanup with `destroy()` method, better tooltip building logic, enhanced type safety
+- **Route and app files**: Refactored core SvelteKit routes and configuration files
+  - **+layout.svelte**: Extracted helper functions for initialization, theme management, and event handling; improved code organization with constants; better cleanup with `onDestroy`; optimized theme application with separated logic
+  - **+page.svelte**: Centralized keyboard shortcut registration, added type safety with `ViewType`, improved cleanup with `onDestroy`, better code organization with helper functions
+  - **app.css**: Added CSS custom properties for transitions and shadows, enhanced with utility animations (`fadeIn`, `slideUp`), improved global styles with better resets, added selection styling
+  - **app.html**: Enhanced meta tags (description, theme-color, color-scheme), improved accessibility with viewport-fit and role attributes, better SEO with descriptive title
 
 ### Fixed
 

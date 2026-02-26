@@ -1,9 +1,20 @@
 <script lang="ts">
   import '../app.css';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
-  import { listen } from '@tauri-apps/api/event';
-  import { loggedIn, userInfo, downloads, activeDownloads, downloadHistory, theme, currentLocale, type UserInfo, type DownloadItem, type Theme } from '$lib/stores';
+  import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+  import { 
+    loggedIn, 
+    userInfo, 
+    downloads, 
+    activeDownloads, 
+    downloadHistory, 
+    theme, 
+    currentLocale, 
+    type UserInfo, 
+    type DownloadItem, 
+    type Theme 
+  } from '$lib/stores';
   import { initI18n } from '$lib/i18n';
   import { locale as i18nLocale } from 'svelte-i18n';
   import { trayManager } from '$lib/tray';
@@ -11,6 +22,8 @@
   let { children } = $props();
   
   const MIN_SPLASH_MS = 2200;
+  const HISTORY_SAVE_DELAY = 2000;
+  
   let appInitialized = $state(false);
   let uiVisible = $state(false);
 
@@ -29,125 +42,161 @@
     status: string;
   }
 
-  async function applyTheme(themeValue: Theme) {
+  interface CustomThemeData {
+    name: string;
+    colors: Record<string, string>;
+  }
+
+  const CSS_VARIABLES = [
+    'bg-darkest', 'bg-dark', 'bg-surface', 'bg-elevated', 'bg-hover',
+    'accent', 'accent-hover', 'accent-dim',
+    'text-primary', 'text-secondary', 'text-tertiary',
+    'success', 'error', 'warning', 'border'
+  ] as const;
+
+  function applySystemTheme(): void {
     const root = document.documentElement;
-    
-    if (themeValue === 'system') {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      root.classList.toggle('light', !prefersDark);
-    } else if (themeValue === 'custom') {
-      try {
-        const settings = await invoke<Settings>('get_settings');
-        if (settings.custom_theme) {
-          const themeData = await invoke<any>('load_custom_theme', { themeName: settings.custom_theme });
-          const colors = themeData.colors;
-          
-          root.style.setProperty('--bg-darkest', colors['bg-darkest']);
-          root.style.setProperty('--bg-dark', colors['bg-dark']);
-          root.style.setProperty('--bg-surface', colors['bg-surface']);
-          root.style.setProperty('--bg-elevated', colors['bg-elevated']);
-          root.style.setProperty('--bg-hover', colors['bg-hover']);
-          root.style.setProperty('--accent', colors.accent);
-          root.style.setProperty('--accent-hover', colors['accent-hover']);
-          root.style.setProperty('--accent-dim', colors['accent-dim']);
-          root.style.setProperty('--text-primary', colors['text-primary']);
-          root.style.setProperty('--text-secondary', colors['text-secondary']);
-          root.style.setProperty('--text-tertiary', colors['text-tertiary']);
-          root.style.setProperty('--success', colors.success);
-          root.style.setProperty('--error', colors.error);
-          root.style.setProperty('--warning', colors.warning);
-          root.style.setProperty('--border', colors.border);
-          
-          root.classList.remove('light');
-        }
-      } catch (err) {
-        console.error('Failed to load custom theme:', err);
-        root.classList.toggle('light', false);
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    root.classList.toggle('light', !prefersDark);
+  }
+
+  function applyCustomThemeColors(colors: Record<string, string>): void {
+    const root = document.documentElement;
+    CSS_VARIABLES.forEach(variable => {
+      const value = colors[variable] || colors[variable.replace(/-/g, '_')];
+      if (value) {
+        root.style.setProperty(`--${variable}`, value);
       }
+    });
+    root.classList.remove('light');
+  }
+
+  async function loadAndApplyCustomTheme(): Promise<void> {
+    try {
+      const settings = await invoke<Settings>('get_settings');
+      if (!settings.custom_theme) return;
+
+      const themeData = await invoke<CustomThemeData>('load_custom_theme', { 
+        themeName: settings.custom_theme 
+      });
+      
+      applyCustomThemeColors(themeData.colors);
+    } catch (err) {
+      console.error('Failed to load custom theme:', err);
+      document.documentElement.classList.remove('light');
+    }
+  }
+
+  async function applyTheme(themeValue: Theme): Promise<void> {
+    if (themeValue === 'system') {
+      applySystemTheme();
+    } else if (themeValue === 'custom') {
+      await loadAndApplyCustomTheme();
     } else {
+      const root = document.documentElement;
       root.classList.toggle('light', themeValue === 'light');
     }
   }
   
-  onMount(() => {
+  let unlistenProgress: UnlistenFn | undefined;
+  let saveHistoryTimeout: ReturnType<typeof setTimeout> | undefined;
+  let mediaQuery: MediaQueryList | undefined;
+
+  async function loadDownloadHistory(): Promise<void> {
+    try {
+      const history = await invoke<DownloadItem[]>('load_download_history');
+      if (history.length > 0) {
+        downloadHistory.set(history);
+      }
+    } catch (err) {
+      console.error('Failed to load download history:', err);
+    }
+  }
+
+  async function initializeApp(): Promise<void> {
     const splashStartedAt = Date.now();
 
-    // Load persisted download history
-    (async () => {
+    await loadDownloadHistory();
+
+    try {
+      const settings = await invoke<Settings>('get_settings');
+      
+      const savedLocale = settings.locale || 'en';
+      await initI18n(savedLocale);
+      currentLocale.set(savedLocale);
+      
+      const themeValue = settings.theme || 'system';
+      theme.set(themeValue);
+      await applyTheme(themeValue);
+      
       try {
-        const history = await invoke<DownloadItem[]>('load_download_history');
-        if (history.length > 0) {
-          downloadHistory.set(history);
+        const user = await invoke<UserInfo | null>('auto_login');
+        if (user) {
+          loggedIn.set(true);
+          userInfo.set(user);
         }
       } catch (err) {
-        console.error('Failed to load download history:', err);
+        console.error('Auto-login failed:', err);
       }
-    })();
+    } catch (err) {
+      console.error('Failed to load settings:', err);
+      await initI18n('en');
+      currentLocale.set('en');
+      theme.set('system');
+      await applyTheme('system');
+    } finally {
+      await ensureMinimumSplashTime(splashStartedAt);
+      appInitialized = true;
+      requestAnimationFrame(() => {
+        uiVisible = true;
+      });
+    }
+  }
 
-    // Auto-login, load theme, and initialize i18n
-    (async () => {
-      try {
-        const settings = await invoke<Settings>('get_settings');
-        
-        // Initialize i18n with saved locale
-        const savedLocale = settings.locale || 'en';
-        await initI18n(savedLocale);
-        currentLocale.set(savedLocale);
-        
-        // Load theme preference
-        if (settings.theme) {
-          theme.set(settings.theme);
-          applyTheme(settings.theme);
-        } else {
-          // Default to system theme
-          theme.set('system');
-          applyTheme('system');
-        }
-        
-        try {
-          const user = await invoke<UserInfo | null>('auto_login');
-          if (user) {
-            loggedIn.set(true);
-            userInfo.set(user);
-          }
-        } catch (err) {
-          console.error('Auto-login failed:', err);
-        }
-      } catch (err) {
-        console.error('Failed to load settings:', err);
-        // First run, initialize with default locale and system theme
-        await initI18n('en');
-        currentLocale.set('en');
-        theme.set('system');
-        applyTheme('system');
-      } finally {
-        const elapsed = Date.now() - splashStartedAt;
-        const remaining = Math.max(0, MIN_SPLASH_MS - elapsed);
-        if (remaining > 0) {
-          await new Promise(resolve => setTimeout(resolve, remaining));
-        }
-        appInitialized = true;
-        requestAnimationFrame(() => {
-          uiVisible = true;
-        });
-      }
-    })();
-    
-    // Initialize tray manager
-    trayManager.init().catch(err => {
-      console.error('Failed to initialize tray manager:', err);
-    });
-    
-    // Listen for theme changes
-    const unsubscribeTheme = theme.subscribe(applyTheme);
+  async function ensureMinimumSplashTime(startTime: number): Promise<void> {
+    const elapsed = Date.now() - startTime;
+    const remaining = Math.max(0, MIN_SPLASH_MS - elapsed);
+    if (remaining > 0) {
+      await new Promise(resolve => setTimeout(resolve, remaining));
+    }
+  }
 
-    // Listen for locale changes and update i18n
-    const unsubscribeLocale = currentLocale.subscribe(newLocale => {
-      i18nLocale.set(newLocale);
+  function saveDownloadHistory(history: DownloadItem[]): void {
+    if (saveHistoryTimeout) {
+      clearTimeout(saveHistoryTimeout);
+    }
+    
+    saveHistoryTimeout = setTimeout(() => {
+      const toSave = history.filter(item => item.status !== 'downloading');
+      invoke('save_download_history', { history: toSave }).catch(err =>
+        console.error('Failed to save download history:', err)
+      );
+    }, HISTORY_SAVE_DELAY);
+  }
+
+  function handleDownloadProgress(event: DownloadProgressEvent): void {
+    const { track_id, title, percent, status } = event;
+    
+    downloads.update(d => {
+      d.set(track_id, status);
+      const active = Array.from(d.values()).filter(s => s === 'downloading').length;
+      activeDownloads.set(active);
+      return d;
     });
 
-    // Listen for system theme changes when in system mode
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    downloadHistory.update(history => {
+      const idx = history.findIndex(item => item.trackId === track_id);
+      if (idx >= 0) {
+        return history.map((item, i) =>
+          i === idx ? { ...item, title, percent, status } : item
+        );
+      }
+      return history;
+    });
+  }
+
+  function setupSystemThemeListener(): void {
+    mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleSystemThemeChange = () => {
       theme.update(t => {
         if (t === 'system') {
@@ -157,64 +206,49 @@
       });
     };
     mediaQuery.addEventListener('change', handleSystemThemeChange);
+  }
 
-    // Debounce-save download history on changes
-    let saveTimeout: ReturnType<typeof setTimeout> | undefined;
+  onMount(async () => {
+    await initializeApp();
+    
+    await trayManager.init().catch(err => {
+      console.error('Failed to initialize tray manager:', err);
+    });
+    
+    const unsubscribeTheme = theme.subscribe(applyTheme);
+    const unsubscribeLocale = currentLocale.subscribe(newLocale => {
+      i18nLocale.set(newLocale);
+    });
+
+    setupSystemThemeListener();
+
     let skipFirst = true;
-    const unsubscribe = downloadHistory.subscribe((history) => {
-      // Skip the initial subscription call (or the load we just did)
+    const unsubscribeHistory = downloadHistory.subscribe((history) => {
       if (skipFirst) {
         skipFirst = false;
         return;
       }
-      if (saveTimeout) clearTimeout(saveTimeout);
-      saveTimeout = setTimeout(() => {
-        const toSave = history.filter(item => item.status !== 'downloading');
-        invoke('save_download_history', { history: toSave }).catch(err =>
-          console.error('Failed to save download history:', err)
-        );
-      }, 2000);
+      saveDownloadHistory(history);
     });
 
-    // Listen for download progress and cleanup on unmount
-    let unlisten: (() => void) | undefined;
-
-    listen<DownloadProgressEvent>('download-progress', (event) => {
-      const { track_id, title, percent, status } = event.payload;
-      downloads.update(d => {
-        d.set(track_id, status);
-        // Calculate active downloads directly without creating new subscription
-        const active = Array.from(d.values()).filter(s => s === 'downloading').length;
-        activeDownloads.set(active);
-        return d;
-      });
-
-      // Update download history so the progress bar works even when
-      // DownloadsView is not mounted
-      downloadHistory.update(history => {
-        const idx = history.findIndex(item => item.trackId === track_id);
-        if (idx >= 0) {
-          return history.map((item, i) =>
-            i === idx ? { ...item, title, percent, status } : item
-          );
-        }
-        return history;
-      });
-    }).then(fn => {
-      unlisten = fn;
+    unlistenProgress = await listen<DownloadProgressEvent>('download-progress', (event) => {
+      handleDownloadProgress(event.payload);
     });
 
-    // Cleanup event listener and subscription on unmount
     return () => {
-      if (unlisten) {
-        unlisten();
-      }
-      unsubscribe();
+      unlistenProgress?.();
+      unsubscribeHistory();
       unsubscribeTheme();
       unsubscribeLocale();
-      mediaQuery.removeEventListener('change', handleSystemThemeChange);
-      if (saveTimeout) clearTimeout(saveTimeout);
+      mediaQuery?.removeEventListener('change', () => {});
+      if (saveHistoryTimeout) clearTimeout(saveHistoryTimeout);
     };
+  });
+
+  onDestroy(() => {
+    if (saveHistoryTimeout) {
+      clearTimeout(saveHistoryTimeout);
+    }
   });
 </script>
 
