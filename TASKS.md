@@ -114,3 +114,5 @@
 - [x] Fix rate limiter timing drift where `lastCallTime` update after wait caused cumulative delays
 - [x] Fix keyboard shortcut modifier key matching to require exact matches (prevent plain key shortcuts from firing when modifiers are pressed)
 - [x] Fix tray pause/resume only pausing queued downloads but not active downloads — added `activeTrackIds` tracking to pause all downloads from system tray
+- [x] Fix `ReferenceError: unsubHistory is not defined` in DownloadsView — invalid reactive statement `$: unsubHistory, unsubHistory = ...` tried to reference variable before initialization; moved store subscription to `onMount` for proper lifecycle handling
+- [x] Fix sidebar navigation not working (clicking Search/Settings stayed on Downloads) — `$effect` block with store subscriptions interfered with `currentView` reactivity; moved subscriptions from `$effect` to `onMount` to restore proper view switching

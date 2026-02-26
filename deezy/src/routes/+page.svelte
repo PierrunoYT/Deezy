@@ -17,24 +17,13 @@
   let user = $state<UserInfo | null>(null);
   let activeCount = $state<number>(0);
   let showShortcutsModal = $state(false);
-
-  // Use idiomatic Svelte 5 pattern with proper cleanup
-  $effect(() => {
-    try {
-      const unsubscribe1 = loggedIn.subscribe(val => isLoggedIn = val);
-      const unsubscribe2 = userInfo.subscribe(val => user = val);
-      const unsubscribe3 = activeDownloads.subscribe(val => activeCount = val);
-      return () => {
-        unsubscribe1();
-        unsubscribe2();
-        unsubscribe3();
-      };
-    } catch (err) {
-      console.error('Error in effect:', err);
-    }
-  });
   
   onMount(() => {
+    // Subscribe to stores
+    const unsubscribe1 = loggedIn.subscribe(val => isLoggedIn = val);
+    const unsubscribe2 = userInfo.subscribe(val => user = val);
+    const unsubscribe3 = activeDownloads.subscribe(val => activeCount = val);
+
     if (!isLoggedIn) {
       currentView = 'settings';
     }
@@ -103,6 +92,9 @@
 
     // Cleanup
     return () => {
+      unsubscribe1();
+      unsubscribe2();
+      unsubscribe3();
       keyboardShortcuts.detach();
       keyboardShortcuts.unregister('view-search');
       keyboardShortcuts.unregister('view-downloads');

@@ -4,6 +4,11 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- **DownloadsView**: Fixed `ReferenceError: unsubHistory is not defined` caused by invalid reactive statement that tried to reference `unsubHistory` before initialization; moved store subscription into `onMount` lifecycle function for proper initialization and cleanup
+- **Navigation**: Fixed sidebar navigation buttons (Search, Settings) not switching views — problematic `$effect` block with store subscriptions was interfering with reactivity; moved subscriptions to `onMount` to restore proper view switching
+
 ## [0.2.6] – 2026-02-24
 
 ### Fixed
