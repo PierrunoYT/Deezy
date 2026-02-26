@@ -106,15 +106,13 @@
         unsubscribe4();
       };
     } catch (err) {
-      console.error('Error in effect:', err);
+      console.error('Error subscribing to stores:', err);
     }
   });
 
   onMount(() => {
-    // Load search history
     loadSearchHistory();
     
-    // Close search history dropdown when clicking outside
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (!target.closest('.search-bar') && !target.closest('.search-history-dropdown')) {
@@ -124,17 +122,14 @@
     
     document.addEventListener('click', handleClickOutside);
 
-    // Register search-specific keyboard shortcuts
     keyboardShortcuts.register('focus-search', {
       key: 'f',
       ctrl: true,
       description: 'Focus search input',
       category: 'search',
       action: () => {
-        if (searchInputRef) {
-          searchInputRef.focus();
-          searchInputRef.select();
-        }
+        searchInputRef?.focus();
+        searchInputRef?.select();
       }
     });
 
@@ -142,25 +137,9 @@
       key: 'Escape',
       description: 'Clear search / Go back',
       category: 'search',
-      action: () => {
-        if (selectedPlaylist) {
-          closePlaylist();
-        } else if (selectedArtist) {
-          closeArtist();
-        } else if (lyricsTrack) {
-          closeLyrics();
-        } else if (searchQuery) {
-          searchQuery = '';
-          results = [];
-          albumResults = [];
-          artistResults = [];
-          playlistResults = [];
-          errorMsg = '';
-        }
-      }
+      action: handleEscapeAction
     });
 
-    // Cleanup
     return () => {
       document.removeEventListener('click', handleClickOutside);
       keyboardShortcuts.unregister('focus-search');
@@ -169,7 +148,28 @@
     };
   });
 
-  async function loadSearchHistory() {
+  function handleEscapeAction(): void {
+    if (selectedPlaylist) {
+      closePlaylist();
+    } else if (selectedArtist) {
+      closeArtist();
+    } else if (lyricsTrack) {
+      closeLyrics();
+    } else if (searchQuery) {
+      clearSearch();
+    }
+  }
+
+  function clearSearch(): void {
+    searchQuery = '';
+    results = [];
+    albumResults = [];
+    artistResults = [];
+    playlistResults = [];
+    errorMsg = '';
+  }
+
+  async function loadSearchHistory(): Promise<void> {
     try {
       const data = await invoke<string[]>('get_search_history');
       searchHistory.set(data);
@@ -178,7 +178,7 @@
     }
   }
 
-  async function addToSearchHistory(query: string) {
+  async function addToSearchHistory(query: string): Promise<void> {
     try {
       await invoke('add_search_history', { query });
       await loadSearchHistory();
@@ -186,24 +186,28 @@
       console.error('Failed to add to search history:', err);
     }
   }
+
+  function resetResults(): void {
+    results = [];
+    albumResults = [];
+    artistResults = [];
+    playlistResults = [];
+  }
   
-  function handleInput() {
+  function handleInput(): void {
     clearTimeout(searchTimeout);
     errorMsg = '';
     showSearchHistory = false;
     
     if (searchQuery.trim().length < 2) {
-      results = [];
-      albumResults = [];
-      artistResults = [];
-      playlistResults = [];
+      resetResults();
       return;
     }
     
     searchTimeout = setTimeout(() => doSearch(), 400);
   }
   
-  function handleKeydown(e: KeyboardEvent) {
+  function handleKeydown(e: KeyboardEvent): void {
     if (e.key === 'Enter') {
       clearTimeout(searchTimeout);
       if (searchQuery.trim()) doSearch();
@@ -212,24 +216,21 @@
     }
   }
 
-  function handleFocus() {
+  function handleFocus(): void {
     if (searchQuery.trim().length === 0 && history.length > 0) {
       showSearchHistory = true;
     }
   }
 
-  function selectHistoryItem(item: string) {
+  function selectHistoryItem(item: string): void {
     searchQuery = item;
     showSearchHistory = false;
     doSearch();
   }
 
-  function switchSearchType(type: SearchType) {
+  function switchSearchType(type: SearchType): void {
     searchType = type;
-    results = [];
-    albumResults = [];
-    artistResults = [];
-    playlistResults = [];
+    resetResults();
     errorMsg = '';
     selectedArtist = null;
     selectedPlaylist = null;
@@ -238,7 +239,7 @@
     }
   }
   
-  async function doSearch() {
+  async function doSearch(): Promise<void> {
     if (!isLoggedIn) {
       errorMsg = $_('search.status.loginRequired');
       return;
@@ -249,35 +250,38 @@
 
     searching = true;
     errorMsg = '';
-    results = [];
-    albumResults = [];
-    artistResults = [];
-    playlistResults = [];
+    resetResults();
     showSearchHistory = false;
 
     try {
       await searchRateLimiter.throttle();
 
-      if (searchType === 'tracks') {
-        const data = await invoke<Track[]>('search_tracks', { query });
-        results = data;
-        if (results.length === 0) errorMsg = $_('search.status.noResults');
-      } else if (searchType === 'albums') {
-        const data = await invoke<AlbumResult[]>('search_albums', { query });
-        albumResults = data;
-        if (albumResults.length === 0) errorMsg = $_('search.status.noResults');
-      } else if (searchType === 'artists') {
-        const data = await invoke<ArtistResult[]>('search_artists', { query });
-        artistResults = data;
-        if (artistResults.length === 0) errorMsg = $_('search.status.noResults');
-      } else {
-        const data = await invoke<PlaylistResult[]>('search_playlists', { query });
-        playlistResults = data;
-        if (playlistResults.length === 0) errorMsg = $_('search.status.noResults');
-      }
+      const searchHandlers = {
+        tracks: async () => {
+          results = await invoke<Track[]>('search_tracks', { query });
+          return results.length;
+        },
+        albums: async () => {
+          albumResults = await invoke<AlbumResult[]>('search_albums', { query });
+          return albumResults.length;
+        },
+        artists: async () => {
+          artistResults = await invoke<ArtistResult[]>('search_artists', { query });
+          return artistResults.length;
+        },
+        playlists: async () => {
+          playlistResults = await invoke<PlaylistResult[]>('search_playlists', { query });
+          return playlistResults.length;
+        }
+      };
 
-      // Add to search history after successful search
-      await addToSearchHistory(query);
+      const resultCount = await searchHandlers[searchType]();
+      
+      if (resultCount === 0) {
+        errorMsg = $_('search.status.noResults');
+      } else {
+        await addToSearchHistory(query);
+      }
     } catch (err) {
       errorMsg = String(err);
     } finally {
@@ -285,7 +289,7 @@
     }
   }
 
-  async function openArtist(id: number, name: string, picture: string) {
+  async function openArtist(id: number, name: string, picture: string): Promise<void> {
     selectedArtist = { id, name, picture };
     artistAlbums = [];
     discographyError = '';
@@ -294,7 +298,9 @@
     try {
       const data = await invoke<AlbumResult[]>('get_artist_albums', { artistId: String(id) });
       artistAlbums = data;
-      if (artistAlbums.length === 0) discographyError = $_('search.artist.noAlbums');
+      if (artistAlbums.length === 0) {
+        discographyError = $_('search.artist.noAlbums');
+      }
     } catch (err) {
       discographyError = String(err);
     } finally {
@@ -302,14 +308,19 @@
     }
   }
 
-  function closeArtist() {
+  function closeArtist(): void {
     selectedArtist = null;
     artistAlbums = [];
     discographyError = '';
   }
 
-  async function openPlaylist(playlist: PlaylistResult) {
-    selectedPlaylist = { id: playlist.id, title: playlist.title, cover: playlist.cover_medium, creator: playlist.creator };
+  async function openPlaylist(playlist: PlaylistResult): Promise<void> {
+    selectedPlaylist = { 
+      id: playlist.id, 
+      title: playlist.title, 
+      cover: playlist.cover_medium, 
+      creator: playlist.creator 
+    };
     playlistTracks = [];
     playlistError = '';
     loadingPlaylist = true;
@@ -317,7 +328,9 @@
     try {
       const data = await invoke<Track[]>('get_playlist_tracks', { playlistId: String(playlist.id) });
       playlistTracks = data;
-      if (playlistTracks.length === 0) playlistError = $_('search.playlist.noTracks');
+      if (playlistTracks.length === 0) {
+        playlistError = $_('search.playlist.noTracks');
+      }
     } catch (err) {
       playlistError = String(err);
     } finally {
@@ -325,18 +338,17 @@
     }
   }
 
-  function closePlaylist() {
+  function closePlaylist(): void {
     selectedPlaylist = null;
     playlistTracks = [];
     playlistError = '';
   }
 
-  async function downloadPlaylist(playlist: SelectedPlaylist) {
+  async function downloadPlaylist(playlist: SelectedPlaylist): Promise<void> {
     if (downloadingPlaylists.has(playlist.id)) return;
     downloadingPlaylists = new Set([...downloadingPlaylists, playlist.id]);
 
     try {
-      // If we're inside the playlist view, use already-loaded tracks
       let tracks = playlistTracks;
       if (tracks.length === 0) {
         tracks = await invoke<Track[]>('get_playlist_tracks', { playlistId: String(playlist.id) });
@@ -345,13 +357,13 @@
         await downloadQueueManager.addToQueue(track);
       }
     } catch (err) {
-      errorMsg = `Failed to get playlist tracks: ${String(err)}`;
+      errorMsg = $_('search.playlist.downloadError', { values: { error: String(err) } });
     } finally {
       downloadingPlaylists = new Set([...downloadingPlaylists].filter(id => id !== playlist.id));
     }
   }
 
-  async function downloadPlaylistFromResult(playlist: PlaylistResult) {
+  async function downloadPlaylistFromResult(playlist: PlaylistResult): Promise<void> {
     if (downloadingPlaylists.has(playlist.id)) return;
     downloadingPlaylists = new Set([...downloadingPlaylists, playlist.id]);
 
@@ -361,20 +373,20 @@
         await downloadQueueManager.addToQueue(track);
       }
     } catch (err) {
-      errorMsg = `Failed to get playlist tracks: ${String(err)}`;
+      errorMsg = $_('search.playlist.downloadError', { values: { error: String(err) } });
     } finally {
       downloadingPlaylists = new Set([...downloadingPlaylists].filter(id => id !== playlist.id));
     }
   }
 
-  async function downloadTrack(track: Track) {
+  async function downloadTrack(track: Track): Promise<void> {
     const trackId = String(track.id);
     const state = downloadStates.get(trackId);
     if (state === 'downloading' || state === 'complete') return;
     await downloadQueueManager.addToQueue(track);
   }
 
-  async function downloadAlbum(album: AlbumResult) {
+  async function downloadAlbum(album: AlbumResult): Promise<void> {
     if (downloadingAlbums.has(album.id)) return;
     downloadingAlbums = new Set([...downloadingAlbums, album.id]);
 
@@ -384,26 +396,33 @@
         await downloadQueueManager.addToQueue(track);
       }
     } catch (err) {
-      errorMsg = `Failed to get album tracks: ${String(err)}`;
+      errorMsg = $_('search.album.downloadError', { values: { error: String(err) } });
     } finally {
       downloadingAlbums = new Set([...downloadingAlbums].filter(id => id !== album.id));
     }
   }
 
-  function openLyrics(track: Track) {
+  function openLyrics(track: Track): void {
     lyricsTrack = track;
   }
 
-  function closeLyrics() {
+  function closeLyrics(): void {
     lyricsTrack = null;
   }
 
-  function playTrack(track: Track) {
+  function playTrack(track: Track): void {
     audioPlayerManager.play(track);
   }
 
   function isTrackPlaying(track: Track): boolean {
     return currentPlayingTrack?.id === track.id && isPlaying;
+  }
+
+  function getDownloadButtonState(trackId: string): 'idle' | 'downloading' | 'complete' {
+    const state = downloadStates.get(trackId);
+    if (state === 'downloading') return 'downloading';
+    if (state === 'complete') return 'complete';
+    return 'idle';
   }
 </script>
 

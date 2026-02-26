@@ -9,7 +9,6 @@
   let queueItems = $state<QueueItemWithId[]>([]);
   let dragDisabled = $state(true);
 
-  // Subscribe to the download queue store
   $effect(() => {
     try {
       const unsubscribe = downloadQueue.subscribe(val => {
@@ -20,19 +19,18 @@
       });
       return unsubscribe;
     } catch (err) {
-      console.error('Error in effect:', err);
+      console.error('Error subscribing to download queue:', err);
     }
   });
 
-  function handleDndConsider(e: CustomEvent<DndEvent<QueueItemWithId>>) {
+  function handleDndConsider(e: CustomEvent<DndEvent<QueueItemWithId>>): void {
     queueItems = e.detail.items;
   }
 
-  function handleDndFinalize(e: CustomEvent<DndEvent<QueueItemWithId>>) {
+  function handleDndFinalize(e: CustomEvent<DndEvent<QueueItemWithId>>): void {
     queueItems = e.detail.items;
     dragDisabled = true;
     
-    // Update the queue with the new order
     const reorderedQueue = queueItems.map(item => ({
       track: item.track,
       priority: item.priority
@@ -41,39 +39,50 @@
     downloadQueueManager.reorderQueue(reorderedQueue);
   }
 
-  function removeFromQueue(trackId: string) {
+  function removeFromQueue(trackId: string): void {
     downloadQueueManager.removeFromQueue(trackId);
   }
 
-  function startDrag() {
+  function startDrag(): void {
     dragDisabled = false;
   }
 
-  function endDrag() {
+  function endDrag(): void {
     dragDisabled = true;
+  }
+
+  function getTrackSubtitle(item: QueueItemWithId): string {
+    const parts = [];
+    if (item.track.artist) parts.push(item.track.artist);
+    if (item.track.album) parts.push(item.track.album);
+    return parts.join(' • ');
   }
 </script>
 
 {#if queueItems.length > 0}
-  <div class="queue-section">
-    <h3>{$_('downloads.queue.title')} ({queueItems.length})</h3>
+  <section class="queue-section" aria-labelledby="queue-title">
+    <h3 id="queue-title">{$_('downloads.queue.title')} ({queueItems.length})</h3>
     <div 
       class="queue-list"
       use:dndzone={{items: queueItems, dragDisabled, dropTargetStyle: {}}}
       onconsider={handleDndConsider}
       onfinalize={handleDndFinalize}
+      role="list"
+      aria-label="Download queue"
     >
       {#each queueItems as item (item.id)}
-        <div class="queue-item" data-id={item.id}>
+        <div class="queue-item" data-id={item.id} role="listitem">
           <button 
             class="drag-handle" 
-            aria-label={$_('downloads.queue.moveUp')}
+            aria-label="Drag to reorder"
+            title="Drag to reorder"
             onmousedown={startDrag}
             onmouseup={endDrag}
             ontouchstart={startDrag}
             ontouchend={endDrag}
+            type="button"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <line x1="3" y1="6" x2="21" y2="6"/>
               <line x1="3" y1="12" x2="21" y2="12"/>
               <line x1="3" y1="18" x2="21" y2="18"/>
@@ -84,20 +93,21 @@
             <img 
               class="queue-cover" 
               src={item.track.cover_medium || item.track.cover_small} 
-              alt="" 
+              alt={item.track.title}
+              loading="lazy"
             />
           {:else}
-            <div class="queue-cover"></div>
+            <div class="queue-cover" role="img" aria-label="No cover"></div>
           {/if}
           
           <div class="queue-details">
-            <div class="queue-title">{item.track.title}</div>
+            <div class="queue-title" title={item.track.title}>{item.track.title}</div>
             <div class="queue-sub">
               {#if item.track.artist}
                 <span>{item.track.artist}</span>
               {/if}
               {#if item.track.artist && item.track.album}
-                <span class="separator">•</span>
+                <span class="separator" aria-hidden="true">•</span>
               {/if}
               {#if item.track.album}
                 <span>{item.track.album}</span>
@@ -108,9 +118,11 @@
           <button 
             class="remove-btn" 
             title={$_('downloads.queue.remove')}
+            aria-label="{$_('downloads.queue.remove')} {item.track.title}"
             onclick={() => removeFromQueue(String(item.track.id))}
+            type="button"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <line x1="18" y1="6" x2="6" y2="18"/>
               <line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
@@ -118,7 +130,7 @@
         </div>
       {/each}
     </div>
-  </div>
+  </section>
 {/if}
 
 <style>

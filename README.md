@@ -180,7 +180,12 @@ deezy/
 
 ### Frontend (Svelte 5)
 - **Runes API** – Modern reactive state management with `$state`, `$effect`, and `$derived`; all components use Svelte 5 callback props (`onClose`, `onViewChange`, …) rather than Svelte 4 event directives
-- **Component-based** – Modular UI components (SearchView, DownloadsView, SettingsView, etc.) with proper store subscription cleanup on unmount
+- **Component-based** – 10 modular UI components with comprehensive improvements:
+  - Type-safe with explicit TypeScript annotations for all functions
+  - Accessible with ARIA labels, semantic HTML, and keyboard navigation
+  - Optimized with helper functions and reduced code duplication
+  - Proper lifecycle management with `onMount` and `onDestroy`
+  - Enhanced error handling and validation throughout
 - **Download queue** – Client-side queue manager with handle-based drag-and-drop reordering (drag lock resets after every drop) and priority management
 - **Rate limiting** – Separate limiters for search (2 req/s) and download (3 concurrent) operations
 - **Keyboard shortcuts** – Global shortcut system with registration, categories, and help modal; modals guard all keydown handlers with `target === currentTarget` to prevent inner-element keypresses from closing them unexpectedly

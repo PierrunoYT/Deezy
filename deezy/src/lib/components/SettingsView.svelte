@@ -29,6 +29,9 @@
   let isFreeAccount = $derived(Boolean($userInfo?.is_free_account));
   let isLoggedIn = $state(false);
 
+  const VALID_QUALITIES = ['MP3_128', 'MP3_320', 'FLAC'] as const;
+  const MIN_ARL_LENGTH = 100;
+
   $effect(() => {
     if (isFreeAccount && quality !== 'MP3_128') {
       quality = 'MP3_128';
@@ -75,37 +78,41 @@
     };
   });
   
-  async function pickFolder() {
+  async function pickFolder(): Promise<void> {
     try {
-      const path = await invoke('pick_folder');
-      if (path) outputDir = path as string;
+      const path = await invoke<string>('pick_folder');
+      if (path) outputDir = path;
     } catch (err) {
       console.error('Folder picker failed:', err);
     }
   }
-  
-  async function saveSettings() {
+
+  function validateSettings(): { valid: boolean; error?: string } {
     const trimmedArl = arl.trim();
 
-    // Validate ARL format only when user is updating it
-    if (trimmedArl && trimmedArl.length < 100) {
-      showStatus($_('settings.status.arlInvalid'), 'error');
-      return;
+    if (trimmedArl && trimmedArl.length < MIN_ARL_LENGTH) {
+      return { valid: false, error: $_('settings.status.arlInvalid') };
     }
 
-    // Validate output directory
     if (!outputDir.trim()) {
-      showStatus($_('settings.status.outputDirRequired'), 'error');
+      return { valid: false, error: $_('settings.status.outputDirRequired') };
+    }
+
+    if (!VALID_QUALITIES.includes(quality as any)) {
+      return { valid: false, error: $_('settings.status.qualityInvalid') };
+    }
+
+    return { valid: true };
+  }
+  
+  async function saveSettings(): Promise<void> {
+    const validation = validateSettings();
+    if (!validation.valid) {
+      showStatus(validation.error!, 'error');
       return;
     }
 
-    // Validate quality
-    const validQualities = ['MP3_128', 'MP3_320', 'FLAC'];
-    if (!validQualities.includes(quality)) {
-      showStatus($_('settings.status.qualityInvalid'), 'error');
-      return;
-    }
-
+    const trimmedArl = arl.trim();
     saving = true;
     showStatus($_('settings.status.loggingIn'), 'info');
 
@@ -154,69 +161,60 @@
     }
   }
 
-  async function changeTheme(newTheme: Theme) {
-    currentTheme = newTheme;
-    theme.set(newTheme);
-    
+  async function updateSetting<K extends string>(key: K, value: any): Promise<void> {
     try {
       const settings: any = await invoke('get_settings');
       await invoke('save_settings', {
         newSettings: {
           ...settings,
-          theme: newTheme
+          [key]: value
         }
       });
+    } catch (err) {
+      console.error(`Failed to save ${key} setting:`, err);
+      throw err;
+    }
+  }
+
+  async function changeTheme(newTheme: Theme): Promise<void> {
+    currentTheme = newTheme;
+    theme.set(newTheme);
+    
+    try {
+      await updateSetting('theme', newTheme);
     } catch (err) {
       console.error('Failed to save theme:', err);
     }
   }
 
-  async function saveNotifications() {
+  async function saveNotifications(): Promise<void> {
     notificationManager.setEnabled(enableNotifications);
     notificationsEnabled.set(enableNotifications);
 
     try {
-      const settings: any = await invoke('get_settings');
-      await invoke('save_settings', {
-        newSettings: {
-          ...settings,
-          notifications_enabled: enableNotifications
-        }
-      });
+      await updateSetting('notifications_enabled', enableNotifications);
     } catch (err) {
       console.error('Failed to save notification setting:', err);
     }
   }
 
-  async function saveSearchHistory() {
+  async function saveSearchHistory(): Promise<void> {
     try {
-      const settings: any = await invoke('get_settings');
-      await invoke('save_settings', {
-        newSettings: {
-          ...settings,
-          enable_search_history: enableSearchHistory
-        }
-      });
+      await updateSetting('enable_search_history', enableSearchHistory);
     } catch (err) {
       console.error('Failed to save search history setting:', err);
     }
   }
 
-  async function saveCloseToTray() {
+  async function saveCloseToTray(): Promise<void> {
     try {
-      const settings: any = await invoke('get_settings');
-      await invoke('save_settings', {
-        newSettings: {
-          ...settings,
-          close_to_tray: closeToTray
-        }
-      });
+      await updateSetting('close_to_tray', closeToTray);
     } catch (err) {
       console.error('Failed to save close to tray setting:', err);
     }
   }
 
-  async function clearSearchHistory() {
+  async function clearSearchHistory(): Promise<void> {
     if (!confirm($_('settings.searchHistory.clearConfirm'))) {
       return;
     }
@@ -227,29 +225,23 @@
       showStatus($_('settings.status.historyCleared'), 'success');
       setTimeout(() => statusMsg = '', 3000);
     } catch (err) {
-      showStatus($_('settings.status.loginFailed', { values: { error: String(err) } }), 'error');
+      showStatus($_('settings.status.clearHistoryFailed', { values: { error: String(err) } }), 'error');
     }
   }
 
-  async function changeLocale(newLocale: string) {
+  async function changeLocale(newLocale: string): Promise<void> {
     selectedLocale = newLocale;
     locale.set(newLocale);
     currentLocale.set(newLocale);
     
     try {
-      const settings: any = await invoke('get_settings');
-      await invoke('save_settings', {
-        newSettings: {
-          ...settings,
-          locale: newLocale
-        }
-      });
+      await updateSetting('locale', newLocale);
     } catch (err) {
       console.error('Failed to save locale:', err);
     }
   }
   
-  function showStatus(msg: string, type: 'success' | 'error' | 'info') {
+  function showStatus(msg: string, type: 'success' | 'error' | 'info'): void {
     statusMsg = msg;
     statusType = type;
   }
@@ -398,19 +390,19 @@
       <p class="form-hint">
         {$_('settings.notifications.hint')}
       </p>
-      <div class="toggle-wrapper" role="button" tabindex="0" onclick={() => { enableNotifications = !enableNotifications; saveNotifications(); }} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enableNotifications = !enableNotifications; saveNotifications(); } }}>
-        <label class="toggle-container" onclick={(e) => e.stopPropagation()}>
+      <label class="toggle-wrapper">
+        <span class="toggle-container">
           <input 
             type="checkbox" 
             bind:checked={enableNotifications}
             onchange={saveNotifications}
           />
           <span class="toggle-slider"></span>
-        </label>
+        </span>
         <span class="toggle-label">
           {enableNotifications ? $_('settings.notifications.enabled') : $_('settings.notifications.disabled')}
         </span>
-      </div>
+      </label>
     </div>
 
     <div class="form-group">
@@ -418,19 +410,19 @@
       <p class="form-hint">
         {$_('settings.searchHistory.hint')}
       </p>
-      <div class="toggle-wrapper" role="button" tabindex="0" onclick={() => { enableSearchHistory = !enableSearchHistory; saveSearchHistory(); }} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enableSearchHistory = !enableSearchHistory; saveSearchHistory(); } }}>
-        <label class="toggle-container" onclick={(e) => e.stopPropagation()}>
+      <label class="toggle-wrapper">
+        <span class="toggle-container">
           <input 
             type="checkbox" 
             bind:checked={enableSearchHistory}
             onchange={saveSearchHistory}
           />
           <span class="toggle-slider"></span>
-        </label>
+        </span>
         <span class="toggle-label">
           {enableSearchHistory ? $_('settings.searchHistory.enabled') : $_('settings.searchHistory.disabled')}
         </span>
-      </div>
+      </label>
       <button 
         class="btn-clear-history" 
         onclick={clearSearchHistory}
@@ -449,19 +441,19 @@
       <p class="form-hint">
         Minimize to system tray when closing the window instead of quitting the app.
       </p>
-      <div class="toggle-wrapper" role="button" tabindex="0" onclick={() => { closeToTray = !closeToTray; saveCloseToTray(); }} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); closeToTray = !closeToTray; saveCloseToTray(); } }}>
-        <label class="toggle-container" onclick={(e) => e.stopPropagation()}>
+      <label class="toggle-wrapper">
+        <span class="toggle-container">
           <input 
             type="checkbox" 
             bind:checked={closeToTray}
             onchange={saveCloseToTray}
           />
           <span class="toggle-slider"></span>
-        </label>
+        </span>
         <span class="toggle-label">
           {closeToTray ? 'Close to Tray' : 'Close to Quit'}
         </span>
-      </div>
+      </label>
     </div>
 
     <div class="form-actions">
@@ -700,11 +692,13 @@
     gap: 12px;
     cursor: pointer;
     user-select: none;
+    width: fit-content;
   }
 
   .toggle-container {
     display: inline-block;
     position: relative;
+    flex-shrink: 0;
   }
 
   .toggle-container input[type="checkbox"] {
@@ -712,7 +706,6 @@
     opacity: 0;
     width: 0;
     height: 0;
-    pointer-events: none;
   }
 
   .toggle-slider {

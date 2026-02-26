@@ -4,6 +4,16 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+### Improved
+
+- **Component architecture**: Refactored all 10 Svelte components with improved code quality, type safety, and accessibility
+  - Enhanced reactivity patterns using modern Svelte 5 `$effect` and `$state` runes
+  - Added comprehensive TypeScript type annotations for all functions and parameters
+  - Improved accessibility with proper ARIA labels, roles, and semantic HTML
+  - Optimized event handlers and reduced code duplication
+  - Better error handling and validation throughout
+  - Enhanced performance with optimized state management and computed values
+
 ### Fixed
 
 - **DownloadsView**: Fixed `ReferenceError: unsubHistory is not defined` caused by invalid reactive statement that tried to reference `unsubHistory` before initialization; moved store subscription into `onMount` lifecycle function for proper initialization and cleanup

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
-  import { listen } from '@tauri-apps/api/event';
-  import { onMount } from 'svelte';
+  import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+  import { onMount, onDestroy } from 'svelte';
   import { downloadHistory, downloads, type DownloadItem } from '$lib/stores';
   import { downloadQueueManager } from '$lib/downloadQueue';
   import QueueView from './QueueView.svelte';
@@ -15,28 +15,32 @@
     status: string;
   }
 
-  let downloadItems: DownloadItem[] = [];
-  let showExportModal = false;
+  interface TagErrorEvent {
+    track_id: string;
+    title: string;
+    error: string;
+  }
 
-  onMount(() => {
-    // Subscribe to the download history store
+  let downloadItems = $state<DownloadItem[]>([]);
+  let showExportModal = $state(false);
+  let unlistenProgress: UnlistenFn | undefined;
+  let unlistenTagError: UnlistenFn | undefined;
+
+  $effect(() => {
     const unsubHistory = downloadHistory.subscribe(val => {
       downloadItems = val;
     });
+    return unsubHistory;
+  });
 
-    // Listen for download progress events to update the store
-    let unlistenProgress: (() => void) | undefined;
-    let unlistenTagError: (() => void) | undefined;
-
-    listen<DownloadProgressEvent>('download-progress', (event) => {
+  onMount(async () => {
+    unlistenProgress = await listen<DownloadProgressEvent>('download-progress', (event) => {
       const { track_id, title, percent, status } = event.payload;
 
-      // Update the download history store
       downloadHistory.update(history => {
         const existingIndex = history.findIndex(d => d.trackId === track_id);
 
         if (existingIndex >= 0) {
-          // Only update changed fields to prevent unnecessary reactivity triggers
           const oldItem = history[existingIndex];
           if (
             oldItem.title === title &&
@@ -50,19 +54,13 @@
               ? { ...item, title, percent, status }
               : item
           );
-        } else {
-          // Defensive: Do not add unrelated unknown items
-          return history;
         }
+        return history;
       });
-    }).then(fn => {
-      unlistenProgress = fn;
     });
 
-    // Listen for tag writing errors
-    listen<{track_id: string, title: string, error: string}>('tag-writing-error', (event) => {
+    unlistenTagError = await listen<TagErrorEvent>('tag-writing-error', (event) => {
       const { track_id, error } = event.payload;
-      // Update download history with warning
       downloadHistory.update(history =>
         history.map(item =>
           item.trackId === track_id
@@ -70,34 +68,25 @@
             : item
         )
       );
-    }).then(fn => {
-      unlistenTagError = fn;
     });
-
-    // Cleanup event listeners and subscription on unmount
-    return () => {
-      if (unlistenProgress) {
-        unlistenProgress();
-      }
-      if (unlistenTagError) {
-        unlistenTagError();
-      }
-      unsubHistory();
-    };
   });
 
-  function clearHistory() {
+  onDestroy(() => {
+    unlistenProgress?.();
+    unlistenTagError?.();
+  });
+
+  function clearHistory(): void {
     downloadHistory.set([]);
     downloads.update(d => {
-      if ('clear' in d && typeof d.clear === "function") d.clear();
+      d.clear();
       return d;
     });
   }
 
-  function retryDownload(item: DownloadItem) {
+  function retryDownload(item: DownloadItem): void {
     if (!item.track) return;
 
-    // Reset status in download history
     downloadHistory.update(history =>
       history.map(h =>
         h.trackId === item.trackId
@@ -106,43 +95,48 @@
       )
     );
 
-    // Reset downloads map entry so addToQueue won't skip it
     downloads.update(d => {
-      if ('delete' in d && typeof d.delete === "function") d.delete(item.trackId);
+      d.delete(item.trackId);
       return d;
     });
 
     downloadQueueManager.addToQueue(item.track);
   }
 
-  function pauseDownload(item: DownloadItem) {
+  function pauseDownload(item: DownloadItem): void {
     if (!item.trackId) return;
     downloadQueueManager.pauseDownload(item.trackId);
   }
 
-  function resumeDownload(item: DownloadItem) {
+  function resumeDownload(item: DownloadItem): void {
     if (!item.trackId) return;
     downloadQueueManager.resumeDownload(item.trackId);
   }
 
-  async function openDownloadedFile(item: DownloadItem) {
+  async function openDownloadedFile(item: DownloadItem): Promise<void> {
     if (!item.filePath) return;
 
     try {
       await invoke('show_in_folder', { filePath: item.filePath });
     } catch (err) {
-      // error already logged
+      console.error('Failed to show file in folder:', err);
     }
   }
 
   function getStatusText(status: string, percent: number): string {
-    if (status === 'complete') return $_('downloads.status.complete');
-    if (status === 'error') return $_('downloads.status.error');
-    if (status === 'paused') return $_('downloads.status.paused');
-    if (status === 'downloading') return $_('downloads.status.downloading', { values: { percent: Math.round(percent ?? 0) } });
-    if (status === 'tagging') return $_('downloads.status.tagging');
-    if (status === 'resolving') return $_('downloads.status.resolving');
-    return status;
+    const statusMap: Record<string, string> = {
+      complete: $_('downloads.status.complete'),
+      error: $_('downloads.status.error'),
+      paused: $_('downloads.status.paused'),
+      tagging: $_('downloads.status.tagging'),
+      resolving: $_('downloads.status.resolving')
+    };
+
+    if (status === 'downloading') {
+      return $_('downloads.status.downloading', { values: { percent: Math.round(percent ?? 0) } });
+    }
+
+    return statusMap[status] ?? status;
   }
 
   function formatQualityLabel(value?: string): string {
@@ -150,12 +144,16 @@
     return value.replace('MP3_', 'MP3 ').replace('_', ' ');
   }
 
-  function openExportModal() {
-    showExportModal = true;
+  function getProgressWidth(percent?: number): number {
+    return Math.max(0, Math.min(percent ?? 0, 100));
   }
 
-  function closeExportModal() {
-    showExportModal = false;
+  function getStatusClass(status: string): string {
+    return ['complete', 'error', 'paused'].includes(status) ? status : '';
+  }
+
+  function shouldShowActionButton(status: string): boolean {
+    return ['downloading', 'resolving', 'paused', 'error'].includes(status);
   }
 </script>
 
@@ -164,15 +162,27 @@
     <h2>{$_('downloads.title')}</h2>
     {#if downloadItems.length > 0}
       <div class="header-actions">
-        <button class="action-btn export-btn" type="button" on:click={openExportModal}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button 
+          class="action-btn export-btn" 
+          type="button" 
+          onclick={() => showExportModal = true}
+          aria-label={$_('downloads.exportHistory')}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7 10 12 15 17 10"/>
             <line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
           {$_('downloads.exportHistory')}
         </button>
-        <button class="action-btn clear-btn" type="button" on:click={clearHistory}>{$_('downloads.clearHistory')}</button>
+        <button 
+          class="action-btn clear-btn" 
+          type="button" 
+          onclick={clearHistory}
+          aria-label={$_('downloads.clearHistory')}
+        >
+          {$_('downloads.clearHistory')}
+        </button>
       </div>
     {/if}
   </div>
@@ -196,13 +206,18 @@
         {#each downloadItems as item (item.trackId)}
         <div class="download-item">
           {#if item.cover}
-            <img class="download-cover" src={item.cover} alt="" />
+            <img class="download-cover" src={item.cover} alt={item.title} loading="lazy" />
           {:else}
-            <div class="download-cover"></div>
+            <div class="download-cover" role="img" aria-label="No cover"></div>
           {/if}
           <div class="download-details">
             {#if item.filePath}
-              <button class="download-title download-title-btn" type="button" on:click={() => openDownloadedFile(item)}>
+              <button 
+                class="download-title download-title-btn" 
+                type="button" 
+                onclick={() => openDownloadedFile(item)}
+                aria-label={$_('downloads.actions.showInFolder')}
+              >
                 {item.title}
               </button>
             {:else}
@@ -213,55 +228,75 @@
                 <span>{item.artist}</span>
               {/if}
               {#if item.artist && item.album}
-                <span class="separator">•</span>
+                <span class="separator" aria-hidden="true">•</span>
               {/if}
               {#if item.album}
                 <span>{item.album}</span>
               {/if}
             </div>
             <div class="progress-container">
-              <div class="progress-bar">
+              <div class="progress-bar" role="progressbar" aria-valuenow={getProgressWidth(item.percent)} aria-valuemin={0} aria-valuemax={100}>
                 <div
-                  class="progress-fill {item.status === 'complete' ? 'complete' : ''} {item.status === 'error' ? 'error' : ''} {item.status === 'paused' ? 'paused' : ''}"
-                  style="width: {Math.max(0, Math.min(item.percent ?? 0, 100))}%"
+                  class="progress-fill {getStatusClass(item.status)}"
+                  style="width: {getProgressWidth(item.percent)}%"
                 ></div>
               </div>
             </div>
           </div>
-          <div class="download-status {item.status === 'complete' ? 'complete' : ''} {item.status === 'error' ? 'error' : ''} {item.status === 'paused' ? 'paused' : ''}">
+          <div class="download-status {getStatusClass(item.status)}">
             {getStatusText(item.status, item.percent)}
             {#if item.status === 'complete' && item.actualQuality}
               <span class="quality-info">
                 {#if item.requestedQuality && item.requestedQuality !== item.actualQuality}
-                  Requested {formatQualityLabel(item.requestedQuality)} -> Downloaded {formatQualityLabel(item.actualQuality)}
+                  {$_('downloads.quality.requested')} {formatQualityLabel(item.requestedQuality)} → {formatQualityLabel(item.actualQuality)}
                 {:else}
-                  Quality: {formatQualityLabel(item.actualQuality)}
+                  {$_('downloads.quality.label')}: {formatQualityLabel(item.actualQuality)}
                 {/if}
               </span>
             {/if}
-            {#if (item.status === 'downloading' || item.status === 'resolving') && item.trackId}
-              <button class="action-btn pause-btn" type="button" title={$_('downloads.actions.pause')} on:click={() => pauseDownload(item)}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="6" y="4" width="4" height="16"/>
-                  <rect x="14" y="4" width="4" height="16"/>
-                </svg>
-              </button>
-            {:else if item.status === 'paused' && item.track}
-              <button class="action-btn resume-btn" type="button" title={$_('downloads.actions.resume')} on:click={() => resumeDownload(item)}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polygon points="5 3 19 12 5 21 5 3"/>
-                </svg>
-              </button>
-            {:else if item.status === 'error' && item.track}
-              <button class="action-btn retry-btn" type="button" title={$_('downloads.actions.retry')} on:click={() => retryDownload(item)}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="23 4 23 10 17 10"/>
-                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-                </svg>
-              </button>
+            {#if shouldShowActionButton(item.status)}
+              {#if (item.status === 'downloading' || item.status === 'resolving') && item.trackId}
+                <button 
+                  class="action-btn pause-btn" 
+                  type="button" 
+                  title={$_('downloads.actions.pause')} 
+                  onclick={() => pauseDownload(item)}
+                  aria-label={$_('downloads.actions.pause')}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="6" y="4" width="4" height="16"/>
+                    <rect x="14" y="4" width="4" height="16"/>
+                  </svg>
+                </button>
+              {:else if item.status === 'paused' && item.track}
+                <button 
+                  class="action-btn resume-btn" 
+                  type="button" 
+                  title={$_('downloads.actions.resume')} 
+                  onclick={() => resumeDownload(item)}
+                  aria-label={$_('downloads.actions.resume')}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                </button>
+              {:else if item.status === 'error' && item.track}
+                <button 
+                  class="action-btn retry-btn" 
+                  type="button" 
+                  title={$_('downloads.actions.retry')} 
+                  onclick={() => retryDownload(item)}
+                  aria-label={$_('downloads.actions.retry')}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="23 4 23 10 17 10"/>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                  </svg>
+                </button>
+              {/if}
             {/if}
             {#if item.errorMsg && !['error','paused','downloading','resolving','complete'].includes(item.status)}
-              <div class="error-msg" title={item.errorMsg}>⚠</div>
+              <div class="error-msg" title={item.errorMsg} role="alert">⚠</div>
             {/if}
           </div>
         </div>
@@ -274,7 +309,7 @@
 <ExportHistoryModal 
   bind:show={showExportModal}
   history={downloadItems}
-  onClose={closeExportModal}
+  onClose={() => showExportModal = false}
 />
 
 <style>

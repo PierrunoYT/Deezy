@@ -42,11 +42,13 @@
   let exportAsLight = $state(false);
   
   onMount(async () => {
-    await loadCustomThemes();
-    await loadCurrentTheme();
+    await Promise.all([
+      loadCustomThemes(),
+      loadCurrentTheme()
+    ]);
   });
   
-  async function loadCustomThemes() {
+  async function loadCustomThemes(): Promise<void> {
     try {
       customThemes = await invoke<string[]>('list_custom_themes');
     } catch (err) {
@@ -54,7 +56,7 @@
     }
   }
   
-  async function loadCurrentTheme() {
+  async function loadCurrentTheme(): Promise<void> {
     try {
       const settings: any = await invoke('get_settings');
       if (settings.custom_theme) {
@@ -66,7 +68,7 @@
     }
   }
   
-  async function loadThemePreview(themeName: string) {
+  async function loadThemePreview(themeName: string): Promise<void> {
     try {
       previewTheme = await invoke<CustomTheme>('load_custom_theme', { themeName });
     } catch (err) {
@@ -75,31 +77,34 @@
     }
   }
   
-  async function applyCustomTheme(themeName: string) {
+  const CSS_VARIABLES = [
+    '--bg-darkest', '--bg-dark', '--bg-surface', '--bg-elevated', '--bg-hover',
+    '--accent', '--accent-hover', '--accent-dim',
+    '--text-primary', '--text-secondary', '--text-tertiary',
+    '--success', '--error', '--warning', '--border'
+  ] as const;
+
+  function applyThemeColors(colors: ThemeColors): void {
+    const root = document.documentElement;
+    Object.entries(colors).forEach(([key, value]) => {
+      root.style.setProperty(`--${key}`, value);
+    });
+    root.classList.remove('light');
+  }
+
+  function clearThemeColors(): void {
+    const root = document.documentElement;
+    CSS_VARIABLES.forEach(variable => {
+      root.style.removeProperty(variable);
+    });
+  }
+
+  async function applyCustomTheme(themeName: string): Promise<void> {
     loading = true;
     try {
       const themeData = await invoke<CustomTheme>('load_custom_theme', { themeName });
       
-      const root = document.documentElement;
-      const colors = themeData.colors;
-      
-      root.style.setProperty('--bg-darkest', colors['bg-darkest']);
-      root.style.setProperty('--bg-dark', colors['bg-dark']);
-      root.style.setProperty('--bg-surface', colors['bg-surface']);
-      root.style.setProperty('--bg-elevated', colors['bg-elevated']);
-      root.style.setProperty('--bg-hover', colors['bg-hover']);
-      root.style.setProperty('--accent', colors.accent);
-      root.style.setProperty('--accent-hover', colors['accent-hover']);
-      root.style.setProperty('--accent-dim', colors['accent-dim']);
-      root.style.setProperty('--text-primary', colors['text-primary']);
-      root.style.setProperty('--text-secondary', colors['text-secondary']);
-      root.style.setProperty('--text-tertiary', colors['text-tertiary']);
-      root.style.setProperty('--success', colors.success);
-      root.style.setProperty('--error', colors.error);
-      root.style.setProperty('--warning', colors.warning);
-      root.style.setProperty('--border', colors.border);
-      
-      root.classList.remove('light');
+      applyThemeColors(themeData.colors);
       
       const settings: any = await invoke('get_settings');
       await invoke('save_settings', {
@@ -121,24 +126,8 @@
     }
   }
   
-  async function resetToDefault() {
-    const root = document.documentElement;
-    
-    root.style.removeProperty('--bg-darkest');
-    root.style.removeProperty('--bg-dark');
-    root.style.removeProperty('--bg-surface');
-    root.style.removeProperty('--bg-elevated');
-    root.style.removeProperty('--bg-hover');
-    root.style.removeProperty('--accent');
-    root.style.removeProperty('--accent-hover');
-    root.style.removeProperty('--accent-dim');
-    root.style.removeProperty('--text-primary');
-    root.style.removeProperty('--text-secondary');
-    root.style.removeProperty('--text-tertiary');
-    root.style.removeProperty('--success');
-    root.style.removeProperty('--error');
-    root.style.removeProperty('--warning');
-    root.style.removeProperty('--border');
+  async function resetToDefault(): Promise<void> {
+    clearThemeColors();
     
     try {
       const settings: any = await invoke('get_settings');
@@ -160,7 +149,7 @@
     }
   }
   
-  async function deleteTheme(themeName: string) {
+  async function deleteTheme(themeName: string): Promise<void> {
     if (!confirm(`Are you sure you want to delete the theme "${themeName}"?`)) {
       return;
     }
@@ -179,22 +168,23 @@
     }
   }
   
-  async function importTheme() {
+  async function importTheme(): Promise<void> {
     loading = true;
     try {
       const themeName = await invoke<string>('import_theme_file');
       await loadCustomThemes();
       showStatus(`Theme "${themeName}" imported successfully`, 'success');
     } catch (err) {
-      if (err !== 'Import cancelled') {
-        showStatus(`Failed to import theme: ${err}`, 'error');
+      const errorMsg = String(err);
+      if (!errorMsg.includes('cancelled')) {
+        showStatus(`Failed to import theme: ${errorMsg}`, 'error');
       }
     } finally {
       loading = false;
     }
   }
   
-  async function exportTheme() {
+  async function exportTheme(): Promise<void> {
     if (!exportName.trim()) {
       showStatus('Please enter a theme name', 'error');
       return;
@@ -213,19 +203,23 @@
       await loadCustomThemes();
       
       showStatus(`Theme "${exportName}" exported successfully`, 'success');
-      showExportModal = false;
-      exportName = '';
-      exportAuthor = '';
-      exportDescription = '';
-      exportAsLight = false;
+      resetExportForm();
     } catch (err) {
       showStatus(`Failed to export theme: ${err}`, 'error');
     } finally {
       loading = false;
     }
   }
+
+  function resetExportForm(): void {
+    showExportModal = false;
+    exportName = '';
+    exportAuthor = '';
+    exportDescription = '';
+    exportAsLight = false;
+  }
   
-  async function createExamples() {
+  async function createExamples(): Promise<void> {
     loading = true;
     try {
       await invoke('create_example_themes');
@@ -238,7 +232,7 @@
     }
   }
   
-  function showStatus(msg: string, type: 'success' | 'error' | 'info') {
+  function showStatus(msg: string, type: 'success' | 'error' | 'info'): void {
     statusMsg = msg;
     statusType = type;
     setTimeout(() => statusMsg = '', 3000);
@@ -254,21 +248,31 @@
     ];
   }
 
-  function closeExportModal() {
-    showExportModal = false;
+  function closeExportModal(): void {
+    if (!loading) {
+      showExportModal = false;
+    }
   }
 
-  function handleExportOverlayClick(event: MouseEvent) {
+  function handleExportOverlayClick(event: MouseEvent): void {
     if (event.target === event.currentTarget) {
       closeExportModal();
     }
   }
 
-  function handleExportOverlayKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') {
+  function handleExportOverlayKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
       event.preventDefault();
       closeExportModal();
     }
+  }
+
+  function isThemeActive(themeName: string): boolean {
+    return selectedTheme === themeName;
+  }
+
+  function normalizeThemeName(themeName: string): string {
+    return themeName.replace(/_/g, ' ');
   }
 </script>
 
@@ -313,26 +317,28 @@
     </div>
   {:else}
     <div class="themes-grid">
-      {#each customThemes as themeName}
-        {@const isActive = selectedTheme === themeName}
+      {#each customThemes as themeName (themeName)}
+        {@const isActive = isThemeActive(themeName)}
+        {@const normalizedName = normalizeThemeName(themeName)}
         <div
-          class="theme-card {isActive ? 'active' : ''}"
+          class="theme-card"
+          class:active={isActive}
           onmouseenter={() => loadThemePreview(themeName)}
           onfocus={() => loadThemePreview(themeName)}
-          role="button"
+          role="article"
           tabindex="0"
-          aria-label={`Preview theme ${themeName.replace(/_/g, ' ')}`}
+          aria-label="Preview theme {normalizedName}"
         >
           <div class="theme-info">
-            <h4>{themeName.replace(/_/g, ' ')}</h4>
+            <h4>{normalizedName}</h4>
             {#if previewTheme && previewTheme.name.toLowerCase().replace(/\s+/g, '_') === themeName}
               <p class="theme-description">{previewTheme.description || 'Custom theme'}</p>
               {#if previewTheme.author}
                 <p class="theme-author">by {previewTheme.author}</p>
               {/if}
-              <div class="color-preview">
-                {#each getColorPreview(previewTheme.colors) as color}
-                  <div class="color-swatch" style="background-color: {color}"></div>
+              <div class="color-preview" role="img" aria-label="Theme color palette">
+                {#each getColorPreview(previewTheme.colors) as color, index (color + index)}
+                  <div class="color-swatch" style="background-color: {color}" title={color}></div>
                 {/each}
               </div>
             {/if}
@@ -342,6 +348,8 @@
               class="btn-apply" 
               onclick={() => applyCustomTheme(themeName)}
               disabled={loading || isActive}
+              type="button"
+              aria-label={isActive ? 'Currently active theme' : `Apply theme ${normalizedName}`}
             >
               {isActive ? 'Active' : 'Apply'}
             </button>
@@ -349,9 +357,11 @@
               class="btn-delete" 
               onclick={() => deleteTheme(themeName)}
               disabled={loading}
-              aria-label={`Delete theme ${themeName.replace(/_/g, ' ')}`}
+              type="button"
+              aria-label="Delete theme {normalizedName}"
+              title="Delete theme"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <polyline points="3 6 5 6 21 6"/>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
               </svg>

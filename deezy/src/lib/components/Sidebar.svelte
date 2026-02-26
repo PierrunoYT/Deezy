@@ -11,6 +11,28 @@
   }
 
   let { currentView, user, activeDownloads, onViewChange, onShowHelp }: Props = $props();
+
+  const views = [
+    { id: 'search', icon: 'search', label: $_('nav.search') },
+    { id: 'downloads', icon: 'download', label: $_('nav.downloads') },
+    { id: 'settings', icon: 'settings', label: $_('nav.settings') }
+  ] as const;
+
+  function getNavIcon(iconType: string) {
+    const icons = {
+      search: 'M11 11m-8 0a8 8 0 1 0 16 0a8 8 0 1 0 -16 0M21 21l-4.35-4.35',
+      download: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3',
+      settings: 'M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z'
+    };
+    return icons[iconType as keyof typeof icons] || '';
+  }
+
+  function handleImageError(e: Event): void {
+    const img = e.currentTarget as HTMLImageElement;
+    img.style.display = 'none';
+    const fallback = img.nextElementSibling as HTMLElement | null;
+    if (fallback) fallback.style.display = 'flex';
+  }
 </script>
 
 <nav id="sidebar">
@@ -23,43 +45,50 @@
     <span>{$_('app.name')}</span>
   </div>
   
-  <div class="nav-items">
+  <nav class="nav-items" aria-label="Main navigation">
     <button 
-      class="nav-btn {currentView === 'search' ? 'active' : ''}" 
+      class="nav-btn" 
+      class:active={currentView === 'search'}
       onclick={() => onViewChange('search')}
+      aria-current={currentView === 'search' ? 'page' : undefined}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>
       {$_('nav.search')}
     </button>
     
     <button 
-      class="nav-btn {currentView === 'downloads' ? 'active' : ''}" 
+      class="nav-btn" 
+      class:active={currentView === 'downloads'}
       onclick={() => onViewChange('downloads')}
+      aria-current={currentView === 'downloads' ? 'page' : undefined}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
         <polyline points="7 10 12 15 17 10"/>
         <line x1="12" y1="15" x2="12" y2="3"/>
       </svg>
       {$_('nav.downloads')}
       {#if activeDownloads > 0}
-        <span class="badge">{activeDownloads}</span>
+        <span class="badge" aria-label="{activeDownloads} active downloads">{activeDownloads}</span>
       {/if}
     </button>
     
     <button 
-      class="nav-btn {currentView === 'settings' ? 'active' : ''}" 
+      class="nav-btn" 
+      class:active={currentView === 'settings'}
       onclick={() => onViewChange('settings')}
+      aria-current={currentView === 'settings' ? 'page' : undefined}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <circle cx="12" cy="12" r="3"/>
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
       </svg>
       {$_('nav.settings')}
     </button>
-  </div>
+  </nav>
   
   {#if onShowHelp}
     <button class="help-btn" onclick={onShowHelp} title="{$_('nav.keyboardShortcuts')} (Shift+?)">
@@ -73,17 +102,12 @@
   {/if}
   
   {#if user}
-    <div class="user-info">
+    <div class="user-info" role="complementary" aria-label="User information">
       {#if user.image}
         <img
           src={user.image}
-          alt={user.name}
-          onerror={(e) => {
-            const img = e.currentTarget as HTMLImageElement;
-            img.style.display = 'none';
-            const fallback = img.nextElementSibling as HTMLElement | null;
-            if (fallback) fallback.style.display = 'flex';
-          }}
+          alt={user.name || 'User avatar'}
+          onerror={handleImageError}
         />
         <span class="avatar-fallback" aria-hidden="true">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -99,7 +123,7 @@
           </svg>
         </span>
       {/if}
-      <span>{user.name || $_('user.connected')}</span>
+      <span class="user-name">{user.name || $_('user.connected')}</span>
     </div>
   {/if}
 </nav>
@@ -238,7 +262,7 @@
     display: flex;
   }
   
-  .user-info span {
+  .user-name {
     font-size: 13px;
     font-weight: 500;
     color: var(--text-secondary);

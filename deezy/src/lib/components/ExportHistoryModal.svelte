@@ -17,6 +17,13 @@
   let endDate = $state('');
   let isExporting = $state(false);
   let exportMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+  let modalRef = $state<HTMLDivElement | undefined>(undefined);
+
+  $effect(() => {
+    if (show) {
+      setTimeout(() => modalRef?.focus(), 0);
+    }
+  });
 
   function filterHistoryByDateRange(items: DownloadItem[]): DownloadItem[] {
     if (selectedDateRange === 'all') {
@@ -40,6 +47,7 @@
         if (startDate && endDate) {
           const start = new Date(startDate);
           const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
           return items.filter(item => {
             if (!item.timestamp) return false;
             const itemDate = new Date(item.timestamp);
@@ -56,9 +64,20 @@
     });
   }
 
-  async function handleExport() {
+  function validateCustomDateRange(): boolean {
+    if (selectedDateRange !== 'custom') return true;
+    if (!startDate || !endDate) return false;
+    return new Date(startDate) <= new Date(endDate);
+  }
+
+  async function handleExport(): Promise<void> {
     if (history.length === 0) {
       exportMessage = { type: 'error', text: $_('downloads.export.emptyHistory') };
+      return;
+    }
+
+    if (!validateCustomDateRange()) {
+      exportMessage = { type: 'error', text: $_('downloads.export.invalidDateRange') };
       return;
     }
 
@@ -69,8 +88,7 @@
       const filteredHistory = filterHistoryByDateRange(history);
       
       if (filteredHistory.length === 0) {
-        exportMessage = { type: 'error', text: $_('downloads.export.emptyHistory') };
-        isExporting = false;
+        exportMessage = { type: 'error', text: $_('downloads.export.noItemsInRange') };
         return;
       }
 
@@ -103,22 +121,21 @@
     }
   }
 
-  function handleClose() {
+  function handleClose(): void {
     if (!isExporting) {
       exportMessage = null;
       onClose();
     }
   }
 
-  function handleOverlayClick(event: MouseEvent) {
+  function handleOverlayClick(event: MouseEvent): void {
     if (event.target === event.currentTarget) {
       handleClose();
     }
   }
 
-  function handleOverlayKeydown(event: KeyboardEvent) {
-    if (event.target !== event.currentTarget) return;
-    if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') {
+  function handleOverlayKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
       event.preventDefault();
       handleClose();
     }
@@ -130,15 +147,23 @@
     class="modal-overlay"
     onclick={handleOverlayClick}
     onkeydown={handleOverlayKeydown}
-    role="button"
-    tabindex="0"
-    aria-label="Close export history dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="export-title"
+    bind:this={modalRef}
+    tabindex="-1"
   >
     <div class="modal">
       <div class="modal-header">
-        <h3>{$_('downloads.export.title')}</h3>
-        <button class="close-btn" onclick={handleClose} disabled={isExporting} aria-label={$_('downloads.export.cancel')}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <h3 id="export-title">{$_('downloads.export.title')}</h3>
+        <button 
+          class="close-btn" 
+          onclick={handleClose} 
+          disabled={isExporting} 
+          aria-label="Close dialog"
+          type="button"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
@@ -192,10 +217,20 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary" onclick={handleClose} disabled={isExporting}>
+        <button 
+          class="btn btn-secondary" 
+          onclick={handleClose} 
+          disabled={isExporting}
+          type="button"
+        >
           {$_('downloads.export.cancel')}
         </button>
-        <button class="btn btn-primary" onclick={handleExport} disabled={isExporting}>
+        <button 
+          class="btn btn-primary" 
+          onclick={handleExport} 
+          disabled={isExporting || (selectedDateRange === 'custom' && (!startDate || !endDate))}
+          type="button"
+        >
           {isExporting ? $_('downloads.export.exporting') : $_('downloads.export.exportButton')}
         </button>
       </div>

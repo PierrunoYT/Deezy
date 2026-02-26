@@ -1,7 +1,7 @@
 <script lang="ts">
   import { audioPlayer } from '$lib/stores';
   import { audioPlayerManager } from '$lib/audioPlayer';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
 
   let playerState = $state($audioPlayer);
   let isDraggingSeek = $state(false);
@@ -16,53 +16,37 @@
     return unsubscribe;
   });
 
-  function togglePlayPause() {
+  function togglePlayPause(): void {
     audioPlayerManager.togglePlayPause();
   }
 
-  function handleSeekMouseDown(e: MouseEvent) {
-    isDraggingSeek = true;
-    updateSeek(e);
+  function clampPercent(value: number): number {
+    return Math.max(0, Math.min(1, value));
   }
 
-  function handleSeekMouseMove(e: MouseEvent) {
-    if (isDraggingSeek) {
-      updateSeek(e);
-    }
-  }
-
-  function handleSeekMouseUp() {
-    isDraggingSeek = false;
-  }
-
-  function updateSeek(e: MouseEvent) {
+  function updateSeek(e: MouseEvent): void {
     if (!seekBarRef) return;
     const rect = seekBarRef.getBoundingClientRect();
-    const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const percent = clampPercent((e.clientX - rect.left) / rect.width);
     const time = percent * playerState.duration;
     audioPlayerManager.seek(time);
   }
 
-  function handleVolumeMouseDown(e: MouseEvent) {
-    isDraggingVolume = true;
-    updateVolume(e);
-  }
-
-  function handleVolumeMouseMove(e: MouseEvent) {
-    if (isDraggingVolume) {
-      updateVolume(e);
-    }
-  }
-
-  function handleVolumeMouseUp() {
-    isDraggingVolume = false;
-  }
-
-  function updateVolume(e: MouseEvent) {
+  function updateVolume(e: MouseEvent): void {
     if (!volumeBarRef) return;
     const rect = volumeBarRef.getBoundingClientRect();
-    const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const percent = clampPercent((e.clientX - rect.left) / rect.width);
     audioPlayerManager.setVolume(percent);
+  }
+
+  function handleSeekMouseDown(e: MouseEvent): void {
+    isDraggingSeek = true;
+    updateSeek(e);
+  }
+
+  function handleVolumeMouseDown(e: MouseEvent): void {
+    isDraggingVolume = true;
+    updateVolume(e);
   }
 
   function formatTime(seconds: number): string {
@@ -72,15 +56,23 @@
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
 
+  function getSeekPercentage(): number {
+    return playerState.duration > 0 ? (playerState.currentTime / playerState.duration) * 100 : 0;
+  }
+
+  function getVolumePercentage(): number {
+    return playerState.volume * 100;
+  }
+
   onMount(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (isDraggingSeek) handleSeekMouseMove(e);
-      if (isDraggingVolume) handleVolumeMouseMove(e);
+      if (isDraggingSeek) updateSeek(e);
+      if (isDraggingVolume) updateVolume(e);
     };
 
     const handleMouseUp = () => {
-      handleSeekMouseUp();
-      handleVolumeMouseUp();
+      isDraggingSeek = false;
+      isDraggingVolume = false;
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -94,16 +86,17 @@
 </script>
 
 {#if playerState.currentTrack}
-  <div class="mini-player">
+  <div class="mini-player" role="region" aria-label="Audio player">
     <div class="player-track-info">
       <img 
         class="player-cover" 
         src={playerState.currentTrack.cover_small} 
         alt={playerState.currentTrack.title}
+        loading="lazy"
       />
       <div class="player-text">
-        <div class="player-title">{playerState.currentTrack.title}</div>
-        <div class="player-artist">{playerState.currentTrack.artist}</div>
+        <div class="player-title" title={playerState.currentTrack.title}>{playerState.currentTrack.title}</div>
+        <div class="player-artist" title={playerState.currentTrack.artist}>{playerState.currentTrack.artist}</div>
       </div>
     </div>
 
@@ -111,23 +104,24 @@
       <button 
         class="btn-play-pause" 
         onclick={togglePlayPause}
+        aria-label={playerState.isPlaying ? 'Pause' : 'Play'}
         title={playerState.isPlaying ? 'Pause' : 'Play'}
       >
         {#if playerState.isPlaying}
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <rect x="6" y="4" width="4" height="16" rx="1"/>
             <rect x="14" y="4" width="4" height="16" rx="1"/>
           </svg>
         {:else}
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M8 5v14l11-7z"/>
           </svg>
         {/if}
       </button>
 
-      <div class="player-time">
+      <time class="player-time" datetime="PT{Math.floor(playerState.currentTime)}S">
         {formatTime(playerState.currentTime)}
-      </div>
+      </time>
 
       <button
         class="seek-bar" 
@@ -135,22 +129,26 @@
         bind:this={seekBarRef}
         onmousedown={handleSeekMouseDown}
         aria-label="Seek playback position"
+        aria-valuemin={0}
+        aria-valuemax={playerState.duration}
+        aria-valuenow={playerState.currentTime}
+        role="slider"
       >
         <div class="seek-bar-bg">
           <div 
             class="seek-bar-progress" 
-            style="width: {playerState.duration > 0 ? (playerState.currentTime / playerState.duration) * 100 : 0}%"
+            style="width: {getSeekPercentage()}%"
           ></div>
         </div>
       </button>
 
-      <div class="player-time">
+      <time class="player-time" datetime="PT{Math.floor(playerState.duration)}S">
         {formatTime(playerState.duration)}
-      </div>
+      </time>
     </div>
 
     <div class="player-volume">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
         <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
       </svg>
@@ -160,11 +158,15 @@
         bind:this={volumeBarRef}
         onmousedown={handleVolumeMouseDown}
         aria-label="Adjust volume"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(playerState.volume * 100)}
+        role="slider"
       >
         <div class="volume-bar-bg">
           <div 
             class="volume-bar-progress" 
-            style="width: {playerState.volume * 100}%"
+            style="width: {getVolumePercentage()}%"
           ></div>
         </div>
       </button>

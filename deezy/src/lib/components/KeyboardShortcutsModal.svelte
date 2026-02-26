@@ -1,5 +1,6 @@
 <script lang="ts">
   import { keyboardShortcuts, KeyboardShortcutsManager } from '$lib/keyboardShortcuts';
+  import { onMount } from 'svelte';
   
   interface Props {
     show: boolean;
@@ -13,21 +14,25 @@
     search: [],
     general: []
   });
+
+  let modalRef = $state<HTMLDivElement | undefined>(undefined);
   
   $effect(() => {
     if (show) {
       shortcuts = keyboardShortcuts.getAllShortcuts();
+      setTimeout(() => modalRef?.focus(), 0);
     }
   });
   
-  function handleBackdropClick(e: MouseEvent) {
+  function handleBackdropClick(e: MouseEvent): void {
     if (e.target === e.currentTarget) {
       onClose();
     }
   }
   
-  function handleKeydown(e: KeyboardEvent) {
+  function handleKeydown(e: KeyboardEvent): void {
     if (e.key === 'Escape') {
+      e.preventDefault();
       onClose();
     }
   }
@@ -37,15 +42,32 @@
     search: 'Search & Actions',
     general: 'General'
   };
+
+  const categoryOrder = ['navigation', 'search', 'general'];
+
+  function getOrderedCategories(): [string, any[]][] {
+    return categoryOrder
+      .map(cat => [cat, shortcuts[cat]] as [string, any[]])
+      .filter(([_, items]) => items.length > 0);
+  }
 </script>
 
 {#if show}
-  <div class="modal-backdrop" onclick={handleBackdropClick} onkeydown={handleKeydown} role="dialog" aria-modal="true" tabindex="-1">
+  <div 
+    class="modal-backdrop" 
+    onclick={handleBackdropClick} 
+    onkeydown={handleKeydown} 
+    role="dialog" 
+    aria-modal="true" 
+    aria-labelledby="shortcuts-title"
+    bind:this={modalRef}
+    tabindex="-1"
+  >
     <div class="modal">
       <div class="modal-header">
-        <h2>Keyboard Shortcuts</h2>
-        <button class="close-btn" onclick={onClose} aria-label="Close">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <h2 id="shortcuts-title">Keyboard Shortcuts</h2>
+        <button class="close-btn" onclick={onClose} aria-label="Close dialog">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
@@ -53,20 +75,20 @@
       </div>
       
       <div class="modal-content">
-        {#each Object.entries(shortcuts) as [category, items]}
-          {#if items.length > 0}
-            <div class="shortcut-category">
-              <h3>{categoryTitles[category]}</h3>
-              <div class="shortcut-list">
-                {#each items as shortcut}
-                  <div class="shortcut-item">
-                    <span class="shortcut-description">{shortcut.description}</span>
-                    <kbd class="shortcut-keys">{KeyboardShortcutsManager.formatShortcut(shortcut)}</kbd>
-                  </div>
-                {/each}
-              </div>
+        {#each getOrderedCategories() as [category, items] (category)}
+          <section class="shortcut-category" aria-labelledby="category-{category}">
+            <h3 id="category-{category}">{categoryTitles[category]}</h3>
+            <div class="shortcut-list" role="list">
+              {#each items as shortcut (shortcut.key + shortcut.description)}
+                <div class="shortcut-item" role="listitem">
+                  <span class="shortcut-description">{shortcut.description}</span>
+                  <kbd class="shortcut-keys" aria-label="Keyboard shortcut: {KeyboardShortcutsManager.formatShortcut(shortcut)}">
+                    {KeyboardShortcutsManager.formatShortcut(shortcut)}
+                  </kbd>
+                </div>
+              {/each}
             </div>
-          {/if}
+          </section>
         {/each}
       </div>
     </div>

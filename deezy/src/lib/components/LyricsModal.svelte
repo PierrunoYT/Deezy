@@ -2,14 +2,16 @@
   import { invoke } from '@tauri-apps/api/core';
   import type { Track } from '$lib/stores';
 
+  interface LyricsLine {
+    line: string;
+    milliseconds: number;
+    duration: number;
+  }
+
   interface LyricsData {
     LYRICS_ID?: number;
     LYRICS_TEXT?: string;
-    LYRICS_SYNC_JSON?: Array<{
-      line: string;
-      milliseconds: number;
-      duration: number;
-    }>;
+    LYRICS_SYNC_JSON?: LyricsLine[];
   }
 
   interface Props {
@@ -23,8 +25,17 @@
   let loading = $state<boolean>(true);
   let error = $state<string>('');
   let useSyncedLyrics = $state<boolean>(true);
+  let modalRef = $state<HTMLDivElement | undefined>(undefined);
 
-  async function loadLyrics() {
+  const hasSyncedLyrics = $derived(
+    Boolean(lyricsData?.LYRICS_SYNC_JSON && lyricsData.LYRICS_SYNC_JSON.length > 0)
+  );
+
+  const hasPlainLyrics = $derived(Boolean(lyricsData?.LYRICS_TEXT));
+
+  const hasAnyLyrics = $derived(hasSyncedLyrics || hasPlainLyrics);
+
+  async function loadLyrics(): Promise<void> {
     loading = true;
     error = '';
     
@@ -45,32 +56,37 @@
     }
   }
 
-  function handleBackdropClick(e: MouseEvent) {
+  function handleBackdropClick(e: MouseEvent): void {
     if (e.target === e.currentTarget) {
       onClose();
     }
   }
 
-  function handleBackdropKeydown(e: KeyboardEvent) {
-    if (e.target !== e.currentTarget) return;
-    if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+  function handleBackdropKeydown(e: KeyboardEvent): void {
+    if (e.key === 'Escape') {
       e.preventDefault();
       onClose();
     }
   }
 
+  function escapeHtml(text: string): string {
+    const escapeMap: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, char => escapeMap[char]);
+  }
+
   function formatLyrics(text: string): string {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;')
-      .replace(/\n/g, '<br>');
+    return escapeHtml(text).replace(/\n/g, '<br>');
   }
 
   $effect(() => {
     loadLyrics();
+    setTimeout(() => modalRef?.focus(), 0);
   });
 </script>
 
@@ -78,22 +94,24 @@
   class="modal-backdrop"
   onclick={handleBackdropClick}
   onkeydown={handleBackdropKeydown}
-  role="button"
-  tabindex="0"
-  aria-label="Close lyrics dialog"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="lyrics-title"
+  bind:this={modalRef}
+  tabindex="-1"
 >
   <div class="modal-content">
     <div class="modal-header">
       <div class="track-info">
-        <img class="track-cover" src={track.cover_medium} alt="" />
+        <img class="track-cover" src={track.cover_medium} alt={track.title} loading="lazy" />
         <div class="track-details">
-          <div class="track-title">{track.title}</div>
+          <h2 id="lyrics-title" class="track-title">{track.title}</h2>
           <div class="track-artist">{track.artist}</div>
           <div class="track-album">{track.album}</div>
         </div>
       </div>
-      <button class="btn-close" onclick={onClose} title="Close (Esc)">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <button class="btn-close" onclick={onClose} title="Close (Esc)" type="button" aria-label="Close dialog">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <line x1="18" y1="6" x2="6" y2="18"/>
           <line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
@@ -102,57 +120,67 @@
 
     <div class="modal-body">
       {#if loading}
-        <div class="lyrics-status">
-          <span class="spinner"></span>
+        <div class="lyrics-status" role="status" aria-live="polite">
+          <span class="spinner" aria-hidden="true"></span>
           <span>Loading lyrics...</span>
         </div>
       {:else if error}
-        <div class="lyrics-status error">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <div class="lyrics-status error" role="alert">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <circle cx="12" cy="12" r="10"/>
             <line x1="12" y1="8" x2="12" y2="12"/>
             <line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
           <span>{error}</span>
         </div>
-      {:else if lyricsData}
-        {#if lyricsData.LYRICS_SYNC_JSON && lyricsData.LYRICS_SYNC_JSON.length > 0}
-          <div class="lyrics-controls">
+      {:else if lyricsData && hasAnyLyrics}
+        {#if hasSyncedLyrics && hasPlainLyrics}
+          <div class="lyrics-controls" role="tablist" aria-label="Lyrics view options">
             <button 
               class="toggle-btn" 
               class:active={useSyncedLyrics}
               onclick={() => useSyncedLyrics = true}
+              type="button"
+              role="tab"
+              aria-selected={useSyncedLyrics}
+              aria-controls="lyrics-display"
             >
               Synced
             </button>
-            {#if lyricsData.LYRICS_TEXT}
-              <button 
-                class="toggle-btn" 
-                class:active={!useSyncedLyrics}
-                onclick={() => useSyncedLyrics = false}
-              >
-                Plain
-              </button>
-            {/if}
+            <button 
+              class="toggle-btn" 
+              class:active={!useSyncedLyrics}
+              onclick={() => useSyncedLyrics = false}
+              type="button"
+              role="tab"
+              aria-selected={!useSyncedLyrics}
+              aria-controls="lyrics-display"
+            >
+              Plain
+            </button>
           </div>
         {/if}
 
-        <div class="lyrics-content">
-          {#if useSyncedLyrics && lyricsData.LYRICS_SYNC_JSON && lyricsData.LYRICS_SYNC_JSON.length > 0}
+        <div class="lyrics-content" id="lyrics-display" role="tabpanel">
+          {#if useSyncedLyrics && hasSyncedLyrics}
             <div class="synced-lyrics">
-              {#each lyricsData.LYRICS_SYNC_JSON as lyricLine}
-                <div class="lyric-line">{lyricLine.line}</div>
+              {#each lyricsData.LYRICS_SYNC_JSON as lyricLine, index (index)}
+                <div class="lyric-line">{lyricLine.line || ''}</div>
               {/each}
             </div>
-          {:else if lyricsData.LYRICS_TEXT}
+          {:else if hasPlainLyrics}
             <div class="plain-lyrics">
-              {@html formatLyrics(lyricsData.LYRICS_TEXT)}
+              {@html formatLyrics(lyricsData.LYRICS_TEXT!)}
             </div>
           {:else}
             <div class="lyrics-status">
               <span>No lyrics available</span>
             </div>
           {/if}
+        </div>
+      {:else}
+        <div class="lyrics-status">
+          <span>No lyrics available</span>
         </div>
       {/if}
     </div>
