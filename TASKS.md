@@ -149,3 +149,5 @@
   - Added CSS custom properties for transitions, shadows, and new radius sizes
   - Enhanced global styles with utility animations and better resets
   - Improved app.html with comprehensive meta tags for SEO and accessibility
+- [x] Fix missing closing `</script>` tag in +page.svelte that prevented app from loading
+- [x] Remove redundant `role="main"` from +page.svelte `<main>` element (semantic HTML already provides the role)

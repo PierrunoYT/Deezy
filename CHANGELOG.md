@@ -4,6 +4,11 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- **+page.svelte**: Fixed missing closing `</script>` tag that caused `element_unclosed` error preventing the app from loading; script tag was accidentally left open after refactoring
+- **+page.svelte**: Removed redundant `role="main"` from `<main>` element (semantic HTML already implies the role)
+
 ### Improved
 
 - **Component architecture**: Refactored all 10 Svelte components with improved code quality, type safety, and accessibility
