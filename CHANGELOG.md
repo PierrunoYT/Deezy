@@ -8,6 +8,7 @@ All notable changes to Deezy are documented here.
 
 - **DownloadsView**: Fixed `ReferenceError: unsubHistory is not defined` caused by invalid reactive statement that tried to reference `unsubHistory` before initialization; moved store subscription into `onMount` lifecycle function for proper initialization and cleanup
 - **Navigation**: Fixed sidebar navigation buttons (Search, Settings) not switching views — problematic `$effect` block with store subscriptions was interfering with reactivity; moved subscriptions to `onMount` to restore proper view switching
+- **SettingsView**: Fixed confusing empty ARL input field when already logged in — added visual indicator showing "ARL token is securely saved (hidden for security)" with updated placeholder text to clarify that the field is for updating the token
 
 ## [0.2.6] – 2026-02-24
 

@@ -27,6 +27,7 @@
   let statusMsg = $state('');
   let statusType = $state<'success' | 'error' | 'info'>('info');
   let isFreeAccount = $derived(Boolean($userInfo?.is_free_account));
+  let isLoggedIn = $state(false);
 
   $effect(() => {
     if (isFreeAccount && quality !== 'MP3_128') {
@@ -64,9 +65,13 @@
     // Subscribe to locale changes
     const unsubLocale = currentLocale.subscribe(l => selectedLocale = l);
 
+    // Subscribe to logged in state
+    const unsubLoggedIn = loggedIn.subscribe(val => isLoggedIn = val);
+
     return () => {
       unsubTheme();
       unsubLocale();
+      unsubLoggedIn();
     };
   });
   
@@ -260,12 +265,21 @@
       <p class="form-hint">
         {$_('settings.arl.hint')}
       </p>
+      {#if isLoggedIn && !arl}
+        <div class="arl-saved-indicator">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <span>ARL token is securely saved (hidden for security)</span>
+        </div>
+      {/if}
       <div class="input-row">
         <input 
           type={showArl ? 'text' : 'password'}
           id="arl-input" 
           bind:value={arl}
-          placeholder={$_('settings.arl.placeholder')}
+          placeholder={isLoggedIn && !arl ? 'Enter new ARL to update' : $_('settings.arl.placeholder')}
         />
         <button class="btn-icon" onclick={() => showArl = !showArl} title={$_('settings.arl.showHide')}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -504,6 +518,24 @@
     color: var(--text-tertiary);
     margin-bottom: 10px;
     line-height: 1.5;
+  }
+
+  .arl-saved-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    border-radius: var(--radius);
+    background: rgba(29, 185, 84, 0.1);
+    border: 1px solid rgba(29, 185, 84, 0.2);
+    color: var(--success);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .arl-saved-indicator svg {
+    flex-shrink: 0;
   }
   
   .input-row {

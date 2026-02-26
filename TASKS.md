@@ -116,3 +116,4 @@
 - [x] Fix tray pause/resume only pausing queued downloads but not active downloads — added `activeTrackIds` tracking to pause all downloads from system tray
 - [x] Fix `ReferenceError: unsubHistory is not defined` in DownloadsView — invalid reactive statement `$: unsubHistory, unsubHistory = ...` tried to reference variable before initialization; moved store subscription to `onMount` for proper lifecycle handling
 - [x] Fix sidebar navigation not working (clicking Search/Settings stayed on Downloads) — `$effect` block with store subscriptions interfered with `currentView` reactivity; moved subscriptions from `$effect` to `onMount` to restore proper view switching
+- [x] Fix confusing empty ARL input in Settings when already logged in — backend redacts ARL for security but frontend showed empty field; added green indicator "ARL token is securely saved (hidden for security)" and updated placeholder to "Enter new ARL to update"
