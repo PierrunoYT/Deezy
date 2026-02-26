@@ -4,6 +4,14 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+## [0.2.8] - 2026-02-26
+
+### Fixed
+
+- **Production CSP blocking covers & audio** – Album cover images and audio preview playback worked in `tauri dev` but failed in the installed exe; the Content Security Policy was missing `media-src` for Deezer CDN audio URLs (`https://*.dzcdn.net`) and `img-src` was listing specific subdomains instead of the wildcard — CSP is now fully permissive for all `*.dzcdn.net` resources
+
+## [0.2.7] - 2026-02-26
+
 ### Fixed
 
 - **+page.svelte**: Fixed missing closing `</script>` tag that caused `element_unclosed` error preventing the app from loading; script tag was accidentally left open after refactoring

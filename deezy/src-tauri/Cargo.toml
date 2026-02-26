@@ -1,6 +1,6 @@
 [package]
 name = "deezy"
-version = "0.2.6"
+version = "0.2.8"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
