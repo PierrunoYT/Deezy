@@ -153,3 +153,5 @@
 - [x] Remove redundant `role="main"` from +page.svelte `<main>` element (semantic HTML already provides the role)
 - [x] Fix production CSP blocking album covers and audio previews — added `media-src 'self' https://*.dzcdn.net` and broadened `img-src` to wildcard `https://*.dzcdn.net` so resources load in the installed exe (not just `tauri dev`)
 - [x] Add Discord server badge and link to README
+- [x] Add FAQ.md with sections for security, downloads, setup, troubleshooting, and legal questions
+- [x] Add Additional Resources section to README linking FAQ, Changelog, and LICENSE

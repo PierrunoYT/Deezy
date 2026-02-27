@@ -222,4 +222,9 @@ deezy/
 
 ## License
 
-MIT
+MIT – see [LICENSE](LICENSE) for details.
+
+## Additional Resources
+
+- [FAQ](FAQ.md) – Common questions about security, downloads, setup, and legal use
+- [Changelog](CHANGELOG.md) – Full version history and release notes

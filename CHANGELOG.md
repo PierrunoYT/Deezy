@@ -7,6 +7,8 @@ All notable changes to Deezy are documented here.
 ### Documentation
 
 - **README**: Added Discord server badge and link (`https://discord.gg/dvuWBeXSf3`)
+- **README**: Added links to FAQ, Changelog, and LICENSE in a new "Additional Resources" section
+- **FAQ.md**: Added new FAQ document covering security, downloads, setup, troubleshooting, and legal questions
 
 ## [0.2.8] - 2026-02-26
 
