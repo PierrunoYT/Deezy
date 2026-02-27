@@ -4,6 +4,10 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+### Documentation
+
+- **README**: Added Discord server badge and link (`https://discord.gg/dvuWBeXSf3`)
+
 ## [0.2.8] - 2026-02-26
 
 ### Fixed

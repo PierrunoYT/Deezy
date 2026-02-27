@@ -152,3 +152,4 @@
 - [x] Fix missing closing `</script>` tag in +page.svelte that prevented app from loading
 - [x] Remove redundant `role="main"` from +page.svelte `<main>` element (semantic HTML already provides the role)
 - [x] Fix production CSP blocking album covers and audio previews — added `media-src 'self' https://*.dzcdn.net` and broadened `img-src` to wildcard `https://*.dzcdn.net` so resources load in the installed exe (not just `tauri dev`)
+- [x] Add Discord server badge and link to README
