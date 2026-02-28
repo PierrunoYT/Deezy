@@ -60,6 +60,7 @@ src-tauri/gen/
 BUGS_FOUND.md
 BUILD_AND_RELEASE.md
 RELEASE_INSTRUCTIONS.md
+TASKS.md
 
 # Signing keys (security-sensitive)
 **/keys/
