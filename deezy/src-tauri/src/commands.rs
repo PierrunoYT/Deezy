@@ -372,19 +372,6 @@ pub async fn clear_search_history(
 }
 
 #[tauri::command]
-#[allow(non_snake_case)]
-pub async fn get_track_lyrics(
-    trackId: String,
-    state: tauri::State<'_, AppState>,
-) -> Result<Value, String> {
-    let lock = state.client.lock().await;
-    let client = lock
-        .as_ref()
-        .ok_or("Not logged in. Set your ARL token in Settings.")?;
-    client.get_track_lyrics(&trackId).await
-}
-
-#[tauri::command]
 pub async fn update_tray_status(
     downloads_active: bool,
     downloads_paused: bool,

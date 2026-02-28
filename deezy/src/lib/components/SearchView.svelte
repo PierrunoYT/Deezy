@@ -6,7 +6,6 @@
   import { onMount } from 'svelte';
   import { keyboardShortcuts } from '$lib/keyboardShortcuts';
   import { audioPlayerManager } from '$lib/audioPlayer';
-  import LyricsModal from './LyricsModal.svelte';
   import { _ } from 'svelte-i18n';
   import { formatDuration, formatFans } from '$lib/i18n/formatters';
 
@@ -81,9 +80,6 @@
   let loadingPlaylist = $state<boolean>(false);
   let playlistError = $state<string>('');
 
-  // Lyrics modal state
-  let lyricsTrack = $state<Track | null>(null);
-
   // Audio player state
   let currentPlayingTrack = $state<Track | null>(null);
   let isPlaying = $state<boolean>(false);
@@ -153,8 +149,6 @@
       closePlaylist();
     } else if (selectedArtist) {
       closeArtist();
-    } else if (lyricsTrack) {
-      closeLyrics();
     } else if (searchQuery) {
       clearSearch();
     }
@@ -402,14 +396,6 @@
     }
   }
 
-  function openLyrics(track: Track): void {
-    lyricsTrack = track;
-  }
-
-  function closeLyrics(): void {
-    lyricsTrack = null;
-  }
-
   function playTrack(track: Track): void {
     audioPlayerManager.play(track);
   }
@@ -624,17 +610,6 @@
             <div class="track-duration">{formatDuration(track.duration)}</div>
             <div class="track-actions">
               <button 
-                class="btn-lyrics"
-                onclick={() => openLyrics(track)}
-                title={$_('search.track.viewLyrics')}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M9 18V5l12-2v13"/>
-                  <circle cx="6" cy="18" r="3"/>
-                  <circle cx="18" cy="16" r="3"/>
-                </svg>
-              </button>
-              <button 
                 class="btn-download {downloadStates.get(String(track.id)) === 'downloading' ? 'downloading' : ''} {downloadStates.get(String(track.id)) === 'complete' ? 'done' : ''}"
                 onclick={() => downloadTrack(track)}
                 title={$_('search.track.download')}
@@ -707,17 +682,6 @@
             <div class="track-album">{track.album}</div>
             <div class="track-duration">{formatDuration(track.duration)}</div>
             <div class="track-actions">
-              <button 
-                class="btn-lyrics"
-                onclick={() => openLyrics(track)}
-                title={$_('search.track.viewLyrics')}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M9 18V5l12-2v13"/>
-                  <circle cx="6" cy="18" r="3"/>
-                  <circle cx="18" cy="16" r="3"/>
-                </svg>
-              </button>
               <button 
                 class="btn-download {downloadStates.get(String(track.id)) === 'downloading' ? 'downloading' : ''} {downloadStates.get(String(track.id)) === 'complete' ? 'done' : ''}"
                 onclick={() => downloadTrack(track)}
@@ -838,10 +802,6 @@
     {/if}
   {/if}
 </div>
-
-{#if lyricsTrack}
-  <LyricsModal track={lyricsTrack} onClose={closeLyrics} />
-{/if}
 
 <style>
   .view {
@@ -1198,26 +1158,6 @@
     gap: 4px;
     align-items: center;
     justify-content: flex-end;
-  }
-
-  .btn-lyrics {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.15s;
-  }
-
-  .btn-lyrics:hover {
-    background: var(--accent);
-    color: white;
-    transform: scale(1.1);
   }
   
   .btn-download {

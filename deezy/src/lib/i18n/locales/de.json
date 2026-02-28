@@ -41,8 +41,7 @@
       "title": "Titel",
       "album": "Album",
       "duration": "Dauer",
-      "download": "Herunterladen",
-      "viewLyrics": "Songtexte Anzeigen"
+      "download": "Herunterladen"
     },
     "album": {
       "downloadAll": "Alles Herunterladen",

@@ -4,6 +4,12 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+## [0.2.9] - 2026-02-28
+
+### Removed
+
+- **Lyrics feature** – Removed lyrics viewer functionality due to poor availability from Deezer API (most tracks return "no lyrics available"). Removed `LyricsModal.svelte` component, lyrics button from track listings, `get_track_lyrics` backend command, and all related translations
+
 ### Documentation
 
 - **README**: Added account blocking risk warning — users have reported account suspensions when using similar tools
@@ -68,7 +74,6 @@ All notable changes to Deezy are documented here.
 - **DownloadsView**: Fixed invalid Svelte 5 prop syntax `{history=downloadItems}` → `history={downloadItems}` and replaced Svelte 4 `on:close` event directive with Svelte 5 `onClose` callback prop for `ExportHistoryModal`, which previously caused the modal close callback to never fire
 - **SettingsView**: Fixed double-toggle bug on all three toggle switches (Notifications, Search History, System Tray) — `bind:checked` and the wrapper `onclick` were both mutating state on a single user click, causing the value to flip twice (no visible change); save functions no longer re-toggle state, label clicks stop propagation, and store subscriptions created in `onMount` are now properly unsubscribed on unmount
 - **Sidebar**: Fixed user avatar fallback icon never being visible when `user.image` is falsy — `.avatar-fallback` CSS sets `display: none` by default (correct for image-error fallback) but the `{:else}` branch fallback was never overridden to `display: flex`
-- **LyricsModal**: Fixed `onClose` being called twice when pressing Escape — both `window.addEventListener('keydown', …)` and `onkeydown` on the backdrop handled the same key; removed the redundant global listener; also added `target === currentTarget` guard to `handleBackdropKeydown` so pressing Enter on the Synced/Plain toggle buttons no longer bubbles up and closes the modal
 - **QueueView**: Fixed `dragDisabled` never being reset to `true` after a completed drag-and-drop reorder, leaving the entire queue draggable from any point rather than only from the drag handle
 - **SearchView**: Fixed missing `clearTimeout(searchTimeout)` in `onMount` cleanup, which could trigger `doSearch()` after the component was unmounted
 - **ExportHistoryModal**: Fixed `handleOverlayKeydown` closing the modal when Enter is pressed inside the date inputs — added `event.target !== event.currentTarget` guard so only keypresses directly on the overlay backdrop are handled
@@ -219,7 +224,7 @@ All notable changes to Deezy are documented here.
 - **Keyboard shortcuts** – Comprehensive shortcuts (Ctrl+F for search, Ctrl+1/2/3 for navigation, Escape to clear, Shift+? for help)
 - **Download notifications** – System toast notifications for completed and failed downloads with toggle in settings
 - **Search history** – Recent searches dropdown with click-to-search and privacy toggle
-- **Lyrics viewer** – Modal display for track lyrics with synced/plain text support and scrollable view
+- ~~**Lyrics viewer**~~ *(removed in Unreleased)*
 - **Audio preview** – 30-second preview playback with mini player, seek bar, volume control, and Space bar shortcut
 - **Internationalization** – Full i18n support with English, Spanish, French, and German translations
 - ~~**Auto-update system**~~ *(removed in 0.2.2)*
@@ -234,9 +239,8 @@ All notable changes to Deezy are documented here.
 ### Fixed
 
 - **Startup blank screen** – Added safer i18n bootstrap with a default locale before first render to reduce early `svelte-i18n` timing crashes
-- **Lyrics availability handling** – Treat Deezer `"No lyrics id ..."` responses as a normal no-lyrics case (instead of surfacing a hard backend error)
 - **Sensitive log output** – Redacted sensitive auth values from backend logs (no raw ARL/CSRF/token values printed) to reduce session-information exposure
 - **Startup render timing** – Gate app content rendering until initial settings/i18n/theme bootstrap flow completes to improve first-launch reliability
-- **Svelte a11y warnings** – Resolved modal, icon-button, and form association warnings across Update, Export History, Lyrics, Theme Manager, and Mini Player components
+- **Svelte a11y warnings** – Resolved modal, icon-button, and form association warnings across Update, Export History, Theme Manager, and Mini Player components
 - **Quality fallback transparency** – Download history now stores and displays requested quality vs actual downloaded quality when fallback occurs
 - **Free tier quality restrictions** – Detect Deezer Free accounts and restrict Settings quality options to MP3 128 kbps (disable MP3 320/FLAC options)

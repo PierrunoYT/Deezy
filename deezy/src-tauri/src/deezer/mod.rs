@@ -645,21 +645,6 @@ impl DeezerClient {
         Ok(bytes.to_vec())
     }
 
-    pub async fn get_track_lyrics(&self, track_id: &str) -> Result<Value, String> {
-        let params = serde_json::json!({ "SNG_ID": track_id });
-        match self.api_call("song.getLyrics", Some(params)).await {
-            Ok(data) => Ok(data["results"].clone()),
-            Err(err) => {
-                // Some tracks have no lyrics in specific regions/accounts.
-                // Treat this as a normal "no lyrics available" case instead of an error.
-                if err.to_lowercase().contains("no lyrics id") {
-                    return Ok(serde_json::json!({}));
-                }
-                Err(err)
-            }
-        }
-    }
-
     async fn get_media_url(
         &self,
         track_token: &str,

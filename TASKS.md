@@ -62,7 +62,7 @@
 - [x] Search history / recent searches
 
 ### Low Priority
-- [x] Lyrics view (backend `song.getLyrics` already exists)
+- [x] ~~Lyrics view~~ (removed due to poor availability)
 - [x] Audio preview / playback
 - [x] Localization / i18n
 - [x] ~~Auto-update mechanism~~ (removed)
@@ -70,11 +70,12 @@
 - [x] Export download history as CSV/JSON
 - [x] Custom CSS theme support
 - [x] Fix i18n startup race causing blank/black UI before locale initialization
-- [x] Handle unavailable lyrics (`No lyrics id`) gracefully without surfacing backend errors
+- [x] ~~Handle unavailable lyrics (`No lyrics id`) gracefully without surfacing backend errors~~ (lyrics feature removed)
 - [x] Remove sensitive auth/session values from backend terminal logs
 - [x] Fix startup first-launch blank state by gating page render until app bootstrap completes
-- [x] Resolve Svelte accessibility warnings in ExportHistoryModal, LyricsModal, ThemeManager, and MiniPlayer
+- [x] Resolve Svelte accessibility warnings in ExportHistoryModal, ThemeManager, and MiniPlayer
 - [x] Show requested vs actual download quality in history/status when fallback happens
+- [x] Remove lyrics feature due to poor availability from Deezer API
 - [x] Restrict quality selector for Deezer Free accounts to MP3 128 kbps
 - [x] Enforce minimum TLS 1.2 and HTTPS-only on HTTP client
 - [x] Remove overly broad `process:default` capability

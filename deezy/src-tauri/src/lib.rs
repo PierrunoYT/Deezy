@@ -72,7 +72,6 @@ pub fn run() {
             commands::save_download_history,
             commands::load_download_history,
             commands::export_download_history,
-            commands::get_track_lyrics,
             commands::add_search_history,
             commands::get_search_history,
             commands::clear_search_history,

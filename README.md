@@ -35,7 +35,6 @@ A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [Sve
 - **Multi-tab search** – Find tracks, albums, artists, or playlists with debounced search and rate limiting (2 req/s)
 - **Artist browsing** – Click any artist name to open their full discography, or use the Artists tab to search directly
 - **Search history** – Recent searches dropdown (up to 20 items) with one-click re-search and privacy controls
-- **Lyrics viewer** – View track lyrics in a beautiful modal with synced/plain text support and graceful fallback
 - **Audio preview** – Play 30-second previews with mini player, seek bar, volume control, and Space bar shortcut
 
 ### Downloads
@@ -123,12 +122,11 @@ The built application will be in `src-tauri/target/release/bundle/`.
 2. **Search** – Switch to Search (Ctrl+1), type a query, and hit Enter or wait for debounced search
 3. **Browse** – Toggle between **Tracks**, **Albums**, **Artists**, and **Playlists** tabs to explore different content types
 4. **Preview** – Click the play button (▶) to preview tracks before downloading; use Space bar to play/pause
-5. **View Lyrics** – Click the lyrics button (📄) to view song lyrics in a modal (when available)
-6. **Download** – Click download button on a track, or **Download All** on an album to queue all tracks
-7. **Manage Queue** – Drag to reorder pending downloads, pause/resume active ones, or remove items
-8. **Monitor** – Switch to Downloads (Ctrl+2) to see real-time progress, retry failures, and export history
-9. **Customize** – Choose themes, languages, folder structure, notifications, and shortcuts in Settings (Ctrl+3 or Ctrl+,)
-10. **System Tray** – Minimize to tray (Ctrl+H) for background downloads; double-click tray icon to restore window
+5. **Download** – Click download button on a track, or **Download All** on an album to queue all tracks
+6. **Manage Queue** – Drag to reorder pending downloads, pause/resume active ones, or remove items
+7. **Monitor** – Switch to Downloads (Ctrl+2) to see real-time progress, retry failures, and export history
+8. **Customize** – Choose themes, languages, folder structure, notifications, and shortcuts in Settings (Ctrl+3 or Ctrl+,)
+9. **System Tray** – Minimize to tray (Ctrl+H) for background downloads; double-click tray icon to restore window
 
 ## Tech Stack
 
