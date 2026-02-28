@@ -2,6 +2,8 @@
 
 ## ✅ Done
 
+- [x] README: Added account blocking risk warning (users reported account suspensions from similar tools)
+
 - [x] Migrate from Python CLI to Tauri + SvelteKit desktop app
 - [x] Rust backend: Deezer API client (login, search, track metadata)
 - [x] Rust backend: Blowfish CBC decryption for track downloads

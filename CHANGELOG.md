@@ -6,6 +6,7 @@ All notable changes to Deezy are documented here.
 
 ### Documentation
 
+- **README**: Added account blocking risk warning — users have reported account suspensions when using similar tools
 - **README**: Added Discord server badge and link (`https://discord.gg/dvuWBeXSf3`)
 - **README**: Added links to FAQ, Changelog, and LICENSE in a new "Additional Resources" section
 - **FAQ.md**: Added new FAQ document covering security, downloads, setup, troubleshooting, and legal questions
