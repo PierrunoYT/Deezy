@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 pub struct UserInfo {
     pub id: u64,
     pub name: String,
-    pub image: String,
+    pub image: Option<String>,
     pub is_free_account: bool,
 }
 

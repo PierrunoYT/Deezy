@@ -107,17 +107,16 @@ impl DeezerClient {
             .unwrap_or("");
 
         // Deezer uses a 32-char MD5 hash for USER_PICTURE.
-        // An empty or all-zeros hash means the user has no custom picture;
-        // still build a valid CDN URL so the browser doesn't show a broken image.
-        let hash = if picture.is_empty() || picture.chars().all(|c| c == '0') {
-            "00000000000000000000000000000000"
+        // An empty or all-zeros hash means the user has no custom picture.
+        // Return None so the frontend shows the fallback avatar icon.
+        let image = if picture.is_empty() || picture.chars().all(|c| c == '0') {
+            None
         } else {
-            picture
+            Some(format!(
+                "https://e-cdns-images.dzcdn.net/images/user/{}/250x250-000000-80-0-0.jpg",
+                picture
+            ))
         };
-        let image = format!(
-            "https://e-cdns-images.dzcdn.net/images/user/{}/250x250-000000-80-0-0.jpg",
-            hash
-        );
 
         let offer_name = results["OFFER_NAME"]
             .as_str()

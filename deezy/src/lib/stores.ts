@@ -7,7 +7,7 @@ export type QualityOption = 'MP3_128' | 'MP3_320' | 'FLAC';
 export interface UserInfo {
   id: number;
   name: string;
-  image: string;
+  image: string | null;
   is_free_account?: boolean;
 }
 

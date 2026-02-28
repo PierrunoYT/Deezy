@@ -2,6 +2,7 @@
 
 ## ✅ Done
 
+- [x] Fix user profile image not loading when user has no custom avatar on Deezer (now returns None instead of broken CDN URL)
 - [x] README: Added account blocking risk warning (users reported account suspensions from similar tools)
 
 - [x] Migrate from Python CLI to Tauri + SvelteKit desktop app

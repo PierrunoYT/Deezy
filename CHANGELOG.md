@@ -4,6 +4,10 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- **User profile image** – Fixed profile image not loading when user has no custom avatar on Deezer; now properly displays fallback avatar icon instead of attempting to load broken CDN URL with all-zero hash
+
 ## [0.2.9] - 2026-02-28
 
 ### Removed
