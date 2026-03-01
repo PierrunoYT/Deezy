@@ -8,6 +8,10 @@ All notable changes to Deezy are documented here.
 
 - **User profile image** – Fixed profile image not loading when user has no custom avatar on Deezer; now properly displays fallback avatar icon instead of attempting to load broken CDN URL with all-zero hash
 
+### Chores
+
+- Removed `TASKS.md` from version control and added it to `.gitignore`
+
 ## [0.2.9] - 2026-02-28
 
 ### Removed
@@ -191,60 +195,58 @@ All notable changes to Deezy are documented here.
 
 ## [0.1.0] – 2026-02-21
 
+Initial release of Deezy — a modern desktop Deezer downloader built with Tauri 2, SvelteKit 2, Svelte 5, and Rust.
+
 ### Added
 
-- **Tauri desktop app** – Full rewrite from Python CLI to Tauri 2 + SvelteKit 2 + Svelte 5 + Rust
-- **Rust backend** – Deezer API client with ARL-based authentication
-- **Track search** – Debounced search with rate limiting (2 req/s) via Deezer public API
-- **Track download** – Blowfish CBC decryption, quality fallback (FLAC → MP3_320 → MP3_128)
-- **ID3v2.4 tagging** – MP3: title, artist, album, album artist, year, track/disc number, genre, label, and 1000×1000 cover art
-- **FLAC tagging** – Vorbis comments + embedded cover art via metaflac
-- **Download queue** – Up to 3 concurrent downloads with priority sorting
-- **Download progress** – Real-time progress bar via Tauri events, tracked globally in layout
-- **Downloads view** – Full history with cover art, progress bar, and status text
-- **Clear history button** – Reset download history from the Downloads view
-- **Settings view** – ARL token (show/hide), download folder picker, quality selector (MP3 128 / 320 / FLAC)
-- **Settings persistence** – Saved as JSON in app data directory with validation
-- **Auto-login** – Automatically reconnects on app start using saved ARL
-- **CSRF auto-refresh** – Retries download on token expiry
-- **Sidebar navigation** – Search, Downloads, Settings with active download badge
-- **User profile** – Avatar and name displayed in sidebar with fallback icon
-- **Dark theme** – Custom dark UI with purple accent
-- **Rate limiting** – Separate limiters for search (2/s) and download (3/s) operations
-- **Tag error handling** – Non-blocking warnings emitted to frontend when tag writing fails
-- **Album search** – Tracks/Albums tab toggle in search view
-- **Album download** – "Download All" button to batch-queue every track in an album
-- **Artist search** – "Artists" tab in search view with dedicated search functionality via Deezer API
-- **Artist cards grid** – Artist search results displayed in a responsive card grid showing artist photo, album count, and fan count
-- **Artist discography view** – Clicking any artist opens a dedicated page listing all their albums with download buttons
-- **Clickable artist names** – Artist names in track and album rows are now interactive links that navigate to the artist's discography
-- **Back navigation** – Discography page includes a back button to return to search results while preserving the current query
-- **Retry failed downloads** – One-click retry button on errored items in Downloads view
-- **Persistent download history** – Saved to disk and restored on app restart
-- **Drag-and-drop queue reordering** – Reorder pending downloads by dragging items with visual feedback and drag handles
-- **Pause/resume downloads** – Pause active downloads and resume them later with high priority
-- **Folder structure options** – Configure download organization (Flat, Artist/Track, Artist/Album/Track, Album/Track) with automatic directory creation
-- **Theme system** – Light, Dark, and System themes with instant switching and OS theme detection
-- **Keyboard shortcuts** – Comprehensive shortcuts (Ctrl+F for search, Ctrl+1/2/3 for navigation, Escape to clear, Shift+? for help)
-- **Download notifications** – System toast notifications for completed and failed downloads with toggle in settings
-- **Search history** – Recent searches dropdown with click-to-search and privacy toggle
-- ~~**Lyrics viewer**~~ *(removed in Unreleased)*
+#### Core Features
+
+- **Track search** – Search for tracks, albums, and artists via Deezer public API with debounced input and rate limiting
+- **Track download** – Download tracks with Blowfish CBC decryption and automatic quality fallback (FLAC → MP3 320 → MP3 128)
+- **Album browsing & download** – Browse album tracklists and batch-download all tracks with one click
+- **Artist discovery** – Artist search results in a responsive card grid with photo, album count, and fan count; click to view full discography
+- **Playlist search & browsing** – Find and browse playlists, view tracks, and batch-download
 - **Audio preview** – 30-second preview playback with mini player, seek bar, volume control, and Space bar shortcut
-- **Internationalization** – Full i18n support with English, Spanish, French, and German translations
-- ~~**Auto-update system**~~ *(removed in 0.2.2)*
-- **System tray** – Tray icon with menu, minimize to tray, download status, and Ctrl+H shortcut
+
+#### File Management
+
+- **ID3v2.4 tagging** – Automatic MP3 metadata: title, artist, album, album artist, year, track/disc number, genre, label, and 1000×1000 cover art
+- **FLAC tagging** – Vorbis comments and embedded cover art
+- **Folder structure options** – Configurable download organization (Flat, Artist/Track, Artist/Album/Track, Album/Track)
 - **Export history** – Export download history as CSV or JSON with file picker
-- **Custom themes** – Import/export custom theme files with JSON-based color definitions and theme manager UI
 
-### Removed
+#### Download Queue
 
-- Legacy Python CLI (`main.py`, `pydeezer/`, `requirements.txt`)
+- **Concurrent downloads** – Up to 3 simultaneous downloads with priority sorting
+- **Real-time progress** – Live progress bars via Tauri events
+- **Drag-and-drop reordering** – Reorder pending downloads with visual feedback and drag handles
+- **Pause/resume** – Pause active downloads and resume later with high priority
+- **Retry failed downloads** – One-click retry on errored items
+- **Persistent history** – Download history saved to disk and restored on app restart
+- **System notifications** – Toast notifications for completed and failed downloads
 
-### Fixed
+#### User Interface
 
-- **Startup blank screen** – Added safer i18n bootstrap with a default locale before first render to reduce early `svelte-i18n` timing crashes
-- **Sensitive log output** – Redacted sensitive auth values from backend logs (no raw ARL/CSRF/token values printed) to reduce session-information exposure
-- **Startup render timing** – Gate app content rendering until initial settings/i18n/theme bootstrap flow completes to improve first-launch reliability
-- **Svelte a11y warnings** – Resolved modal, icon-button, and form association warnings across Update, Export History, Theme Manager, and Mini Player components
-- **Quality fallback transparency** – Download history now stores and displays requested quality vs actual downloaded quality when fallback occurs
-- **Free tier quality restrictions** – Detect Deezer Free accounts and restrict Settings quality options to MP3 128 kbps (disable MP3 320/FLAC options)
+- **Sidebar navigation** – Search, Downloads, and Settings views with active download badge
+- **User profile** – Avatar and name displayed in sidebar after login
+- **Theme system** – Light, Dark, and System themes with instant switching and OS theme detection
+- **Custom themes** – Import/export custom theme files with JSON-based color definitions and theme manager
+- **Keyboard shortcuts** – Ctrl+F for search, Ctrl+1/2/3 for navigation, Escape to clear, Shift+? for help
+- **Internationalization** – Full i18n support with English, Spanish, French, and German translations
+- **System tray** – Tray icon with menu, minimize to tray, download status, and Ctrl+H shortcut
+
+#### Settings & Security
+
+- **ARL authentication** – Login with Deezer ARL token (show/hide toggle)
+- **Auto-login** – Automatic session reconnect on app start
+- **Download folder picker** – Choose where downloads are saved
+- **Quality selector** – MP3 128 / MP3 320 / FLAC with Free account detection
+- **Settings persistence** – Configuration saved as JSON in app data directory
+- **Search history** – Recent searches dropdown with click-to-search and privacy toggle
+
+#### Backend & Technical
+
+- **Rust backend** – Deezer API client with ARL-based authentication and CSRF auto-refresh
+- **Rate limiting** – Separate limiters for search (2 req/s) and download (3 req/s) operations
+- **Quality fallback transparency** – Download history displays requested vs actual quality when fallback occurs
+- **Non-blocking tag errors** – Warnings emitted to frontend when tag writing fails without blocking downloads
