@@ -147,7 +147,6 @@
       
       theme.set('dark');
       selectedTheme = null;
-      previewTheme = null;
       
       showStatus('Reset to default dark theme', 'success');
     } catch (err) {

@@ -15,6 +15,7 @@ All notable changes to Deezy are documented here.
 
 ### Fixed
 
+- **Theme Manager reset** – Fixed "previewTheme is not defined" error when clicking "Reset to Default Theme" button; removed reference to deleted `previewTheme` variable after refactoring to use `themeDetails` Map
 - **User profile image** – Fixed profile image not loading when user has no custom avatar on Deezer; now properly displays fallback avatar icon instead of attempting to load broken CDN URL with all-zero hash
 
 ### Chores
