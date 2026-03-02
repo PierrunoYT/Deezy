@@ -329,9 +329,6 @@
         <div
           class="theme-card"
           class:active={isActive}
-          role="article"
-          tabindex="0"
-          aria-label="Theme {normalizedName}"
         >
           <div class="theme-info">
             <h4>{normalizedName}</h4>
