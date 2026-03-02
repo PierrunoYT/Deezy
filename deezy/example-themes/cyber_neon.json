@@ -1,0 +1,23 @@
+{
+  "name": "Cyber Neon",
+  "author": "Deezy Team",
+  "description": "A futuristic cyberpunk theme with electric neon accents",
+  "version": "1.0.0",
+  "colors": {
+    "bg-darkest": "#0a0a1a",
+    "bg-dark": "#0f0f29",
+    "bg-surface": "#161638",
+    "bg-elevated": "#1d1d47",
+    "bg-hover": "#242456",
+    "accent": "#00ffff",
+    "accent-hover": "#5dffff",
+    "accent-dim": "rgba(0, 255, 255, 0.15)",
+    "text-primary": "#f0ffff",
+    "text-secondary": "#b8e6e6",
+    "text-tertiary": "#7a9999",
+    "success": "#00ff88",
+    "error": "#ff0055",
+    "warning": "#ffaa00",
+    "border": "#00ffff"
+  }
+}

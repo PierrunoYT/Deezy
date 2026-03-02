@@ -1,0 +1,23 @@
+{
+  "name": "Ocean Teal",
+  "author": "Deezy Team",
+  "description": "A refreshing teal theme inspired by tropical ocean waters",
+  "version": "1.0.0",
+  "colors": {
+    "bg-darkest": "#0a1a1a",
+    "bg-dark": "#0f2929",
+    "bg-surface": "#163838",
+    "bg-elevated": "#1d4747",
+    "bg-hover": "#245656",
+    "accent": "#14b8a6",
+    "accent-hover": "#2dd4bf",
+    "accent-dim": "rgba(20, 184, 166, 0.15)",
+    "text-primary": "#f0ffff",
+    "text-secondary": "#b8d9d9",
+    "text-tertiary": "#7a9494",
+    "success": "#10b981",
+    "error": "#ef4444",
+    "warning": "#f59e0b",
+    "border": "#245656"
+  }
+}

@@ -55,7 +55,7 @@ A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [Sve
 ### Customization
 - **Theme system** – Light, Dark, and System themes with instant switching and OS theme detection
 - **Custom themes** – Import/export custom theme files with JSON-based color definitions and theme manager UI
-- **Example themes** – Three built-in custom themes (Sunset Orange, Forest Green, Midnight Blue)
+- **Example themes** – Eleven built-in custom themes (Midnight Blue, Forest Green, Sunset Orange, Purple Haze, Ocean Teal, Crimson Red, Golden Amber, Rose Pink, Slate Gray, Cherry Blossom, Cyber Neon) covering a wide range of color palettes and aesthetics
 - **Internationalization** – Full i18n support with English, Spanish, French, German, Portuguese, and Italian translations
 - **Notifications** – System toast notifications for completed/failed downloads (reliable toggle with single-fire state change)
 - **Keyboard shortcuts** – Comprehensive shortcuts (Ctrl+F search, Ctrl+1/2/3 navigation, Escape, Space, Shift+?, Ctrl+H minimize, Ctrl+,)

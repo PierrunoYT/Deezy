@@ -31,7 +31,7 @@
   
   let customThemes = $state<string[]>([]);
   let selectedTheme = $state<string | null>(null);
-  let previewTheme = $state<CustomTheme | null>(null);
+  let themeDetails = $state<Map<string, CustomTheme>>(new Map());
   let loading = $state(false);
   let statusMsg = $state('');
   let statusType = $state<'success' | 'error' | 'info'>('info');
@@ -51,9 +51,25 @@
   async function loadCustomThemes(): Promise<void> {
     try {
       customThemes = await invoke<string[]>('list_custom_themes');
+      await loadAllThemeDetails();
     } catch (err) {
       console.error('Failed to load custom themes:', err);
     }
+  }
+
+  async function loadAllThemeDetails(): Promise<void> {
+    const newDetails = new Map<string, CustomTheme>();
+    await Promise.all(
+      customThemes.map(async (themeName) => {
+        try {
+          const theme = await invoke<CustomTheme>('load_custom_theme', { themeName });
+          newDetails.set(themeName, theme);
+        } catch (err) {
+          console.error(`Failed to load theme ${themeName}:`, err);
+        }
+      })
+    );
+    themeDetails = newDetails;
   }
   
   async function loadCurrentTheme(): Promise<void> {
@@ -61,19 +77,9 @@
       const settings: any = await invoke('get_settings');
       if (settings.custom_theme) {
         selectedTheme = settings.custom_theme;
-        await loadThemePreview(settings.custom_theme);
       }
     } catch (err) {
       console.error('Failed to load current theme:', err);
-    }
-  }
-  
-  async function loadThemePreview(themeName: string): Promise<void> {
-    try {
-      previewTheme = await invoke<CustomTheme>('load_custom_theme', { themeName });
-    } catch (err) {
-      console.error('Failed to load theme preview:', err);
-      previewTheme = null;
     }
   }
   
@@ -224,7 +230,7 @@
     try {
       await invoke('create_example_themes');
       await loadCustomThemes();
-      showStatus('Example themes created successfully', 'success');
+      showStatus('Example themes added successfully', 'success');
     } catch (err) {
       showStatus(`Failed to create example themes: ${err}`, 'error');
     } finally {
@@ -320,24 +326,23 @@
       {#each customThemes as themeName (themeName)}
         {@const isActive = isThemeActive(themeName)}
         {@const normalizedName = normalizeThemeName(themeName)}
+        {@const themeData = themeDetails.get(themeName)}
         <div
           class="theme-card"
           class:active={isActive}
-          onmouseenter={() => loadThemePreview(themeName)}
-          onfocus={() => loadThemePreview(themeName)}
           role="article"
           tabindex="0"
-          aria-label="Preview theme {normalizedName}"
+          aria-label="Theme {normalizedName}"
         >
           <div class="theme-info">
             <h4>{normalizedName}</h4>
-            {#if previewTheme && previewTheme.name.toLowerCase().replace(/\s+/g, '_') === themeName}
-              <p class="theme-description">{previewTheme.description || 'Custom theme'}</p>
-              {#if previewTheme.author}
-                <p class="theme-author">by {previewTheme.author}</p>
+            {#if themeData}
+              <p class="theme-description">{themeData.description || 'Custom theme'}</p>
+              {#if themeData.author}
+                <p class="theme-author">by {themeData.author}</p>
               {/if}
               <div class="color-preview" role="img" aria-label="Theme color palette">
-                {#each getColorPreview(previewTheme.colors) as color, index (color + index)}
+                {#each getColorPreview(themeData.colors) as color, index (color + index)}
                   <div class="color-swatch" style="background-color: {color}" title={color}></div>
                 {/each}
               </div>

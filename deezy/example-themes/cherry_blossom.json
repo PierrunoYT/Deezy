@@ -1,0 +1,23 @@
+{
+  "name": "Cherry Blossom",
+  "author": "Deezy Team",
+  "description": "A delicate theme inspired by Japanese cherry blossoms in spring",
+  "version": "1.0.0",
+  "colors": {
+    "bg-darkest": "#1a0f14",
+    "bg-dark": "#291a1f",
+    "bg-surface": "#38242b",
+    "bg-elevated": "#472e37",
+    "bg-hover": "#563843",
+    "accent": "#fb7185",
+    "accent-hover": "#fda4af",
+    "accent-dim": "rgba(251, 113, 133, 0.15)",
+    "text-primary": "#fff5f7",
+    "text-secondary": "#fecdd3",
+    "text-tertiary": "#9f8a8e",
+    "success": "#1db954",
+    "error": "#ff5757",
+    "warning": "#ffb347",
+    "border": "#563843"
+  }
+}

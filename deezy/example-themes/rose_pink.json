@@ -1,0 +1,23 @@
+{
+  "name": "Rose Pink",
+  "author": "Deezy Team",
+  "description": "A soft pink theme with elegant, romantic aesthetics",
+  "version": "1.0.0",
+  "colors": {
+    "bg-darkest": "#1a0a14",
+    "bg-dark": "#290f1f",
+    "bg-surface": "#38162b",
+    "bg-elevated": "#471d37",
+    "bg-hover": "#562443",
+    "accent": "#ec4899",
+    "accent-hover": "#f472b6",
+    "accent-dim": "rgba(236, 72, 153, 0.15)",
+    "text-primary": "#fff0f8",
+    "text-secondary": "#d9b8cc",
+    "text-tertiary": "#947a88",
+    "success": "#1db954",
+    "error": "#ff5757",
+    "warning": "#ffb347",
+    "border": "#562443"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "Slate Gray",
+  "author": "Deezy Team",
+  "description": "A professional gray theme with modern, minimalist design",
+  "version": "1.0.0",
+  "colors": {
+    "bg-darkest": "#0f1419",
+    "bg-dark": "#1a1f29",
+    "bg-surface": "#242b38",
+    "bg-elevated": "#2e3747",
+    "bg-hover": "#384356",
+    "accent": "#64748b",
+    "accent-hover": "#94a3b8",
+    "accent-dim": "rgba(100, 116, 139, 0.15)",
+    "text-primary": "#f1f5f9",
+    "text-secondary": "#cbd5e1",
+    "text-tertiary": "#94a3b8",
+    "success": "#1db954",
+    "error": "#ff5757",
+    "warning": "#ffb347",
+    "border": "#384356"
+  }
+}

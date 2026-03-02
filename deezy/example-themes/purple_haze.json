@@ -1,0 +1,23 @@
+{
+  "name": "Purple Haze",
+  "author": "Deezy Team",
+  "description": "A vibrant purple theme with dreamy, mystical vibes",
+  "version": "1.0.0",
+  "colors": {
+    "bg-darkest": "#0f0a1a",
+    "bg-dark": "#1a0f29",
+    "bg-surface": "#251638",
+    "bg-elevated": "#301d47",
+    "bg-hover": "#3b2456",
+    "accent": "#a855f7",
+    "accent-hover": "#c084fc",
+    "accent-dim": "rgba(168, 85, 247, 0.15)",
+    "text-primary": "#f5f0ff",
+    "text-secondary": "#c9b8d9",
+    "text-tertiary": "#8b7a94",
+    "success": "#1db954",
+    "error": "#ff5757",
+    "warning": "#ffb347",
+    "border": "#3b2456"
+  }
+}

@@ -296,5 +296,214 @@ pub fn create_example_themes(app: &tauri::AppHandle) -> Result<(), String> {
 
     save_custom_theme(app, &sunset_orange)?;
 
+    // Purple Haze theme
+    let purple_haze = CustomTheme {
+        name: "Purple Haze".to_string(),
+        author: Some("Deezy Team".to_string()),
+        description: Some("A vibrant purple theme with dreamy, mystical vibes".to_string()),
+        version: "1.0.0".to_string(),
+        colors: ThemeColors {
+            bg_darkest: "#0f0a1a".to_string(),
+            bg_dark: "#1a0f29".to_string(),
+            bg_surface: "#251638".to_string(),
+            bg_elevated: "#301d47".to_string(),
+            bg_hover: "#3b2456".to_string(),
+            accent: "#a855f7".to_string(),
+            accent_hover: "#c084fc".to_string(),
+            accent_dim: "rgba(168, 85, 247, 0.15)".to_string(),
+            text_primary: "#f5f0ff".to_string(),
+            text_secondary: "#c9b8d9".to_string(),
+            text_tertiary: "#8b7a94".to_string(),
+            success: "#1db954".to_string(),
+            error: "#ff5757".to_string(),
+            warning: "#ffb347".to_string(),
+            border: "#3b2456".to_string(),
+        },
+    };
+
+    // Ocean Teal theme
+    let ocean_teal = CustomTheme {
+        name: "Ocean Teal".to_string(),
+        author: Some("Deezy Team".to_string()),
+        description: Some("A refreshing teal theme inspired by tropical ocean waters".to_string()),
+        version: "1.0.0".to_string(),
+        colors: ThemeColors {
+            bg_darkest: "#0a1a1a".to_string(),
+            bg_dark: "#0f2929".to_string(),
+            bg_surface: "#163838".to_string(),
+            bg_elevated: "#1d4747".to_string(),
+            bg_hover: "#245656".to_string(),
+            accent: "#14b8a6".to_string(),
+            accent_hover: "#2dd4bf".to_string(),
+            accent_dim: "rgba(20, 184, 166, 0.15)".to_string(),
+            text_primary: "#f0ffff".to_string(),
+            text_secondary: "#b8d9d9".to_string(),
+            text_tertiary: "#7a9494".to_string(),
+            success: "#10b981".to_string(),
+            error: "#ef4444".to_string(),
+            warning: "#f59e0b".to_string(),
+            border: "#245656".to_string(),
+        },
+    };
+
+    // Crimson Red theme
+    let crimson_red = CustomTheme {
+        name: "Crimson Red".to_string(),
+        author: Some("Deezy Team".to_string()),
+        description: Some("A bold red theme with intense, passionate energy".to_string()),
+        version: "1.0.0".to_string(),
+        colors: ThemeColors {
+            bg_darkest: "#1a0a0a".to_string(),
+            bg_dark: "#290f0f".to_string(),
+            bg_surface: "#381616".to_string(),
+            bg_elevated: "#471d1d".to_string(),
+            bg_hover: "#562424".to_string(),
+            accent: "#ef4444".to_string(),
+            accent_hover: "#f87171".to_string(),
+            accent_dim: "rgba(239, 68, 68, 0.15)".to_string(),
+            text_primary: "#fff0f0".to_string(),
+            text_secondary: "#d9b8b8".to_string(),
+            text_tertiary: "#947a7a".to_string(),
+            success: "#1db954".to_string(),
+            error: "#dc2626".to_string(),
+            warning: "#ffb347".to_string(),
+            border: "#562424".to_string(),
+        },
+    };
+
+    // Golden Amber theme
+    let golden_amber = CustomTheme {
+        name: "Golden Amber".to_string(),
+        author: Some("Deezy Team".to_string()),
+        description: Some("A luxurious golden theme with warm, rich amber tones".to_string()),
+        version: "1.0.0".to_string(),
+        colors: ThemeColors {
+            bg_darkest: "#1a140a".to_string(),
+            bg_dark: "#291f0f".to_string(),
+            bg_surface: "#382b16".to_string(),
+            bg_elevated: "#47371d".to_string(),
+            bg_hover: "#564324".to_string(),
+            accent: "#f59e0b".to_string(),
+            accent_hover: "#fbbf24".to_string(),
+            accent_dim: "rgba(245, 158, 11, 0.15)".to_string(),
+            text_primary: "#fffaf0".to_string(),
+            text_secondary: "#d9c9b8".to_string(),
+            text_tertiary: "#94887a".to_string(),
+            success: "#1db954".to_string(),
+            error: "#ff5757".to_string(),
+            warning: "#fb923c".to_string(),
+            border: "#564324".to_string(),
+        },
+    };
+
+    // Rose Pink theme
+    let rose_pink = CustomTheme {
+        name: "Rose Pink".to_string(),
+        author: Some("Deezy Team".to_string()),
+        description: Some("A soft pink theme with elegant, romantic aesthetics".to_string()),
+        version: "1.0.0".to_string(),
+        colors: ThemeColors {
+            bg_darkest: "#1a0a14".to_string(),
+            bg_dark: "#290f1f".to_string(),
+            bg_surface: "#38162b".to_string(),
+            bg_elevated: "#471d37".to_string(),
+            bg_hover: "#562443".to_string(),
+            accent: "#ec4899".to_string(),
+            accent_hover: "#f472b6".to_string(),
+            accent_dim: "rgba(236, 72, 153, 0.15)".to_string(),
+            text_primary: "#fff0f8".to_string(),
+            text_secondary: "#d9b8cc".to_string(),
+            text_tertiary: "#947a88".to_string(),
+            success: "#1db954".to_string(),
+            error: "#ff5757".to_string(),
+            warning: "#ffb347".to_string(),
+            border: "#562443".to_string(),
+        },
+    };
+
+    // Slate Gray theme
+    let slate_gray = CustomTheme {
+        name: "Slate Gray".to_string(),
+        author: Some("Deezy Team".to_string()),
+        description: Some("A professional gray theme with modern, minimalist design".to_string()),
+        version: "1.0.0".to_string(),
+        colors: ThemeColors {
+            bg_darkest: "#0f1419".to_string(),
+            bg_dark: "#1a1f29".to_string(),
+            bg_surface: "#242b38".to_string(),
+            bg_elevated: "#2e3747".to_string(),
+            bg_hover: "#384356".to_string(),
+            accent: "#64748b".to_string(),
+            accent_hover: "#94a3b8".to_string(),
+            accent_dim: "rgba(100, 116, 139, 0.15)".to_string(),
+            text_primary: "#f1f5f9".to_string(),
+            text_secondary: "#cbd5e1".to_string(),
+            text_tertiary: "#94a3b8".to_string(),
+            success: "#1db954".to_string(),
+            error: "#ff5757".to_string(),
+            warning: "#ffb347".to_string(),
+            border: "#384356".to_string(),
+        },
+    };
+
+    // Cherry Blossom theme
+    let cherry_blossom = CustomTheme {
+        name: "Cherry Blossom".to_string(),
+        author: Some("Deezy Team".to_string()),
+        description: Some("A delicate theme inspired by Japanese cherry blossoms in spring".to_string()),
+        version: "1.0.0".to_string(),
+        colors: ThemeColors {
+            bg_darkest: "#1a0f14".to_string(),
+            bg_dark: "#291a1f".to_string(),
+            bg_surface: "#38242b".to_string(),
+            bg_elevated: "#472e37".to_string(),
+            bg_hover: "#563843".to_string(),
+            accent: "#fb7185".to_string(),
+            accent_hover: "#fda4af".to_string(),
+            accent_dim: "rgba(251, 113, 133, 0.15)".to_string(),
+            text_primary: "#fff5f7".to_string(),
+            text_secondary: "#fecdd3".to_string(),
+            text_tertiary: "#9f8a8e".to_string(),
+            success: "#1db954".to_string(),
+            error: "#ff5757".to_string(),
+            warning: "#ffb347".to_string(),
+            border: "#563843".to_string(),
+        },
+    };
+
+    // Cyber Neon theme
+    let cyber_neon = CustomTheme {
+        name: "Cyber Neon".to_string(),
+        author: Some("Deezy Team".to_string()),
+        description: Some("A futuristic cyberpunk theme with electric neon accents".to_string()),
+        version: "1.0.0".to_string(),
+        colors: ThemeColors {
+            bg_darkest: "#0a0a1a".to_string(),
+            bg_dark: "#0f0f29".to_string(),
+            bg_surface: "#161638".to_string(),
+            bg_elevated: "#1d1d47".to_string(),
+            bg_hover: "#242456".to_string(),
+            accent: "#00ffff".to_string(),
+            accent_hover: "#5dffff".to_string(),
+            accent_dim: "rgba(0, 255, 255, 0.15)".to_string(),
+            text_primary: "#f0ffff".to_string(),
+            text_secondary: "#b8e6e6".to_string(),
+            text_tertiary: "#7a9999".to_string(),
+            success: "#00ff88".to_string(),
+            error: "#ff0055".to_string(),
+            warning: "#ffaa00".to_string(),
+            border: "#00ffff".to_string(),
+        },
+    };
+
+    save_custom_theme(app, &purple_haze)?;
+    save_custom_theme(app, &ocean_teal)?;
+    save_custom_theme(app, &crimson_red)?;
+    save_custom_theme(app, &golden_amber)?;
+    save_custom_theme(app, &rose_pink)?;
+    save_custom_theme(app, &slate_gray)?;
+    save_custom_theme(app, &cherry_blossom)?;
+    save_custom_theme(app, &cyber_neon)?;
+
     Ok(())
 }

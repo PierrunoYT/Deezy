@@ -4,6 +4,15 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **Example themes** – Added 8 new example themes to the collection: Purple Haze (vibrant purple), Ocean Teal (tropical teal), Crimson Red (bold red), Golden Amber (luxurious gold), Rose Pink (soft pink), Slate Gray (professional gray), Cherry Blossom (delicate pink), and Cyber Neon (futuristic cyan). Total of 11 example themes now available for import
+
+### Improved
+
+- **Theme Manager UI** – Theme cards now always display description, author, and color palette preview instead of only showing on hover; all theme details are loaded upfront for better browsing experience
+- **Theme creation backend** – Updated `create_example_themes` command to include all 11 themes (previously only created 3 of the 11 available themes)
+
 ### Fixed
 
 - **User profile image** – Fixed profile image not loading when user has no custom avatar on Deezer; now properly displays fallback avatar icon instead of attempting to load broken CDN URL with all-zero hash

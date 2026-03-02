@@ -1,0 +1,23 @@
+{
+  "name": "Crimson Red",
+  "author": "Deezy Team",
+  "description": "A bold red theme with intense, passionate energy",
+  "version": "1.0.0",
+  "colors": {
+    "bg-darkest": "#1a0a0a",
+    "bg-dark": "#290f0f",
+    "bg-surface": "#381616",
+    "bg-elevated": "#471d1d",
+    "bg-hover": "#562424",
+    "accent": "#ef4444",
+    "accent-hover": "#f87171",
+    "accent-dim": "rgba(239, 68, 68, 0.15)",
+    "text-primary": "#fff0f0",
+    "text-secondary": "#d9b8b8",
+    "text-tertiary": "#947a7a",
+    "success": "#1db954",
+    "error": "#dc2626",
+    "warning": "#ffb347",
+    "border": "#562424"
+  }
+}

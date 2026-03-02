@@ -28,6 +28,70 @@ A warm orange theme inspired by beautiful sunsets. Brings warmth and energy to y
 - Bright orange accent (#ff7b3d)
 - Warm white text (#fff5f0)
 
+### Purple Haze (`purple_haze.json`)
+A vibrant purple theme with dreamy, mystical vibes. Perfect for those who love rich, royal colors.
+
+**Color Palette:**
+- Deep purple backgrounds (#0f0a1a to #3b2456)
+- Vibrant purple accent (#a855f7)
+- Soft lavender text (#f5f0ff)
+
+### Ocean Teal (`ocean_teal.json`)
+A refreshing teal theme inspired by tropical ocean waters. Brings a cool, calming atmosphere.
+
+**Color Palette:**
+- Dark teal backgrounds (#0a1a1a to #245656)
+- Bright teal accent (#14b8a6)
+- Cool white text (#f0ffff)
+
+### Crimson Red (`crimson_red.json`)
+A bold red theme with intense, passionate energy. For users who want a striking, powerful look.
+
+**Color Palette:**
+- Dark red backgrounds (#1a0a0a to #562424)
+- Bright red accent (#ef4444)
+- Warm white text (#fff0f0)
+
+### Golden Amber (`golden_amber.json`)
+A luxurious golden theme with warm, rich amber tones. Exudes elegance and sophistication.
+
+**Color Palette:**
+- Dark amber backgrounds (#1a140a to #564324)
+- Golden accent (#f59e0b)
+- Warm cream text (#fffaf0)
+
+### Rose Pink (`rose_pink.json`)
+A soft pink theme with elegant, romantic aesthetics. Gentle on the eyes with a touch of charm.
+
+**Color Palette:**
+- Dark rose backgrounds (#1a0a14 to #562443)
+- Bright pink accent (#ec4899)
+- Soft pink text (#fff0f8)
+
+### Slate Gray (`slate_gray.json`)
+A professional gray theme with modern, minimalist design. Clean and focused for productivity.
+
+**Color Palette:**
+- Dark slate backgrounds (#0f1419 to #384356)
+- Cool gray accent (#64748b)
+- Crisp white text (#f1f5f9)
+
+### Cherry Blossom (`cherry_blossom.json`)
+A delicate theme inspired by Japanese cherry blossoms in spring. Soft and serene.
+
+**Color Palette:**
+- Dark rose backgrounds (#1a0f14 to #563843)
+- Soft coral accent (#fb7185)
+- Delicate pink text (#fff5f7)
+
+### Cyber Neon (`cyber_neon.json`)
+A futuristic cyberpunk theme with electric neon accents. Bold and eye-catching for a sci-fi aesthetic.
+
+**Color Palette:**
+- Deep dark backgrounds (#0a0a1a to #242456)
+- Electric cyan accent (#00ffff)
+- Bright cyan text (#f0ffff)
+
 ## How to Use
 
 ### Method 1: Import via Deezy UI

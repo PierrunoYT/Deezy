@@ -1,0 +1,23 @@
+{
+  "name": "Golden Amber",
+  "author": "Deezy Team",
+  "description": "A luxurious golden theme with warm, rich amber tones",
+  "version": "1.0.0",
+  "colors": {
+    "bg-darkest": "#1a140a",
+    "bg-dark": "#291f0f",
+    "bg-surface": "#382b16",
+    "bg-elevated": "#47371d",
+    "bg-hover": "#564324",
+    "accent": "#f59e0b",
+    "accent-hover": "#fbbf24",
+    "accent-dim": "rgba(245, 158, 11, 0.15)",
+    "text-primary": "#fffaf0",
+    "text-secondary": "#d9c9b8",
+    "text-tertiary": "#94887a",
+    "success": "#1db954",
+    "error": "#ff5757",
+    "warning": "#fb923c",
+    "border": "#564324"
+  }
+}
