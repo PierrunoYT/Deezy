@@ -58,7 +58,7 @@ class NotificationManager {
     if (this.pendingNotifications.length === 0) return;
 
     try {
-      if (this.pendingNotifications.length === 1) {
+      if (this.pendingNotifications.length < BATCH_NOTIFICATION_THRESHOLD) {
         const notif = this.pendingNotifications[0];
         await this.sendNotificationInternal(notif.title, notif.body);
       } else {

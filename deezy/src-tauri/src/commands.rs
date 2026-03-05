@@ -554,8 +554,7 @@ pub async fn show_in_folder(file_path: String) -> Result<(), String> {
         }
 
         Command::new("explorer")
-            .arg("/select,")
-            .arg(windows_path)
+            .arg(format!("/select,{}", windows_path))
             .spawn()
             .map_err(|e| format!("Failed to open Explorer: {}", e))?;
     }

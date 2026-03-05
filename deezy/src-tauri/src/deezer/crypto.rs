@@ -56,7 +56,15 @@ pub fn encrypt_download_url(
     let step1_md5 = format!("{:x}", md5::compute(&step1_bytes));
 
     let step2 = format!("{}{}{}{}", step1_md5, sep, step1, sep);
-    let step2_padded = format!("{:<80}", step2);
+    // Pad to the next multiple of 16 (AES block size) with spaces.
+    // Using a fixed width of 80 is insufficient for track IDs with 10+ digits.
+    let step2_len = step2.chars().count();
+    let padded_len = if step2_len % 16 == 0 {
+        step2_len
+    } else {
+        step2_len + (16 - step2_len % 16)
+    };
+    let step2_padded = format!("{:<width$}", step2, width = padded_len);
     let step2_bytes: Vec<u8> = step2_padded.chars().map(|c| c as u8).collect();
 
     let aes_key = deobfuscate(&AES_KEY);

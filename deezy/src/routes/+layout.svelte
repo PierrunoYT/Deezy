@@ -101,6 +101,7 @@
   let unlistenProgress: UnlistenFn | undefined;
   let saveHistoryTimeout: ReturnType<typeof setTimeout> | undefined;
   let mediaQuery: MediaQueryList | undefined;
+  let systemThemeChangeHandler: (() => void) | undefined;
 
   async function loadDownloadHistory(): Promise<void> {
     try {
@@ -197,7 +198,7 @@
 
   function setupSystemThemeListener(): void {
     mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleSystemThemeChange = () => {
+    systemThemeChangeHandler = () => {
       theme.update(t => {
         if (t === 'system') {
           applyTheme('system');
@@ -205,7 +206,7 @@
         return t;
       });
     };
-    mediaQuery.addEventListener('change', handleSystemThemeChange);
+    mediaQuery.addEventListener('change', systemThemeChangeHandler);
   }
 
   onMount(async () => {
@@ -240,7 +241,9 @@
       unsubscribeHistory();
       unsubscribeTheme();
       unsubscribeLocale();
-      mediaQuery?.removeEventListener('change', () => {});
+      if (mediaQuery && systemThemeChangeHandler) {
+        mediaQuery.removeEventListener('change', systemThemeChangeHandler);
+      }
       if (saveHistoryTimeout) clearTimeout(saveHistoryTimeout);
     };
   });

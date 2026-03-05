@@ -86,11 +86,12 @@ export class KeyboardShortcutsManager {
   private shouldIgnoreInInput(event: KeyboardEvent, target: HTMLElement): boolean {
     if (!this.isInputElement(target)) return false;
 
+    // Always let Escape through so shortcuts like "close modal" still work.
     if (event.key === 'Escape') return false;
-    
-    if (event.key === ' ' && target.tagName === 'INPUT') return true;
-    
-    return event.key !== 'Escape' && event.key !== ' ';
+
+    // Ignore all other keys (including Space) so that typing in any text
+    // field — INPUT, TEXTAREA, or contentEditable — is never hijacked.
+    return true;
   }
 
   private getModifierState(event: KeyboardEvent): ModifierState {

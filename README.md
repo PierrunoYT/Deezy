@@ -76,7 +76,7 @@ A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [Sve
 - **Request resilience** – Deezer HTTP client uses connection/read timeouts to avoid indefinite hangs
 - **Download safety cap** – Per-track download size is capped (1 GiB) to reduce disk exhaustion risk from abnormal streams
 - **Cover-art safety cap** – Album-cover downloads are capped at 10 MiB to reduce memory exhaustion risk
-- **Panic hardening** – Crypto/decryption edge cases return errors instead of panicking (`expect`/unchecked slicing removed from download-critical paths)
+- **Panic hardening** – Crypto/decryption edge cases return errors instead of panicking (`expect`/unchecked slicing removed from download-critical paths); AES encryption buffer is padded to the next multiple of 16 bytes (block size) so `GenericArray::clone_from_slice` never receives a short trailing chunk regardless of track ID length
 - **XSS protection** – All user/API-facing HTML is sanitized; CSP restricts content sources
 - **Path traversal protection** – Theme filenames validated against directory traversal attacks
 - **Filename null-byte sanitization** – Generated filename/path components strip null bytes and reserved characters before writing files
