@@ -10,6 +10,8 @@ class RateLimiter {
   private readonly minInterval: number;
   private readonly callsPerSecond: number;
   private callCount = 0;
+  // Serializes concurrent callers so only one runs at a time through the gate.
+  private queue: Promise<void> = Promise.resolve();
 
   constructor(callsPerSecond: number) {
     if (callsPerSecond <= 0) {
@@ -21,6 +23,14 @@ class RateLimiter {
   }
 
   async throttle(): Promise<void> {
+    // Chain each caller onto the shared queue so concurrent calls are serialized
+    // and each one waits its own minimum interval rather than all reading the
+    // same lastCallTime simultaneously and bypassing the rate limit.
+    this.queue = this.queue.then(() => this.doThrottle());
+    return this.queue;
+  }
+
+  private async doThrottle(): Promise<void> {
     const now = Date.now();
     const timeSinceLastCall = now - this.lastCallTime;
     
@@ -42,6 +52,7 @@ class RateLimiter {
   reset(): void {
     this.lastCallTime = 0;
     this.callCount = 0;
+    this.queue = Promise.resolve();
   }
 
   getCallCount(): number {

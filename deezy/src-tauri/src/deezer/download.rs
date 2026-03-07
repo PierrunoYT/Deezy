@@ -169,28 +169,23 @@ pub async fn download_track(
 
     emit_progress(app, track_id, &full_title, 92.0, "tagging");
 
-    if ext == ".mp3" {
-        if let Err(e) =
-            write_mp3_tags(&download_path, &full_title, &artist, &album_title, track_data, client, &album_id).await
-        {
-            eprintln!("Warning: failed to write tags: {}", e);
-            let _ = app.emit("tag-writing-error", serde_json::json!({
-                "track_id": track_id,
-                "title": full_title,
-                "error": e.to_string()
-            }));
-        }
+    let tag_result = if ext == ".mp3" {
+        write_mp3_tags(&download_path, &full_title, &artist, &album_title, track_data, client, &album_id).await
     } else if ext == ".flac" {
-        if let Err(e) =
-            write_flac_tags(&download_path, &full_title, &artist, &album_title, track_data, client, &album_id).await
-        {
-            eprintln!("Warning: failed to write FLAC tags: {}", e);
-            let _ = app.emit("tag-writing-error", serde_json::json!({
-                "track_id": track_id,
-                "title": full_title,
-                "error": e.to_string()
-            }));
-        }
+        write_flac_tags(&download_path, &full_title, &artist, &album_title, track_data, client, &album_id).await
+    } else {
+        Ok(())
+    };
+
+    if let Err(e) = tag_result {
+        // Tag writing failed — the audio file itself is intact and usable,
+        // so we emit a warning event rather than failing the whole download.
+        eprintln!("Warning: failed to write tags: {}", e);
+        let _ = app.emit("tag-writing-error", serde_json::json!({
+            "track_id": track_id,
+            "title": full_title,
+            "error": e.to_string()
+        }));
     }
 
     emit_progress(app, track_id, &full_title, 100.0, "complete");

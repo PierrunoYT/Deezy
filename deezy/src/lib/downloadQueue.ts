@@ -171,7 +171,9 @@ class DownloadQueueManager {
       return;
     }
 
+    // Increment before try so the finally block only decrements when we incremented.
     this.incrementActiveCount(trackId);
+    let didIncrement = true;
     this.addToHistory(track, trackId);
     this.updateDownloadStatus(trackId, 'downloading');
 
@@ -180,6 +182,8 @@ class DownloadQueueManager {
 
       if (this.isPaused(trackId)) {
         console.log('Track was paused during rate limiting, aborting:', trackId);
+        didIncrement = false;
+        this.decrementActiveCount(trackId);
         return;
       }
 
@@ -187,6 +191,8 @@ class DownloadQueueManager {
       
       if (this.isPaused(trackId)) {
         console.log('Track was paused, not marking as complete:', trackId);
+        didIncrement = false;
+        this.decrementActiveCount(trackId);
         return;
       }
 
@@ -206,6 +212,8 @@ class DownloadQueueManager {
     } catch (err) {
       if (this.isPaused(trackId)) {
         console.log('Download was paused:', trackId);
+        didIncrement = false;
+        this.decrementActiveCount(trackId);
         return;
       }
 
@@ -220,9 +228,11 @@ class DownloadQueueManager {
 
       await notificationManager.notifyDownloadError(track.title, track.artist, String(err));
     } finally {
-      this.decrementActiveCount(trackId);
-      
-      if (get(downloadQueue).length > 0) {
+      if (didIncrement) {
+        this.decrementActiveCount(trackId);
+      }
+
+      if (!this.processing && get(downloadQueue).length > 0) {
         this.processQueue();
       }
     }

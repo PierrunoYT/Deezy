@@ -267,23 +267,25 @@ impl DeezerClient {
         &self,
         album_id: &str,
     ) -> Result<Vec<SearchResult>, String> {
-        let url = format!("{}/album/{}/tracks", LEGACY_API_URL, album_id);
+        let tracks_url = format!("{}/album/{}/tracks", LEGACY_API_URL, album_id);
 
-        let res = self
-            .http
-            .get(&url)
-            .query(&[("limit", "500")])
-            .send()
-            .await
-            .map_err(|e| format!("Failed to get album tracks: {}", e))?;
+        // Fetch tracks and album metadata concurrently.
+        let (tracks_res, album_data) = tokio::try_join!(
+            async {
+                self.http
+                    .get(&tracks_url)
+                    .query(&[("limit", "500")])
+                    .send()
+                    .await
+                    .map_err(|e| format!("Failed to get album tracks: {}", e))?
+                    .json::<Value>()
+                    .await
+                    .map_err(|e| format!("Failed to parse album tracks: {}", e))
+            },
+            self.get_album(album_id),
+        )?;
 
-        let data: Value = res
-            .json()
-            .await
-            .map_err(|e| format!("Failed to parse album tracks: {}", e))?;
-
-        // Get album info for cover art and album title
-        let album_data = self.get_album(album_id).await?;
+        let data = tracks_res;
         let album_title = album_data["title"].as_str().unwrap_or("Unknown").to_string();
         let cover_small = album_data["cover_small"].as_str().unwrap_or("").to_string();
         let cover_medium = album_data["cover_medium"].as_str().unwrap_or("").to_string();

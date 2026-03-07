@@ -35,14 +35,16 @@ pub fn run() {
                 let window_clone = window.clone();
                 window.on_window_event(move |event| {
                     if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                        // Get settings to check if close_to_tray is enabled
+                        // Get settings to check if close_to_tray is enabled.
+                        // Use try_lock to avoid blocking the main thread; if the
+                        // lock is contended, fall through and allow the close.
                         let app_handle = window_clone.app_handle();
                         let state: tauri::State<AppState> = app_handle.state();
                         
-                        let close_to_tray = {
-                            let settings = state.settings.blocking_lock();
-                            settings.close_to_tray
-                        };
+                        let close_to_tray = state.settings
+                            .try_lock()
+                            .map(|s| s.close_to_tray)
+                            .unwrap_or(false);
 
                         if close_to_tray {
                             // Hide window instead of closing

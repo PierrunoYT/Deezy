@@ -2,6 +2,17 @@
 
 All notable changes to Deezy are documented here.
 
+## [0.2.11] - 2026-03-07
+
+### Fixed
+
+- **Active download count going negative** – Fixed a bug in `downloadQueue.ts` where the active download counter could decrement below zero. When a download was paused mid-flight (after `incrementActiveCount` had been called), early-return paths inside the `try`/`catch` blocks did not account for the `finally` block also calling `decrementActiveCount`, resulting in a double-decrement. Added a `didIncrement` flag so `finally` only decrements when the increment actually ran.
+- **Rate limiter race condition with concurrent downloads** – Fixed `RateLimiter.throttle()` in `rateLimiter.ts` where multiple concurrent callers could all read the same `lastCallTime` simultaneously, all conclude no wait was needed, and bypass the rate limit entirely. Calls are now serialized through an internal promise chain so each caller waits its own minimum interval in sequence.
+- **Multiple queue-processing loops racing** – Fixed `downloadQueue.ts` where the `finally` block called `processQueue()` unconditionally, allowing multiple concurrent `downloadTrack` completions to each start a new processing loop. The call is now guarded with `!this.processing` so only one loop runs at a time.
+- **`blocking_lock()` in async context** – Fixed `lib.rs` window close handler using `state.settings.blocking_lock()` inside a Tokio async runtime, which can deadlock if the lock is held by an async task on the same thread. Replaced with `try_lock()`, falling back to allowing the close if the lock is contended.
+- **Duplicate tag-writing error paths** – Consolidated the MP3/FLAC tag-writing error handling in `download.rs` from two identical copy-pasted `if let Err` blocks into a single unified handler, eliminating the duplication.
+- **Album track fetch performance** – `get_album_tracks` in `mod.rs` previously fetched tracks then waited for that to complete before fetching album metadata (cover art, title) in a second sequential HTTP round-trip. Both requests are now issued concurrently with `tokio::try_join!`.
+
 ## [0.2.10] - 2026-03-05
 
 ### Added
