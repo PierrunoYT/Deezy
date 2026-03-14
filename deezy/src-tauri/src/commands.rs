@@ -562,13 +562,29 @@ pub async fn show_in_folder(file_path: String) -> Result<(), String> {
                 .map_err(|e| format!("Failed to get current directory: {}", e))?
                 .join(&path)
         };
-        let mut windows_path = absolute.to_string_lossy().replace('/', "\\");
-        if let Some(stripped) = windows_path.strip_prefix(r"\\?\") {
-            windows_path = stripped.to_string();
+
+        // Open the parent directory directly; this is more reliable than /select
+        // across path formats and still lands users in the song folder.
+        let target_dir = if absolute.is_dir() {
+            absolute
+        } else {
+            absolute
+                .parent()
+                .ok_or("Failed to resolve file parent directory")?
+                .to_path_buf()
+        };
+
+        if !target_dir.exists() {
+            return Err("Target directory not found".to_string());
+        }
+
+        let mut windows_dir = target_dir.to_string_lossy().replace('/', "\\");
+        if let Some(stripped) = windows_dir.strip_prefix(r"\\?\") {
+            windows_dir = stripped.to_string();
         }
 
         Command::new("explorer")
-            .arg(format!("/select,{}", windows_path))
+            .arg(windows_dir)
             .spawn()
             .map_err(|e| format!("Failed to open Explorer: {}", e))?;
     }

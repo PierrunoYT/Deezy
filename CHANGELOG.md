@@ -2,6 +2,14 @@
 
 All notable changes to Deezy are documented here.
 
+## [0.2.13] - 2026-03-14
+
+### Fixed
+
+- **Track URL direct download lookup** – Fixed valid Deezer track URLs showing "Track not found" in the new URL download input. Track handling now uses a dedicated backend `get_track_by_id` command (via `/track/{id}`) instead of relying on `search_tracks("id:...")`, which could fail for valid IDs.
+- **URL download reliability for track links** – Registered the new command in Tauri invoke handler and updated `SearchView.svelte` URL parsing flow to fetch and queue the exact track by ID.
+- **Windows "Show in folder" behavior** – Fixed clicking downloaded track titles opening Documents instead of the song directory. `show_in_folder` now resolves the absolute file path and opens the parent folder directly in Explorer, with safe handling for directory inputs and extended `\\?\` paths.
+
 ## [0.2.12] - 2026-03-14
 
 ### Added
