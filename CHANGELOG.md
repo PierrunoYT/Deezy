@@ -2,6 +2,17 @@
 
 All notable changes to Deezy are documented here.
 
+## [0.2.12] - 2026-03-14
+
+### Added
+
+- **Deezer URL download input** – Added a new URL input section in `SearchView.svelte` that accepts Deezer track, album, artist, and playlist links and routes them through a new backend `parse_deezer_url` command for direct download/queue actions.
+
+### Fixed
+
+- **Frontend type-check regressions** – Resolved TypeScript/Svelte errors introduced during URL parsing integration by aligning quality types with `QualityOption`, typing download progress status as `DownloadStatus`, and fixing invalid `onMount(async () => cleanup)` patterns in `SettingsView.svelte` and `+layout.svelte`.
+- **Sidebar view callback typing** – Updated `+page.svelte` view switching to accept string input from `Sidebar` with a `ViewType` type guard, preventing callback signature mismatch while keeping runtime safety.
+
 ## [0.2.11] - 2026-03-07
 
 ### Fixed
