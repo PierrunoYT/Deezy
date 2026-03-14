@@ -427,13 +427,9 @@
       
       switch (parsed.type) {
         case 'track':
-          const track = await invoke<Track[]>('search_tracks', { query: `id:${parsed.id}` });
-          if (track.length > 0) {
-            await downloadTrack(track[0]);
-            urlInput = '';
-          } else {
-            urlError = 'Track not found';
-          }
+          const track = await invoke<Track>('get_track_by_id', { trackId: parsed.id });
+          await downloadTrack(track);
+          urlInput = '';
           break;
           
         case 'album':

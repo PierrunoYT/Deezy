@@ -61,6 +61,7 @@ pub fn run() {
             commands::login,
             commands::auto_login,
             commands::search_tracks,
+            commands::get_track_by_id,
             commands::search_albums,
             commands::search_artists,
             commands::get_album_tracks,

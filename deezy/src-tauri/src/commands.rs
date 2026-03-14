@@ -84,6 +84,19 @@ pub async fn search_tracks(
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
+pub async fn get_track_by_id(
+    trackId: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<SearchResult, String> {
+    let lock = state.client.lock().await;
+    let client = lock
+        .as_ref()
+        .ok_or("Not logged in. Set your ARL token in Settings.")?;
+    client.get_track_by_id(&trackId).await
+}
+
+#[tauri::command]
 pub async fn search_albums(
     query: String,
     state: tauri::State<'_, AppState>,

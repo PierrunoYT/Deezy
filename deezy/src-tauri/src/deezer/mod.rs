@@ -512,6 +512,48 @@ impl DeezerClient {
         Ok(tracks)
     }
 
+    pub async fn get_track_by_id(&self, track_id: &str) -> Result<SearchResult, String> {
+        let url = format!("{}/track/{}", LEGACY_API_URL, track_id);
+
+        let data: Value = self
+            .http
+            .get(&url)
+            .send()
+            .await
+            .map_err(|e| format!("Failed to get track: {}", e))?
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse track: {}", e))?;
+
+        if let Some(error) = data.get("error") {
+            if let Some(message) = error.get("message").and_then(|m| m.as_str()) {
+                return Err(format!("API error: {}", message));
+            }
+        }
+
+        let id = data["id"]
+            .as_u64()
+            .or_else(|| track_id.parse::<u64>().ok())
+            .ok_or("Track not found")?;
+
+        let title = data["title"].as_str().unwrap_or("").to_string();
+        if title.is_empty() {
+            return Err("Track not found".to_string());
+        }
+
+        Ok(SearchResult {
+            id,
+            title,
+            artist: data["artist"]["name"].as_str().unwrap_or("Unknown").to_string(),
+            artist_id: data["artist"]["id"].as_u64().unwrap_or(0),
+            album: data["album"]["title"].as_str().unwrap_or("Unknown").to_string(),
+            duration: data["duration"].as_u64().unwrap_or(0),
+            cover_small: data["album"]["cover_small"].as_str().unwrap_or("").to_string(),
+            cover_medium: data["album"]["cover_medium"].as_str().unwrap_or("").to_string(),
+            preview: data["preview"].as_str().map(|s| s.to_string()),
+        })
+    }
+
     pub async fn get_track(&self, track_id: &str) -> Result<Value, String> {
         // Use song.getData method like Python version
         let params = serde_json::json!({ "SNG_ID": track_id });
