@@ -31,4 +31,6 @@ id3 = "1"
 metaflac = "0.2"
 image = "0.25"
 keyring = { version = "3", features = ["sync-secret-service", "windows-native"] }
+regex = "1"
+lazy_static = "1.4"
 

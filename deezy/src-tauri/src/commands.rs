@@ -9,6 +9,7 @@ use serde_json::Value;
 use std::process::Command;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_dialog::DialogExt;
+use regex::Regex;
 
 #[tauri::command]
 pub async fn save_download_history(history: Vec<serde_json::Value>, app: AppHandle) -> Result<(), String> {
@@ -581,4 +582,25 @@ pub async fn show_in_folder(file_path: String) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+#[tauri::command]
+pub async fn parse_deezer_url(url: String) -> Result<Value, String> {
+    lazy_static::lazy_static! {
+        static ref DEEZER_URL_REGEX: Regex = Regex::new(
+            r"https?://(?:www\.)?deezer\.com/(?:[a-z]{2}/)?(track|album|artist|playlist)/(\d+)"
+        ).unwrap();
+    }
+
+    if let Some(captures) = DEEZER_URL_REGEX.captures(&url) {
+        let content_type = captures.get(1).unwrap().as_str();
+        let id = captures.get(2).unwrap().as_str();
+        
+        Ok(serde_json::json!({
+            "type": content_type,
+            "id": id
+        }))
+    } else {
+        Err("Invalid Deezer URL format".to_string())
+    }
 }

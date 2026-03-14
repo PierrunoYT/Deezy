@@ -9,15 +9,16 @@ import {
   MAX_CONCURRENT_DOWNLOADS,
   type Track,
   type QueuedDownload,
-  type DownloadItem
+  type DownloadItem,
+  type QualityOption
 } from './stores';
 import { downloadRateLimiter } from './rateLimiter';
 import { notificationManager } from './notifications';
 
 interface DownloadResult {
   file_path: string;
-  requested_quality: string;
-  actual_quality: string;
+  requested_quality: QualityOption;
+  actual_quality: QualityOption;
 }
 
 type DownloadStatus = 'downloading' | 'complete' | 'error' | 'paused' | 'resolving' | 'tagging';

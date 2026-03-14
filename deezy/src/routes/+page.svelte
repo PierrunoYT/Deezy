@@ -30,7 +30,12 @@
     'minimize-to-tray'
   ] as const;
 
-  function switchView(view: ViewType): void {
+  function isViewType(view: string): view is ViewType {
+    return view === 'search' || view === 'downloads' || view === 'settings';
+  }
+
+  function switchView(view: string): void {
+    if (!isViewType(view)) return;
     currentView = view;
   }
 

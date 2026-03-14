@@ -2,7 +2,7 @@
   import { invoke } from '@tauri-apps/api/core';
   import { listen, type UnlistenFn } from '@tauri-apps/api/event';
   import { onMount, onDestroy } from 'svelte';
-  import { downloadHistory, downloads, type DownloadItem } from '$lib/stores';
+  import { downloadHistory, downloads, type DownloadItem, type DownloadStatus } from '$lib/stores';
   import { downloadQueueManager } from '$lib/downloadQueue';
   import QueueView from './QueueView.svelte';
   import ExportHistoryModal from './ExportHistoryModal.svelte';
@@ -12,7 +12,7 @@
     track_id: string;
     title: string;
     percent: number;
-    status: string;
+    status: DownloadStatus;
   }
 
   interface TagErrorEvent {

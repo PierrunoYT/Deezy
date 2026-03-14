@@ -13,6 +13,7 @@
     currentLocale, 
     type UserInfo, 
     type DownloadItem, 
+    type DownloadStatus,
     type Theme 
   } from '$lib/stores';
   import { initI18n } from '$lib/i18n';
@@ -39,7 +40,7 @@
     track_id: string;
     title: string;
     percent: number;
-    status: string;
+    status: DownloadStatus;
   }
 
   interface CustomThemeData {
@@ -209,32 +210,38 @@
     mediaQuery.addEventListener('change', systemThemeChangeHandler);
   }
 
-  onMount(async () => {
-    await initializeApp();
-    
-    await trayManager.init().catch(err => {
-      console.error('Failed to initialize tray manager:', err);
-    });
-    
-    const unsubscribeTheme = theme.subscribe(applyTheme);
-    const unsubscribeLocale = currentLocale.subscribe(newLocale => {
-      i18nLocale.set(newLocale);
-    });
+  onMount(() => {
+    let unsubscribeTheme = () => {};
+    let unsubscribeLocale = () => {};
+    let unsubscribeHistory = () => {};
 
-    setupSystemThemeListener();
+    void (async () => {
+      await initializeApp();
+      
+      await trayManager.init().catch(err => {
+        console.error('Failed to initialize tray manager:', err);
+      });
+      
+      unsubscribeTheme = theme.subscribe(applyTheme);
+      unsubscribeLocale = currentLocale.subscribe(newLocale => {
+        i18nLocale.set(newLocale);
+      });
 
-    let skipFirst = true;
-    const unsubscribeHistory = downloadHistory.subscribe((history) => {
-      if (skipFirst) {
-        skipFirst = false;
-        return;
-      }
-      saveDownloadHistory(history);
-    });
+      setupSystemThemeListener();
 
-    unlistenProgress = await listen<DownloadProgressEvent>('download-progress', (event) => {
-      handleDownloadProgress(event.payload);
-    });
+      let skipFirst = true;
+      unsubscribeHistory = downloadHistory.subscribe((history) => {
+        if (skipFirst) {
+          skipFirst = false;
+          return;
+        }
+        saveDownloadHistory(history);
+      });
+
+      unlistenProgress = await listen<DownloadProgressEvent>('download-progress', (event) => {
+        handleDownloadProgress(event.payload);
+      });
+    })();
 
     return () => {
       unlistenProgress?.();

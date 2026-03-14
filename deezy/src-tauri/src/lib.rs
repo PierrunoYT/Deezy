@@ -87,6 +87,7 @@ pub fn run() {
             commands::import_theme_file,
             commands::create_example_themes,
             commands::show_in_folder,
+            commands::parse_deezer_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

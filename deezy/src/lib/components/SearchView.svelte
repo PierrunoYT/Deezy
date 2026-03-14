@@ -80,6 +80,11 @@
   let loadingPlaylist = $state<boolean>(false);
   let playlistError = $state<string>('');
 
+  // URL input state
+  let urlInput = $state<string>('');
+  let parsingUrl = $state<boolean>(false);
+  let urlError = $state<string>('');
+
   // Audio player state
   let currentPlayingTrack = $state<Track | null>(null);
   let isPlaying = $state<boolean>(false);
@@ -396,6 +401,79 @@
     }
   }
 
+  async function handleUrlInput(): Promise<void> {
+    if (!isLoggedIn) {
+      urlError = $_('search.status.loginRequired');
+      return;
+    }
+
+    const url = urlInput.trim();
+    if (!url) {
+      urlError = '';
+      return;
+    }
+
+    // Check if it's a Deezer URL
+    if (!url.includes('deezer.com')) {
+      urlError = 'Please enter a valid Deezer URL';
+      return;
+    }
+
+    parsingUrl = true;
+    urlError = '';
+
+    try {
+      const parsed = await invoke<{ type: string; id: string }>('parse_deezer_url', { url });
+      
+      switch (parsed.type) {
+        case 'track':
+          const track = await invoke<Track[]>('search_tracks', { query: `id:${parsed.id}` });
+          if (track.length > 0) {
+            await downloadTrack(track[0]);
+            urlInput = '';
+          } else {
+            urlError = 'Track not found';
+          }
+          break;
+          
+        case 'album':
+          const albumTracks = await invoke<Track[]>('get_album_tracks', { albumId: parsed.id });
+          for (const track of albumTracks) {
+            await downloadQueueManager.addToQueue(track);
+          }
+          urlInput = '';
+          break;
+          
+        case 'playlist':
+          const playlistTracks = await invoke<Track[]>('get_playlist_tracks', { playlistId: parsed.id });
+          for (const track of playlistTracks) {
+            await downloadQueueManager.addToQueue(track);
+          }
+          urlInput = '';
+          break;
+          
+        case 'artist':
+          // For artists, we'll get their albums and download all tracks
+          const artistAlbums = await invoke<AlbumResult[]>('get_artist_albums', { artistId: parsed.id });
+          for (const album of artistAlbums) {
+            const tracks = await invoke<Track[]>('get_album_tracks', { albumId: String(album.id) });
+            for (const track of tracks) {
+              await downloadQueueManager.addToQueue(track);
+            }
+          }
+          urlInput = '';
+          break;
+          
+        default:
+          urlError = 'Unsupported content type';
+      }
+    } catch (err) {
+      urlError = `Error: ${String(err)}`;
+    } finally {
+      parsingUrl = false;
+    }
+  }
+
   function playTrack(track: Track): void {
     audioPlayerManager.play(track);
   }
@@ -500,6 +578,45 @@
               </button>
             {/each}
           </div>
+        {/if}
+      </div>
+      
+      <!-- URL Input Section -->
+      <div class="url-input-container">
+        <div class="url-input-header">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+          <span>Download from URL</span>
+        </div>
+        <div class="url-input-bar">
+          <input 
+            type="url" 
+            bind:value={urlInput}
+            onkeydown={(e) => e.key === 'Enter' && handleUrlInput()}
+            placeholder="Paste Deezer track, album, playlist, or artist URL..."
+            disabled={parsingUrl}
+            class:url-error={urlError}
+          />
+          <button 
+            class="url-download-btn" 
+            onclick={handleUrlInput}
+            disabled={parsingUrl || !urlInput.trim()}
+          >
+            {#if parsingUrl}
+              <span class="spinner-small"></span>
+            {:else}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            {/if}
+          </button>
+        </div>
+        {#if urlError}
+          <div class="url-error">{urlError}</div>
         {/if}
       </div>
     {/if}
@@ -1363,5 +1480,102 @@
     display: flex;
     justify-content: flex-end;
     padding: 0 0 12px;
+  }
+
+  /* URL Input Styles */
+  .url-input-container {
+    margin-top: 16px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-elevated);
+  }
+
+  .url-input-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .url-input-bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .url-input-bar input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+
+  .url-input-bar input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(162, 56, 255, 0.1);
+  }
+
+  .url-input-bar input.url-error {
+    border-color: var(--error);
+  }
+
+  .url-input-bar input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .url-download-btn {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--accent);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+
+  .url-download-btn:hover:not(:disabled) {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+  }
+
+  .url-download-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: var(--text-tertiary);
+    border-color: var(--text-tertiary);
+  }
+
+  .url-error {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: rgba(231, 76, 60, 0.1);
+    color: var(--error);
+    border: 1px solid rgba(231, 76, 60, 0.2);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+  }
+
+  .spinner-small {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
   }
 </style>

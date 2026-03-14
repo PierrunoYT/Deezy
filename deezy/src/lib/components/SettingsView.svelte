@@ -38,38 +38,44 @@
     }
   });
   
-  onMount(async () => {
-    try {
-      const settings: any = await invoke('get_settings');
-      if (settings.output_dir) outputDir = settings.output_dir;
-      if (settings.quality) quality = settings.quality;
-      if (settings.folder_structure) folderStructure = settings.folder_structure;
-      if (settings.theme) currentTheme = settings.theme;
-      if (settings.locale) selectedLocale = settings.locale;
-      if (settings.notifications_enabled !== undefined) {
-        enableNotifications = settings.notifications_enabled;
-      }
-      if (settings.enable_search_history !== undefined) {
-        enableSearchHistory = settings.enable_search_history;
-      }
-      if (settings.close_to_tray !== undefined) {
-        closeToTray = settings.close_to_tray;
-      }
-    } catch {
-      // First run
-    }
+  onMount(() => {
+    let unsubTheme = () => {};
+    let unsubLocale = () => {};
+    let unsubLoggedIn = () => {};
 
-    // Initialize notification manager
-    notificationManager.initialize();
+    void (async () => {
+      try {
+        const settings: any = await invoke('get_settings');
+        if (settings.output_dir) outputDir = settings.output_dir;
+        if (settings.quality) quality = settings.quality;
+        if (settings.folder_structure) folderStructure = settings.folder_structure;
+        if (settings.theme) currentTheme = settings.theme;
+        if (settings.locale) selectedLocale = settings.locale;
+        if (settings.notifications_enabled !== undefined) {
+          enableNotifications = settings.notifications_enabled;
+        }
+        if (settings.enable_search_history !== undefined) {
+          enableSearchHistory = settings.enable_search_history;
+        }
+        if (settings.close_to_tray !== undefined) {
+          closeToTray = settings.close_to_tray;
+        }
+      } catch {
+        // First run
+      }
 
-    // Subscribe to theme changes
-    const unsubTheme = theme.subscribe(t => currentTheme = t);
-    
-    // Subscribe to locale changes
-    const unsubLocale = currentLocale.subscribe(l => selectedLocale = l);
+      // Initialize notification manager
+      notificationManager.initialize();
 
-    // Subscribe to logged in state
-    const unsubLoggedIn = loggedIn.subscribe(val => isLoggedIn = val);
+      // Subscribe to theme changes
+      unsubTheme = theme.subscribe(t => currentTheme = t);
+      
+      // Subscribe to locale changes
+      unsubLocale = currentLocale.subscribe(l => selectedLocale = l);
+
+      // Subscribe to logged in state
+      unsubLoggedIn = loggedIn.subscribe(val => isLoggedIn = val);
+    })();
 
     return () => {
       unsubTheme();
