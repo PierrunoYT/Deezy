@@ -9,12 +9,6 @@ All notable changes to Deezy are documented here.
 - **ARL input persistence across view switches** – Fixed `SettingsView.svelte` losing pasted ARL text when navigating away to Search/Downloads before saving. Added a `settingsArlDraft` Svelte store so unsaved ARL input is preserved while navigating between views, and the draft is cleared automatically after a successful login/save.
 - **SvelteKit tsconfig warning during build** – Fixed "Cannot find base config file ./.svelte-kit/tsconfig.json" warning by running `svelte-kit sync` before `vite build`, ensuring the `.svelte-kit` folder exists before TypeScript/Vite reads the config.
 
-### Chores
-
-- **Release version alignment** – Bumped release version references to `0.2.14` in `Cargo.toml`, `tauri.conf.json`, `create-release.sh`, and `create-release.ps1`.
-- **PowerShell release script** – Added `create-release.ps1` so releases can be created natively in PowerShell without invoking bash; documented in `BUILD_AND_RELEASE.md`.
-- **Build cleanup tooling** – Added `clean-build.sh` to remove old installer/build artifacts (`--bundle`, `--all`, `--full`) and documented usage in `BUILD_AND_RELEASE.md`.
-
 ## [0.2.13] - 2026-03-14
 
 ### Fixed

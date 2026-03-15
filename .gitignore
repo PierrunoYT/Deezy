@@ -93,6 +93,8 @@ logs/
 
 # Shell scripts
 *.sh
+create-release.ps1
+clean-build.sh
 
 # Build outputs
 dist/
