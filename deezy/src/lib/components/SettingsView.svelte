@@ -1,7 +1,7 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
   import { onMount } from 'svelte';
-  import { loggedIn, userInfo, theme, notificationsEnabled, searchHistory, currentLocale, type UserInfo, type Theme } from '$lib/stores';
+  import { loggedIn, userInfo, theme, notificationsEnabled, searchHistory, currentLocale, settingsArlDraft, type UserInfo, type Theme } from '$lib/stores';
   import { notificationManager } from '$lib/notifications';
   import { _, locale } from 'svelte-i18n';
   import { supportedLocales } from '$lib/i18n';
@@ -33,6 +33,10 @@
   const MIN_ARL_LENGTH = 100;
 
   $effect(() => {
+    settingsArlDraft.set(arl);
+  });
+
+  $effect(() => {
     if (isFreeAccount && quality !== 'MP3_128') {
       quality = 'MP3_128';
     }
@@ -44,6 +48,7 @@
     let unsubLoggedIn = () => {};
 
     void (async () => {
+      arl = $settingsArlDraft;
       try {
         const settings: any = await invoke('get_settings');
         if (settings.output_dir) outputDir = settings.output_dir;
@@ -153,6 +158,8 @@
 
       loggedIn.set(true);
       userInfo.set(user);
+      arl = '';
+      settingsArlDraft.set('');
 
       showStatus($_('settings.status.loginSuccess'), 'success');
 

@@ -70,6 +70,7 @@ export const theme: Writable<Theme> = writable(DEFAULT_THEME);
 export const notificationsEnabled: Writable<boolean> = writable(true);
 export const searchHistory: Writable<string[]> = writable([]);
 export const currentLocale: Writable<string> = writable(DEFAULT_LOCALE);
+export const settingsArlDraft: Writable<string> = writable('');
 
 export const audioPlayer: Writable<AudioPlayerState> = writable({
   currentTrack: null,
