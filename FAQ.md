@@ -48,6 +48,10 @@ In the folder you chose in Settings. You can also configure the folder structure
 
 Yes. Click **Download All** on any album or playlist to queue all tracks at once.
 
+### Can I paste a Deezer link to download?
+
+Yes. In the Search view, use the **Deezer URL** input to paste track, album, artist, or playlist links (e.g. `https://www.deezer.com/track/123456`). Deezy parses the URL and lets you download or queue the content directly without searching.
+
 ---
 
 ## 🛠️ Setup & Troubleshooting
@@ -66,9 +70,9 @@ ARL tokens expire periodically. Just log into Deezer in your browser, grab the n
 ### The app shows a blank/black screen on startup. What do I do?
 
 This is usually a first-launch timing issue. Try closing and reopening the app. If it persists, delete the app data folder and re-enter your settings:
-- **Windows:** `%APPDATA%\com.deezy.app`
-- **macOS:** `~/Library/Application Support/com.deezy.app`
-- **Linux:** `~/.local/share/com.deezy.app`
+- **Windows:** `%APPDATA%\com.pierr.deezy`
+- **macOS:** `~/Library/Application Support/com.pierr.deezy`
+- **Linux:** `~/.local/share/com.pierr.deezy`
 
 ### Downloads are stalling or not starting. What do I do?
 
@@ -80,6 +84,10 @@ This is usually a first-launch timing issue. Try closing and reopening the app. 
 ### Album covers or audio previews don't load in the installed app but work in dev mode.
 
 This was a known CSP issue fixed in **v0.2.8**. Make sure you're on the latest version.
+
+### A Deezer URL shows "Track not found" or doesn't work.
+
+Ensure the URL is a valid Deezer link (track, album, artist, or playlist). Supported formats include `deezer.com/track/...`, `deezer.com/album/...`, `deezer.com/artist/...`, and `deezer.com/playlist/...`. If the track exists but still fails, your ARL token may have expired—refresh it from your browser and update Settings.
 
 ---
 

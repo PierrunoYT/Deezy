@@ -1,10 +1,10 @@
 # Deezy
 
 <p align="center">
-  <img src="deezy/static/logodeezy.png" alt="Deezy Logo" width="200"/>
+  <img src="deezy/static/logodeezy.svg" alt="Deezy Logo" width="200"/>
 </p>
 
-A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [SvelteKit 2](https://kit.svelte.dev) + [Svelte 5](https://svelte.dev), and Rust. Search for tracks, albums, and artists, queue downloads, and save them as high-quality MP3 or FLAC with full metadata and cover art.
+A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [SvelteKit 2](https://kit.svelte.dev) + [Svelte 5](https://svelte.dev), and Rust. Search for tracks, albums, artists, and playlists, paste Deezer URLs for direct download, and save music as high-quality MP3 or FLAC with full metadata and cover art.
 
 [![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/dvuWBeXSf3)
 
@@ -33,6 +33,7 @@ A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [Sve
 
 ### Search & Discovery
 - **Multi-tab search** – Find tracks, albums, artists, or playlists with debounced search and rate limiting (2 req/s)
+- **Deezer URL input** – Paste track, album, artist, or playlist links directly to download or queue without searching
 - **Artist browsing** – Click any artist name to open their full discography, or use the Artists tab to search directly
 - **Search history** – Recent searches dropdown (up to 20 items) with one-click re-search and privacy controls
 - **Audio preview** – Play 30-second previews with mini player, seek bar, volume control, and Space bar shortcut
@@ -120,29 +121,30 @@ The built application will be in `src-tauri/target/release/bundle/`.
 
 1. **Setup** – Open the app, paste your ARL token, choose download folder and quality, then click **Save & Login**
 2. **Search** – Switch to Search (Ctrl+1), type a query, and hit Enter or wait for debounced search
-3. **Browse** – Toggle between **Tracks**, **Albums**, **Artists**, and **Playlists** tabs to explore different content types
-4. **Preview** – Click the play button (▶) to preview tracks before downloading; use Space bar to play/pause
-5. **Download** – Click download button on a track, or **Download All** on an album to queue all tracks
-6. **Manage Queue** – Drag to reorder pending downloads, pause/resume active ones, or remove items
-7. **Monitor** – Switch to Downloads (Ctrl+2) to see real-time progress, retry failures, and export history
-8. **Customize** – Choose themes, languages, folder structure, notifications, and shortcuts in Settings (Ctrl+3 or Ctrl+,)
-9. **System Tray** – Minimize to tray (Ctrl+H) for background downloads; double-click tray icon to restore window
+3. **Paste URLs** – Paste Deezer track, album, artist, or playlist links in the URL input to download or queue directly
+4. **Browse** – Toggle between **Tracks**, **Albums**, **Artists**, and **Playlists** tabs to explore different content types
+5. **Preview** – Click the play button (▶) to preview tracks before downloading; use Space bar to play/pause
+6. **Download** – Click download button on a track, or **Download All** on an album to queue all tracks
+7. **Manage Queue** – Drag to reorder pending downloads, pause/resume active ones, or remove items
+8. **Monitor** – Switch to Downloads (Ctrl+2) to see real-time progress, retry failures, and export history
+9. **Customize** – Choose themes, languages, folder structure, notifications, and shortcuts in Settings (Ctrl+3 or Ctrl+,)
+10. **System Tray** – Minimize to tray (Ctrl+H) for background downloads; double-click tray icon to restore window
 
 ## Tech Stack
 
 | Layer          | Technology                                                                 |
 | -------------- | -------------------------------------------------------------------------- |
-| Frontend       | SvelteKit 2 + Svelte 5 (runes API) + TypeScript                          |
+| Frontend       | SvelteKit 2 + Svelte 5 (runes API) + TypeScript + Vite 6                 |
 | Backend        | Rust + Tauri 2 (desktop framework)                                        |
 | HTTP Client    | reqwest (cookie jar, streaming, JSON, TLS 1.2+, HTTPS-only)              |
 | Crypto         | Blowfish CBC (track decryption) + AES + MD5                              |
-| Audio Tags     | id3 v1.x (MP3 ID3v2.4) + metaflac v0.2 (FLAC Vorbis comments)           |
+| Audio Tags     | id3 v1.x (MP3 ID3v2.4) + metaflac v0.2 (FLAC Vorbis comments)            |
 | API            | Deezer private API (`gw-light.php`) + public REST API                    |
 | Async Runtime  | Tokio (full features) + futures                                           |
-| Image Processing | image v0.25 (cover art embedding)                                       |
-| UI Libraries   | svelte-dnd-action (drag-and-drop) + svelte-i18n (internationalization)  |
+| Image Processing | image v0.25 (cover art embedding)                                        |
+| UI Libraries   | svelte-dnd-action (drag-and-drop) + svelte-i18n (internationalization)   |
 | Credentials    | keyring v3 (OS credential store: Credential Manager / Keychain / Secret Service) |
-| Tauri Plugins  | dialog, notification, process                                             |
+| Tauri Plugins  | dialog, notification, process                                              |
 
 ## Project Structure
 
@@ -162,16 +164,16 @@ deezy/
 │   └── routes/                  # SvelteKit routes
 ├── src-tauri/                    # Rust backend
 │   ├── src/
-│   │   ├── commands.rs          # Tauri commands (login, search, download, etc.)
+│   │   ├── commands.rs          # Tauri commands (login, search, download, parse_deezer_url, etc.)
 │   │   ├── deezer/
 │   │   │   ├── mod.rs           # Deezer API client
-│   │   │   ├── crypto.rs        # Blowfish decryption
-│   │   │   ├── download.rs      # Track download logic
-│   │   │   └── models.rs        # Data models
-│   │   ├── settings.rs          # Settings persistence
-│   │   ├── themes.rs            # Custom theme management
-│   │   ├── tray.rs              # System tray integration
-│   │   └── lib.rs               # App state and setup
+│   │   │   ├── crypto.rs       # Blowfish decryption
+│   │   │   ├── download.rs     # Track download logic
+│   │   │   └── models.rs       # Data models
+│   │   ├── settings.rs         # Settings persistence
+│   │   ├── themes.rs           # Custom theme management
+│   │   ├── tray.rs             # System tray integration
+│   │   └── lib.rs              # App state and setup
 │   ├── Cargo.toml               # Rust dependencies
 │   └── tauri.conf.json          # Tauri configuration
 └── example-themes/               # Built-in custom themes (JSON)

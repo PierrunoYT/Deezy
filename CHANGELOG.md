@@ -9,6 +9,11 @@ All notable changes to Deezy are documented here.
 - **ARL input persistence across view switches** – Fixed `SettingsView.svelte` losing pasted ARL text when navigating away to Search/Downloads before saving. Added a `settingsArlDraft` Svelte store so unsaved ARL input is preserved while navigating between views, and the draft is cleared automatically after a successful login/save.
 - **SvelteKit tsconfig warning during build** – Fixed "Cannot find base config file ./.svelte-kit/tsconfig.json" warning by running `svelte-kit sync` before `vite build`, ensuring the `.svelte-kit` folder exists before TypeScript/Vite reads the config.
 
+### Documentation
+
+- **README** – Added Deezer URL input feature, updated logo path (SVG), Tech Stack (Vite 6), Usage steps for URL paste, and project structure (parse_deezer_url).
+- **FAQ** – Corrected app data paths to `com.pierr.deezy` (Windows/macOS/Linux), added Deezer URL paste FAQ and troubleshooting for "Track not found" on URLs.
+
 ## [0.2.13] - 2026-03-14
 
 ### Fixed
