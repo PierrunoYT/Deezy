@@ -1,5 +1,7 @@
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use futures::StreamExt;
 use id3::TagLike;
@@ -12,6 +14,7 @@ use super::{crypto, get_quality_ext, DeezerClient};
 use crate::settings::FolderStructure;
 
 const MAX_TRACK_DOWNLOAD_BYTES: u64 = 1024 * 1024 * 1024; // 1 GiB safety cap
+const IN_PROGRESS_SUFFIX: &str = ".deezy.part";
 
 pub async fn download_track(
     client: &DeezerClient,
@@ -20,6 +23,7 @@ pub async fn download_track(
     quality: &str,
     folder_structure: &FolderStructure,
     app: &tauri::AppHandle,
+    cancel_flag: Arc<AtomicBool>,
 ) -> Result<DownloadResult, String> {
     let track = client.get_track(track_id).await?;
 
@@ -97,6 +101,12 @@ pub async fn download_track(
         }
     }
 
+    let temp_download_path = download_path.with_extension(format!(
+        "{}{}",
+        ext.trim_start_matches('.'),
+        IN_PROGRESS_SUFFIX
+    ));
+
     emit_progress(app, track_id, &full_title, 5.0, "downloading");
 
     let response = client
@@ -122,28 +132,61 @@ pub async fn download_track(
     let total_size = total_size_opt.unwrap_or(0);
     let mut stream = response.bytes_stream();
     let mut file =
-        std::fs::File::create(&download_path).map_err(|e| format!("Cannot create file: {}", e))?;
+        std::fs::File::create(&temp_download_path).map_err(|e| format!("Cannot create file: {}", e))?;
 
     let mut buffer: Vec<u8> = Vec::new();
     let mut chunk_index = 0u64;
     let mut downloaded = 0u64;
 
     while let Some(item) = stream.next().await {
-        let bytes = item.map_err(|e| format!("Stream error: {}", e))?;
+        if cancel_flag.load(Ordering::Relaxed) {
+            cleanup_temp_file(&temp_download_path);
+            return Ok(DownloadResult {
+                file_path: String::new(),
+                requested_quality: quality.to_string(),
+                actual_quality: actual_quality.clone(),
+                status: "canceled".to_string(),
+            });
+        }
+
+        let bytes = match item {
+            Ok(bytes) => bytes,
+            Err(e) => {
+                cleanup_temp_file(&temp_download_path);
+                return Err(format!("Stream error: {}", e));
+            }
+        };
         buffer.extend_from_slice(&bytes);
 
         while buffer.len() >= 2048 {
+            if cancel_flag.load(Ordering::Relaxed) {
+                cleanup_temp_file(&temp_download_path);
+                return Ok(DownloadResult {
+                    file_path: String::new(),
+                    requested_quality: quality.to_string(),
+                    actual_quality: actual_quality.clone(),
+                    status: "canceled".to_string(),
+                });
+            }
+
             let chunk: Vec<u8> = buffer.drain(..2048).collect();
             if downloaded.saturating_add(chunk.len() as u64) > MAX_TRACK_DOWNLOAD_BYTES {
+                cleanup_temp_file(&temp_download_path);
                 return Err("Download aborted: file exceeds allowed size limit".to_string());
             }
 
             if chunk_index.is_multiple_of(3) {
                 let decrypted = crypto::decrypt_blowfish_chunk(&chunk, &bf_key)
                     .map_err(|e| format!("Decryption failed: {}", e))?;
-                file.write_all(&decrypted).map_err(|e| e.to_string())?;
+                if let Err(e) = file.write_all(&decrypted) {
+                    cleanup_temp_file(&temp_download_path);
+                    return Err(e.to_string());
+                }
             } else {
-                file.write_all(&chunk).map_err(|e| e.to_string())?;
+                if let Err(e) = file.write_all(&chunk) {
+                    cleanup_temp_file(&temp_download_path);
+                    return Err(e.to_string());
+                }
             }
 
             chunk_index += 1;
@@ -160,19 +203,33 @@ pub async fn download_track(
     // Partial trailing chunks are never encrypted in Deezer's scheme,
     // so they are always written as-is.
     if !buffer.is_empty() {
+        if cancel_flag.load(Ordering::Relaxed) {
+            cleanup_temp_file(&temp_download_path);
+            return Ok(DownloadResult {
+                file_path: String::new(),
+                requested_quality: quality.to_string(),
+                actual_quality: actual_quality.clone(),
+                status: "canceled".to_string(),
+            });
+        }
+
         if downloaded.saturating_add(buffer.len() as u64) > MAX_TRACK_DOWNLOAD_BYTES {
+            cleanup_temp_file(&temp_download_path);
             return Err("Download aborted: file exceeds allowed size limit".to_string());
         }
-        file.write_all(&buffer).map_err(|e| e.to_string())?;
+        if let Err(e) = file.write_all(&buffer) {
+            cleanup_temp_file(&temp_download_path);
+            return Err(e.to_string());
+        }
     }
     drop(file);
 
     emit_progress(app, track_id, &full_title, 92.0, "tagging");
 
     let tag_result = if ext == ".mp3" {
-        write_mp3_tags(&download_path, &full_title, &artist, &album_title, track_data, client, &album_id).await
+        write_mp3_tags(&temp_download_path, &full_title, &artist, &album_title, track_data, client, &album_id).await
     } else if ext == ".flac" {
-        write_flac_tags(&download_path, &full_title, &artist, &album_title, track_data, client, &album_id).await
+        write_flac_tags(&temp_download_path, &full_title, &artist, &album_title, track_data, client, &album_id).await
     } else {
         Ok(())
     };
@@ -188,12 +245,28 @@ pub async fn download_track(
         }));
     }
 
+    if cancel_flag.load(Ordering::Relaxed) {
+        cleanup_temp_file(&temp_download_path);
+        return Ok(DownloadResult {
+            file_path: String::new(),
+            requested_quality: quality.to_string(),
+            actual_quality: actual_quality.clone(),
+            status: "canceled".to_string(),
+        });
+    }
+
+    if let Err(e) = std::fs::rename(&temp_download_path, &download_path) {
+        cleanup_temp_file(&temp_download_path);
+        return Err(format!("Failed to finalize download file: {}", e));
+    }
+
     emit_progress(app, track_id, &full_title, 100.0, "complete");
 
     Ok(DownloadResult {
         file_path: download_path.to_string_lossy().to_string(),
         requested_quality: quality.to_string(),
         actual_quality,
+        status: "complete".to_string(),
     })
 }
 
@@ -406,4 +479,8 @@ fn parse_u32_from_value(val: &Value) -> Option<u32> {
     val.as_str()
         .and_then(|s| s.parse().ok())
         .or_else(|| val.as_u64().map(|n| n as u32))
+}
+
+fn cleanup_temp_file(path: &Path) {
+    let _ = std::fs::remove_file(path);
 }

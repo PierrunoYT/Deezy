@@ -9,6 +9,9 @@ const DEFAULT_TOOLTIP = 'Deezy';
 class TrayManager {
   private initialized = false;
   private unlistenPauseResume: UnlistenFn | undefined;
+  private unsubscribeActiveDownloads: (() => void) | undefined;
+  private unsubscribeDownloadQueue: (() => void) | undefined;
+  private unsubscribePausedDownloads: (() => void) | undefined;
   private updateDebounceTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly debounceDelay = 100;
 
@@ -19,15 +22,15 @@ class TrayManager {
       this.togglePauseResume();
     });
 
-    activeDownloads.subscribe(() => {
+    this.unsubscribeActiveDownloads = activeDownloads.subscribe(() => {
       this.debouncedUpdateTrayStatus();
     });
 
-    downloadQueue.subscribe(() => {
+    this.unsubscribeDownloadQueue = downloadQueue.subscribe(() => {
       this.debouncedUpdateTrayStatus();
     });
 
-    pausedDownloads.subscribe(() => {
+    this.unsubscribePausedDownloads = pausedDownloads.subscribe(() => {
       this.debouncedUpdateTrayStatus();
     });
 
@@ -36,8 +39,16 @@ class TrayManager {
 
   destroy(): void {
     this.unlistenPauseResume?.();
+    this.unlistenPauseResume = undefined;
+    this.unsubscribeActiveDownloads?.();
+    this.unsubscribeActiveDownloads = undefined;
+    this.unsubscribeDownloadQueue?.();
+    this.unsubscribeDownloadQueue = undefined;
+    this.unsubscribePausedDownloads?.();
+    this.unsubscribePausedDownloads = undefined;
     if (this.updateDebounceTimer) {
       clearTimeout(this.updateDebounceTimer);
+      this.updateDebounceTimer = undefined;
     }
     this.initialized = false;
   }
@@ -74,11 +85,11 @@ class TrayManager {
     const activeTrackIds = downloadQueueManager.getActiveTrackIds();
     
     activeTrackIds.forEach(trackId => {
-      downloadQueueManager.pauseDownload(trackId);
+      void downloadQueueManager.pauseDownload(trackId);
     });
     
     queue.forEach(item => {
-      downloadQueueManager.pauseDownload(String(item.track.id));
+      void downloadQueueManager.pauseDownload(String(item.track.id));
     });
   }
 

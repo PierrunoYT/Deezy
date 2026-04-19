@@ -5,6 +5,8 @@ mod themes;
 mod tray;
 
 use std::sync::Arc;
+use std::collections::HashMap;
+use std::sync::atomic::AtomicBool;
 use tokio::sync::Mutex;
 use tauri::Manager;
 
@@ -12,6 +14,7 @@ pub struct AppState {
     pub client: Arc<Mutex<Option<deezer::DeezerClient>>>,
     pub settings: Arc<Mutex<settings::Settings>>,
     pub tray_state: tray::TrayState,
+    pub download_cancellations: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
 }
 
 pub fn run() {
@@ -23,6 +26,7 @@ pub fn run() {
             client: Arc::new(Mutex::new(None)),
             settings: Arc::new(Mutex::new(settings::Settings::default())),
             tray_state: tray::TrayState::new(),
+            download_cancellations: Arc::new(Mutex::new(HashMap::new())),
         })
         .setup(|app| {
             // Create system tray
@@ -69,6 +73,7 @@ pub fn run() {
             commands::search_playlists,
             commands::get_playlist_tracks,
             commands::download_track,
+            commands::cancel_download,
             commands::get_settings,
             commands::save_settings,
             commands::pick_folder,

@@ -65,4 +65,5 @@ pub struct DownloadResult {
     pub file_path: String,
     pub requested_quality: String,
     pub actual_quality: String,
+    pub status: String,
 }

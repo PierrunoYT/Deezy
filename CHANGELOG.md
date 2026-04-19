@@ -2,6 +2,17 @@
 
 All notable changes to Deezy are documented here.
 
+## [0.2.15] - 2026-04-19
+
+### Fixed
+
+- **True pause/cancel semantics for downloads** – Pausing a download now triggers real backend cancellation instead of UI-only state changes, and resume only requeues work that was genuinely canceled.
+- **Partial-file cleanup and duplicate churn** – Downloads now write to an in-progress temp file and only finalize to the target filename on successful completion; temp/partial files are cleaned up on failure or cancellation.
+- **Backend request lock contention** – Search and metadata command handlers no longer hold the shared client mutex across awaited network calls, reducing unnecessary request serialization and latency spikes.
+- **Deezer URL validation hardening** – URL parsing now validates scheme/host/path shape explicitly, and frontend URL handling relies on backend canonical validation messages.
+- **Tray listener lifecycle leak** – Tray manager now keeps and disposes all store subscription unsubscribers during destroy, preventing duplicate updates after re-initialization.
+- **Out-of-order search result races** – Search UI now uses a request-token guard so stale responses cannot overwrite newer query results.
+
 ## [0.2.14] - 2026-03-15
 
 ### Fixed

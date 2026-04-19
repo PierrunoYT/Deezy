@@ -90,6 +90,7 @@
   let isPlaying = $state<boolean>(false);
 
   let searchTimeout: ReturnType<typeof setTimeout> | undefined;
+  let activeSearchToken = 0;
 
   $effect(() => {
     try {
@@ -160,6 +161,8 @@
   }
 
   function clearSearch(): void {
+    activeSearchToken += 1;
+    searching = false;
     searchQuery = '';
     results = [];
     albumResults = [];
@@ -194,6 +197,8 @@
   }
   
   function handleInput(): void {
+    activeSearchToken += 1;
+    searching = false;
     clearTimeout(searchTimeout);
     errorMsg = '';
     showSearchHistory = false;
@@ -228,6 +233,8 @@
   }
 
   function switchSearchType(type: SearchType): void {
+    activeSearchToken += 1;
+    searching = false;
     searchType = type;
     resetResults();
     errorMsg = '';
@@ -247,6 +254,8 @@
     const query = searchQuery.trim();
     if (!query) return;
 
+    const requestToken = ++activeSearchToken;
+    const requestedType = searchType;
     searching = true;
     errorMsg = '';
     resetResults();
@@ -254,27 +263,49 @@
 
     try {
       await searchRateLimiter.throttle();
+      if (requestToken !== activeSearchToken || query !== searchQuery.trim() || requestedType !== searchType) {
+        return;
+      }
 
       const searchHandlers = {
         tracks: async () => {
-          results = await invoke<Track[]>('search_tracks', { query });
-          return results.length;
+          const data = await invoke<Track[]>('search_tracks', { query });
+          if (requestToken !== activeSearchToken || query !== searchQuery.trim() || requestedType !== searchType) {
+            return null;
+          }
+          results = data;
+          return data.length;
         },
         albums: async () => {
-          albumResults = await invoke<AlbumResult[]>('search_albums', { query });
-          return albumResults.length;
+          const data = await invoke<AlbumResult[]>('search_albums', { query });
+          if (requestToken !== activeSearchToken || query !== searchQuery.trim() || requestedType !== searchType) {
+            return null;
+          }
+          albumResults = data;
+          return data.length;
         },
         artists: async () => {
-          artistResults = await invoke<ArtistResult[]>('search_artists', { query });
-          return artistResults.length;
+          const data = await invoke<ArtistResult[]>('search_artists', { query });
+          if (requestToken !== activeSearchToken || query !== searchQuery.trim() || requestedType !== searchType) {
+            return null;
+          }
+          artistResults = data;
+          return data.length;
         },
         playlists: async () => {
-          playlistResults = await invoke<PlaylistResult[]>('search_playlists', { query });
-          return playlistResults.length;
+          const data = await invoke<PlaylistResult[]>('search_playlists', { query });
+          if (requestToken !== activeSearchToken || query !== searchQuery.trim() || requestedType !== searchType) {
+            return null;
+          }
+          playlistResults = data;
+          return data.length;
         }
       };
 
       const resultCount = await searchHandlers[searchType]();
+      if (resultCount === null) {
+        return;
+      }
       
       if (resultCount === 0) {
         errorMsg = $_('search.status.noResults');
@@ -282,9 +313,14 @@
         await addToSearchHistory(query);
       }
     } catch (err) {
+      if (requestToken !== activeSearchToken || query !== searchQuery.trim() || requestedType !== searchType) {
+        return;
+      }
       errorMsg = String(err);
     } finally {
-      searching = false;
+      if (requestToken === activeSearchToken) {
+        searching = false;
+      }
     }
   }
 
@@ -410,12 +446,6 @@
     const url = urlInput.trim();
     if (!url) {
       urlError = '';
-      return;
-    }
-
-    // Check if it's a Deezer URL
-    if (!url.includes('deezer.com')) {
-      urlError = 'Please enter a valid Deezer URL';
       return;
     }
 

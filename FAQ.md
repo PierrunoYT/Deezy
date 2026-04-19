@@ -1,5 +1,7 @@
 # Deezy – Frequently Asked Questions
 
+Current release: **v0.2.15** (see [Changelog](CHANGELOG.md)).
+
 ---
 
 ## 🔒 Security & Privacy

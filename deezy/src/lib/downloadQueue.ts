@@ -19,6 +19,7 @@ interface DownloadResult {
   file_path: string;
   requested_quality: QualityOption;
   actual_quality: QualityOption;
+  status: 'complete' | 'canceled';
 }
 
 type DownloadStatus = 'downloading' | 'complete' | 'error' | 'paused' | 'resolving' | 'tagging';
@@ -30,8 +31,8 @@ const QUEUE_CHECK_INTERVAL = 1000;
 class DownloadQueueManager {
   private processing = false;
   private activeCount = 0;
-  private activeDownloadControllers = new Map<string, AbortController>();
   private activeTrackIds = new Set<string>();
+  private canceledDownloads = new Set<string>();
 
   async addToQueue(track: Track, priority: number = DEFAULT_PRIORITY): Promise<void> {
     const trackId = String(track.id);
@@ -189,15 +190,22 @@ class DownloadQueueManager {
       }
 
       const result = await invoke<DownloadResult>('download_track', { trackId });
-      
-      if (this.isPaused(trackId)) {
-        console.log('Track was paused, not marking as complete:', trackId);
+
+      if (result.status === 'canceled') {
+        this.canceledDownloads.add(trackId);
+        this.updateHistoryItem(trackId, {
+          status: 'paused',
+          isPaused: true
+        });
+        this.updateDownloadStatus(trackId, 'paused');
         didIncrement = false;
         this.decrementActiveCount(trackId);
         return;
       }
 
       console.log('Download completed:', result.file_path);
+      this.canceledDownloads.delete(trackId);
+      this.removeFromPausedSet(trackId);
       
       this.updateDownloadStatus(trackId, 'complete');
       this.updateHistoryItem(trackId, {
@@ -243,27 +251,25 @@ class DownloadQueueManager {
     this.activeCount++;
     this.activeTrackIds.add(trackId);
     activeDownloads.set(this.activeCount);
-    
-    const controller = new AbortController();
-    this.activeDownloadControllers.set(trackId, controller);
   }
 
   private decrementActiveCount(trackId: string): void {
-    this.activeDownloadControllers.delete(trackId);
     this.activeTrackIds.delete(trackId);
     this.activeCount--;
     activeDownloads.set(this.activeCount);
   }
 
-  pauseDownload(trackId: string): void {
+  async pauseDownload(trackId: string): Promise<void> {
     const paused = get(pausedDownloads);
     paused.add(trackId);
     pausedDownloads.set(paused);
 
-    const controller = this.activeDownloadControllers.get(trackId);
-    if (controller) {
-      controller.abort();
-      this.activeDownloadControllers.delete(trackId);
+    if (this.activeTrackIds.has(trackId)) {
+      try {
+        await invoke<boolean>('cancel_download', { trackId });
+      } catch (error) {
+        console.error('Failed to cancel active download:', error);
+      }
     }
 
     this.updateHistoryItem(trackId, { status: 'paused', isPaused: true });
@@ -271,14 +277,24 @@ class DownloadQueueManager {
   }
 
   resumeDownload(trackId: string): void {
+    if (this.activeTrackIds.has(trackId)) {
+      return;
+    }
+
+    const history = get(downloadHistory);
+    const item = history.find(h => h.trackId === trackId);
+    const isQueuedPaused = get(downloadQueue).some(q => String(q.track.id) === trackId);
+    const canResume = this.canceledDownloads.has(trackId) || isQueuedPaused || item?.status === 'paused';
+    if (!canResume) {
+      return;
+    }
+
     const paused = get(pausedDownloads);
     paused.delete(trackId);
     pausedDownloads.set(paused);
 
-    const history = get(downloadHistory);
-    const item = history.find(h => h.trackId === trackId);
-    
     if (!item?.track) return;
+    this.canceledDownloads.delete(trackId);
 
     this.updateHistoryItem(trackId, {
       status: 'downloading',

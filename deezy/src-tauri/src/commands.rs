@@ -7,9 +7,11 @@ use crate::tray;
 use crate::AppState;
 use serde_json::Value;
 use std::process::Command;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{AppHandle, Manager};
 use tauri_plugin_dialog::DialogExt;
-use regex::Regex;
+use url::Url;
 
 #[tauri::command]
 pub async fn save_download_history(history: Vec<serde_json::Value>, app: AppHandle) -> Result<(), String> {
@@ -76,10 +78,13 @@ pub async fn search_tracks(
     query: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<SearchResult>, String> {
-    let lock = state.client.lock().await;
-    let client = lock
+    let client = {
+        let lock = state.client.lock().await;
+        lock
         .as_ref()
-        .ok_or("Not logged in. Set your ARL token in Settings.")?;
+        .cloned()
+        .ok_or("Not logged in. Set your ARL token in Settings.")?
+    };
     client.search_tracks(&query, 20).await
 }
 
@@ -89,10 +94,13 @@ pub async fn get_track_by_id(
     trackId: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<SearchResult, String> {
-    let lock = state.client.lock().await;
-    let client = lock
+    let client = {
+        let lock = state.client.lock().await;
+        lock
         .as_ref()
-        .ok_or("Not logged in. Set your ARL token in Settings.")?;
+        .cloned()
+        .ok_or("Not logged in. Set your ARL token in Settings.")?
+    };
     client.get_track_by_id(&trackId).await
 }
 
@@ -101,10 +109,13 @@ pub async fn search_albums(
     query: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<AlbumResult>, String> {
-    let lock = state.client.lock().await;
-    let client = lock
+    let client = {
+        let lock = state.client.lock().await;
+        lock
         .as_ref()
-        .ok_or("Not logged in. Set your ARL token in Settings.")?;
+        .cloned()
+        .ok_or("Not logged in. Set your ARL token in Settings.")?
+    };
     client.search_albums(&query, 20).await
 }
 
@@ -114,10 +125,13 @@ pub async fn get_album_tracks(
     albumId: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<SearchResult>, String> {
-    let lock = state.client.lock().await;
-    let client = lock
+    let client = {
+        let lock = state.client.lock().await;
+        lock
         .as_ref()
-        .ok_or("Not logged in. Set your ARL token in Settings.")?;
+        .cloned()
+        .ok_or("Not logged in. Set your ARL token in Settings.")?
+    };
     client.get_album_tracks(&albumId).await
 }
 
@@ -126,10 +140,13 @@ pub async fn search_artists(
     query: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<ArtistResult>, String> {
-    let lock = state.client.lock().await;
-    let client = lock
+    let client = {
+        let lock = state.client.lock().await;
+        lock
         .as_ref()
-        .ok_or("Not logged in. Set your ARL token in Settings.")?;
+        .cloned()
+        .ok_or("Not logged in. Set your ARL token in Settings.")?
+    };
     client.search_artists(&query, 20).await
 }
 
@@ -139,10 +156,13 @@ pub async fn get_artist_albums(
     artistId: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<AlbumResult>, String> {
-    let lock = state.client.lock().await;
-    let client = lock
+    let client = {
+        let lock = state.client.lock().await;
+        lock
         .as_ref()
-        .ok_or("Not logged in. Set your ARL token in Settings.")?;
+        .cloned()
+        .ok_or("Not logged in. Set your ARL token in Settings.")?
+    };
     client.get_artist_albums(&artistId).await
 }
 
@@ -151,10 +171,13 @@ pub async fn search_playlists(
     query: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<PlaylistResult>, String> {
-    let lock = state.client.lock().await;
-    let client = lock
+    let client = {
+        let lock = state.client.lock().await;
+        lock
         .as_ref()
-        .ok_or("Not logged in. Set your ARL token in Settings.")?;
+        .cloned()
+        .ok_or("Not logged in. Set your ARL token in Settings.")?
+    };
     client.search_playlists(&query, 20).await
 }
 
@@ -164,10 +187,13 @@ pub async fn get_playlist_tracks(
     playlistId: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<SearchResult>, String> {
-    let lock = state.client.lock().await;
-    let client = lock
+    let client = {
+        let lock = state.client.lock().await;
+        lock
         .as_ref()
-        .ok_or("Not logged in. Set your ARL token in Settings.")?;
+        .cloned()
+        .ok_or("Not logged in. Set your ARL token in Settings.")?
+    };
     client.get_playlist_tracks(&playlistId).await
 }
 
@@ -178,6 +204,12 @@ pub async fn download_track(
     state: tauri::State<'_, AppState>,
     app: AppHandle,
 ) -> Result<DownloadResult, String> {
+    let cancel_flag = Arc::new(AtomicBool::new(false));
+    {
+        let mut cancellation_map = state.download_cancellations.lock().await;
+        cancellation_map.insert(trackId.clone(), cancel_flag.clone());
+    }
+
     // Get or recreate the client
     let (mut client, output_dir, quality, folder_structure, arl) = {
         let lock = state.client.lock().await;
@@ -229,12 +261,13 @@ pub async fn download_track(
         &effective_quality,
         &folder_structure,
         &app,
+        cancel_flag.clone(),
     )
     .await;
     
     // If we get a CSRF error, try to refresh the client and retry once
     if let Err(ref e) = result {
-        if e.contains("CSRF") || e.contains("token") {
+        if !cancel_flag.load(Ordering::Relaxed) && (e.contains("CSRF") || e.contains("token")) {
             match DeezerClient::new(&arl).await {
                 Ok(new_client) => {
                     client = new_client.clone();
@@ -257,6 +290,7 @@ pub async fn download_track(
                         &retry_quality,
                         &folder_structure,
                         &app,
+                        cancel_flag.clone(),
                     )
                     .await;
                 }
@@ -266,8 +300,28 @@ pub async fn download_track(
             }
         }
     }
-    
+
+    {
+        let mut cancellation_map = state.download_cancellations.lock().await;
+        cancellation_map.remove(&trackId);
+    }
+
     result
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn cancel_download(
+    trackId: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<bool, String> {
+    let cancellation_map = state.download_cancellations.lock().await;
+    if let Some(flag) = cancellation_map.get(&trackId) {
+        flag.store(true, Ordering::Relaxed);
+        Ok(true)
+    } else {
+        Ok(false)
+    }
 }
 
 #[tauri::command]
@@ -615,21 +669,46 @@ pub async fn show_in_folder(file_path: String) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn parse_deezer_url(url: String) -> Result<Value, String> {
-    lazy_static::lazy_static! {
-        static ref DEEZER_URL_REGEX: Regex = Regex::new(
-            r"https?://(?:www\.)?deezer\.com/(?:[a-z]{2}/)?(track|album|artist|playlist)/(\d+)"
-        ).unwrap();
+    let parsed = Url::parse(url.trim()).map_err(|_| "Invalid URL".to_string())?;
+    let scheme = parsed.scheme();
+    if scheme != "http" && scheme != "https" {
+        return Err("Invalid Deezer URL: only http/https are supported".to_string());
     }
 
-    if let Some(captures) = DEEZER_URL_REGEX.captures(&url) {
-        let content_type = captures.get(1).unwrap().as_str();
-        let id = captures.get(2).unwrap().as_str();
-        
-        Ok(serde_json::json!({
-            "type": content_type,
-            "id": id
-        }))
-    } else {
-        Err("Invalid Deezer URL format".to_string())
+    let host = parsed
+        .host_str()
+        .map(|h| h.to_ascii_lowercase())
+        .ok_or("Invalid Deezer URL host".to_string())?;
+    if host != "deezer.com" && host != "www.deezer.com" {
+        return Err("Invalid Deezer URL: host must be deezer.com".to_string());
     }
+
+    let segments: Vec<_> = parsed
+        .path_segments()
+        .ok_or("Invalid Deezer URL path".to_string())?
+        .filter(|segment| !segment.is_empty())
+        .collect();
+
+    let (content_type, id) = match segments.as_slice() {
+        [kind, id] if is_supported_deezer_kind(kind) => (*kind, *id),
+        [locale, kind, id] if is_locale_segment(locale) && is_supported_deezer_kind(kind) => (*kind, *id),
+        _ => return Err("Invalid Deezer URL format".to_string()),
+    };
+
+    if !id.chars().all(|c| c.is_ascii_digit()) {
+        return Err("Invalid Deezer URL: expected numeric identifier".to_string());
+    }
+
+    Ok(serde_json::json!({
+        "type": content_type,
+        "id": id
+    }))
+}
+
+fn is_supported_deezer_kind(segment: &str) -> bool {
+    matches!(segment, "track" | "album" | "artist" | "playlist")
+}
+
+fn is_locale_segment(segment: &str) -> bool {
+    segment.len() == 2 && segment.chars().all(|c| c.is_ascii_alphabetic())
 }
