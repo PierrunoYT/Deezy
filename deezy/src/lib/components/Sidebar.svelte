@@ -8,9 +8,10 @@
     activeDownloads: number;
     onViewChange: (view: string) => void;
     onShowHelp?: () => void;
+    onOpenTagEditor?: () => void;
   }
 
-  let { currentView, user, activeDownloads, onViewChange, onShowHelp }: Props = $props();
+  let { currentView, user, activeDownloads, onViewChange, onShowHelp, onOpenTagEditor }: Props = $props();
 
   const views = [
     { id: 'search', icon: 'search', label: $_('nav.search') },
@@ -90,6 +91,16 @@
     </button>
   </nav>
   
+  {#if onOpenTagEditor}
+    <button class="help-btn" onclick={onOpenTagEditor} title={$_('nav.tagEditor')}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M12 20h9"/>
+        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+      </svg>
+      <span>{$_('nav.tagEditor')}</span>
+    </button>
+  {/if}
+
   {#if onShowHelp}
     <button class="help-btn" onclick={onShowHelp} title="{$_('nav.keyboardShortcuts')} (Shift+?)">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

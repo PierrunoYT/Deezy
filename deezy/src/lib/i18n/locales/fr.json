@@ -6,7 +6,8 @@
     "search": "Rechercher",
     "downloads": "Téléchargements",
     "settings": "Paramètres",
-    "keyboardShortcuts": "Raccourcis Clavier"
+    "keyboardShortcuts": "Raccourcis Clavier",
+    "tagEditor": "Éditeur de Tags"
   },
   "search": {
     "title": "Rechercher",
@@ -85,7 +86,8 @@
     "actions": {
       "pause": "Mettre en pause",
       "resume": "Reprendre le téléchargement",
-      "retry": "Réessayer le téléchargement"
+      "retry": "Réessayer le téléchargement",
+      "editTags": "Modifier les tags"
     },
     "queue": {
       "title": "File d'Attente",
@@ -200,6 +202,32 @@
     "delete": "Supprimer",
     "edit": "Modifier",
     "back": "Retour"
+  },
+  "tagEditor": {
+    "title": "Éditeur de Tags",
+    "noFileSelected": "Aucun fichier sélectionné",
+    "selectFile": "Sélectionner un fichier",
+    "changeFile": "Changer de fichier",
+    "noCover": "Pas de pochette",
+    "coverAlt": "Pochette d'album",
+    "changeCover": "Changer la pochette",
+    "removeCover": "Supprimer la pochette",
+    "cancelCoverChange": "Annuler le changement",
+    "newCoverSelected": "Nouvelle pochette sélectionnée",
+    "saving": "Enregistrement...",
+    "saveSuccess": "Tags enregistrés avec succès !",
+    "fields": {
+      "title": "Titre",
+      "artist": "Artiste",
+      "album": "Album",
+      "albumArtist": "Artiste de l'album",
+      "year": "Année",
+      "track": "Piste",
+      "disc": "Disque",
+      "genre": "Genre",
+      "label": "Label",
+      "comment": "Commentaire"
+    }
   },
   "time": {
     "duration": "{minutes}:{seconds}"

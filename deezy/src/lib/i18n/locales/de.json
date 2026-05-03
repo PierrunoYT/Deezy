@@ -6,7 +6,8 @@
     "search": "Suchen",
     "downloads": "Downloads",
     "settings": "Einstellungen",
-    "keyboardShortcuts": "Tastenkombinationen"
+    "keyboardShortcuts": "Tastenkombinationen",
+    "tagEditor": "Tag-Editor"
   },
   "search": {
     "title": "Suchen",
@@ -85,7 +86,8 @@
     "actions": {
       "pause": "Download pausieren",
       "resume": "Download fortsetzen",
-      "retry": "Download wiederholen"
+      "retry": "Download wiederholen",
+      "editTags": "Tags bearbeiten"
     },
     "queue": {
       "title": "Download-Warteschlange",
@@ -200,6 +202,32 @@
     "delete": "Löschen",
     "edit": "Bearbeiten",
     "back": "Zurück"
+  },
+  "tagEditor": {
+    "title": "Tag-Editor",
+    "noFileSelected": "Keine Datei ausgewählt",
+    "selectFile": "Datei auswählen",
+    "changeFile": "Datei wechseln",
+    "noCover": "Kein Cover",
+    "coverAlt": "Album-Cover",
+    "changeCover": "Cover ändern",
+    "removeCover": "Cover entfernen",
+    "cancelCoverChange": "Änderung abbrechen",
+    "newCoverSelected": "Neues Cover ausgewählt",
+    "saving": "Speichern...",
+    "saveSuccess": "Tags erfolgreich gespeichert!",
+    "fields": {
+      "title": "Titel",
+      "artist": "Künstler",
+      "album": "Album",
+      "albumArtist": "Album-Künstler",
+      "year": "Jahr",
+      "track": "Titel-Nr.",
+      "disc": "Disc",
+      "genre": "Genre",
+      "label": "Label",
+      "comment": "Kommentar"
+    }
   },
   "time": {
     "duration": "{minutes}:{seconds}"

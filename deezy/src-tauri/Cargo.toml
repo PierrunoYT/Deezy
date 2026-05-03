@@ -34,4 +34,5 @@ keyring = { version = "3", features = ["sync-secret-service", "windows-native", 
 regex = "1"
 lazy_static = "1.4"
 url = "2"
+base64 = "0.22"
 

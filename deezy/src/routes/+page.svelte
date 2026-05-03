@@ -8,6 +8,7 @@
   import DownloadsView from '$lib/components/DownloadsView.svelte';
   import SettingsView from '$lib/components/SettingsView.svelte';
   import KeyboardShortcutsModal from '$lib/components/KeyboardShortcutsModal.svelte';
+  import TagEditorModal from '$lib/components/TagEditorModal.svelte';
   import MiniPlayer from '$lib/components/MiniPlayer.svelte';
   import { keyboardShortcuts, type KeyboardShortcut } from '$lib/keyboardShortcuts';
   import { audioPlayerManager } from '$lib/audioPlayer';
@@ -19,6 +20,8 @@
   let user = $state<UserInfo | null>(null);
   let activeCount = $state(0);
   let showShortcutsModal = $state(false);
+  let showTagEditor = $state(false);
+  let tagEditorFilePath = $state<string | null>(null);
 
   const SHORTCUT_IDS = [
     'view-search',
@@ -144,13 +147,14 @@
     activeDownloads={activeCount}
     onViewChange={switchView}
     onShowHelp={() => showShortcutsModal = true}
+    onOpenTagEditor={() => { tagEditorFilePath = null; showTagEditor = true; }}
   />
   
   <main id="content" aria-label="Main content">
     {#if currentView === 'search'}
       <SearchView />
     {:else if currentView === 'downloads'}
-      <DownloadsView />
+      <DownloadsView onEditTags={(filePath) => { tagEditorFilePath = filePath; showTagEditor = true; }} />
     {:else if currentView === 'settings'}
       <SettingsView onLoginSuccess={() => switchView('search')} />
     {/if}
@@ -162,6 +166,12 @@
 <KeyboardShortcutsModal 
   show={showShortcutsModal} 
   onClose={() => showShortcutsModal = false} 
+/>
+
+<TagEditorModal
+  show={showTagEditor}
+  initialFilePath={tagEditorFilePath}
+  onClose={() => showTagEditor = false}
 />
 
 <style>

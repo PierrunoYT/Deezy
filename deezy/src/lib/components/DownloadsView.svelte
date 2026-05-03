@@ -21,6 +21,13 @@
     error: string;
   }
 
+  interface Props {
+    /** Optional callback to open the Tag Editor for a downloaded file. */
+    onEditTags?: (filePath: string) => void;
+  }
+
+  let { onEditTags }: Props = $props();
+
   let downloadItems = $state<DownloadItem[]>([]);
   let showExportModal = $state(false);
   let unlistenProgress: UnlistenFn | undefined;
@@ -294,6 +301,20 @@
                   </svg>
                 </button>
               {/if}
+            {/if}
+            {#if item.status === 'complete' && item.filePath && onEditTags && /\.(mp3|flac)$/i.test(item.filePath)}
+              <button
+                class="action-btn edit-tags-btn"
+                type="button"
+                title={$_('downloads.actions.editTags')}
+                onclick={() => onEditTags?.(item.filePath!)}
+                aria-label={$_('downloads.actions.editTags')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 20h9"/>
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                </svg>
+              </button>
             {/if}
             {#if item.errorMsg && !['error','paused','downloading','resolving','complete'].includes(item.status)}
               <div class="error-msg" title={item.errorMsg} role="alert">⚠</div>

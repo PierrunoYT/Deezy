@@ -67,3 +67,47 @@ pub struct DownloadResult {
     pub actual_quality: String,
     pub status: String,
 }
+
+/// Tag data read from an existing MP3 or FLAC file.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileTagData {
+    pub file_path: String,
+    pub format: String,
+    pub title: Option<String>,
+    pub artist: Option<String>,
+    pub album: Option<String>,
+    pub album_artist: Option<String>,
+    pub year: Option<i32>,
+    pub track: Option<u32>,
+    pub total_tracks: Option<u32>,
+    pub disc: Option<u32>,
+    pub total_discs: Option<u32>,
+    pub genre: Option<String>,
+    pub label: Option<String>,
+    pub comment: Option<String>,
+    /// Base64-encoded cover image for display in the UI.
+    pub cover_data: Option<String>,
+    pub cover_mime: Option<String>,
+}
+
+/// Tag fields to write back to an audio file.
+/// `None` means "do not change this field".
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WriteTagData {
+    pub title: Option<String>,
+    pub artist: Option<String>,
+    pub album: Option<String>,
+    pub album_artist: Option<String>,
+    pub year: Option<i32>,
+    pub track: Option<u32>,
+    pub total_tracks: Option<u32>,
+    pub disc: Option<u32>,
+    pub total_discs: Option<u32>,
+    pub genre: Option<String>,
+    pub label: Option<String>,
+    pub comment: Option<String>,
+    /// Path to a new cover image file. `None` = keep existing cover.
+    pub new_cover_path: Option<String>,
+    /// If true and `new_cover_path` is None, remove the existing cover.
+    pub remove_cover: bool,
+}

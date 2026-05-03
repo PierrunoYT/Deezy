@@ -6,7 +6,8 @@
     "search": "Buscar",
     "downloads": "Descargas",
     "settings": "Configuración",
-    "keyboardShortcuts": "Atajos de Teclado"
+    "keyboardShortcuts": "Atajos de Teclado",
+    "tagEditor": "Editor de Etiquetas"
   },
   "search": {
     "title": "Buscar",
@@ -85,7 +86,8 @@
     "actions": {
       "pause": "Pausar descarga",
       "resume": "Reanudar descarga",
-      "retry": "Reintentar descarga"
+      "retry": "Reintentar descarga",
+      "editTags": "Editar etiquetas"
     },
     "queue": {
       "title": "Cola de Descargas",
@@ -200,6 +202,32 @@
     "delete": "Eliminar",
     "edit": "Editar",
     "back": "Atrás"
+  },
+  "tagEditor": {
+    "title": "Editor de Etiquetas",
+    "noFileSelected": "Ningún archivo seleccionado",
+    "selectFile": "Seleccionar archivo",
+    "changeFile": "Cambiar archivo",
+    "noCover": "Sin portada",
+    "coverAlt": "Portada del álbum",
+    "changeCover": "Cambiar portada",
+    "removeCover": "Eliminar portada",
+    "cancelCoverChange": "Cancelar cambio",
+    "newCoverSelected": "Nueva portada seleccionada",
+    "saving": "Guardando...",
+    "saveSuccess": "¡Etiquetas guardadas con éxito!",
+    "fields": {
+      "title": "Título",
+      "artist": "Artista",
+      "album": "Álbum",
+      "albumArtist": "Artista del álbum",
+      "year": "Año",
+      "track": "Pista",
+      "disc": "Disco",
+      "genre": "Género",
+      "label": "Sello",
+      "comment": "Comentario"
+    }
   },
   "time": {
     "duration": "{minutes}:{seconds}"

@@ -94,6 +94,11 @@ pub fn run() {
             commands::create_example_themes,
             commands::show_in_folder,
             commands::parse_deezer_url,
+            commands::pick_audio_file,
+            commands::pick_cover_image,
+            commands::read_image_as_data_url,
+            commands::read_file_tags,
+            commands::write_file_tags,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

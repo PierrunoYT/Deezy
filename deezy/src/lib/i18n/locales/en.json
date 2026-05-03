@@ -6,7 +6,8 @@
     "search": "Search",
     "downloads": "Downloads",
     "settings": "Settings",
-    "keyboardShortcuts": "Keyboard Shortcuts"
+    "keyboardShortcuts": "Keyboard Shortcuts",
+    "tagEditor": "Tag Editor"
   },
   "search": {
     "title": "Search",
@@ -85,7 +86,8 @@
     "actions": {
       "pause": "Pause download",
       "resume": "Resume download",
-      "retry": "Retry download"
+      "retry": "Retry download",
+      "editTags": "Edit tags"
     },
     "queue": {
       "title": "Download Queue",
@@ -200,6 +202,32 @@
     "delete": "Delete",
     "edit": "Edit",
     "back": "Back"
+  },
+  "tagEditor": {
+    "title": "Tag Editor",
+    "noFileSelected": "No file selected",
+    "selectFile": "Select File",
+    "changeFile": "Change File",
+    "noCover": "No cover art",
+    "coverAlt": "Album cover art",
+    "changeCover": "Change Cover",
+    "removeCover": "Remove Cover",
+    "cancelCoverChange": "Cancel Change",
+    "newCoverSelected": "New cover selected",
+    "saving": "Saving...",
+    "saveSuccess": "Tags saved successfully!",
+    "fields": {
+      "title": "Title",
+      "artist": "Artist",
+      "album": "Album",
+      "albumArtist": "Album Artist",
+      "year": "Year",
+      "track": "Track",
+      "disc": "Disc",
+      "genre": "Genre",
+      "label": "Label",
+      "comment": "Comment"
+    }
   },
   "time": {
     "duration": "{minutes}:{seconds}"
