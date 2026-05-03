@@ -2,6 +2,20 @@
 
 All notable changes to Deezy are documented here.
 
+## [0.2.16] - 2026-05-03
+
+### Added
+
+- **Tag Editor for local MP3/FLAC files** – New `TagEditorModal` lets you edit metadata (title, artist, album, album artist, year, track/disc numbers, genre, label, comment) and album cover art on any local MP3 or FLAC file. Backed by new Tauri commands (`pick_audio_file`, `pick_cover_image`, `read_image_as_data_url`, `read_file_tags`, `write_file_tags`) using `id3` for MP3 and `metaflac` for FLAC.
+- **Sidebar entry** – New "Tag Editor" button in the sidebar opens the editor with no file pre-selected.
+- **Edit Tags from Downloads** – Completed `.mp3`/`.flac` rows in `DownloadsView` now show an "Edit tags" pencil button that opens the editor pre-populated with the downloaded file path.
+- **Cover preview for newly-picked artwork** – Picking a replacement cover image now reads it through the backend and renders an immediate preview (with a "NEW COVER SELECTED" badge) before saving.
+- **Localization** – `nav.tagEditor`, `downloads.actions.editTags`, and the full `tagEditor.*` block translated for English, German, Spanish, French, Italian, and Portuguese.
+
+### Fixed
+
+- **`pt.json` structural bug** – The `tagEditor` block was nested inside `notifications` and a duplicate `notifications` object was appended, silently dropping all tag-editor strings at runtime. Restored to a single top-level `tagEditor` block plus single `notifications`.
+
 ## [0.2.15] - 2026-04-19
 
 ### Fixed

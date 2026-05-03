@@ -1,6 +1,6 @@
 # Example Themes
 
-Compatible with Deezy **v0.2.15**.
+Compatible with Deezy **v0.2.16**.
 
 This directory contains example theme files that demonstrate the custom theme format for Deezy.
 

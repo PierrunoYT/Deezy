@@ -1,6 +1,6 @@
 # Deezy – Frequently Asked Questions
 
-Current release: **v0.2.15** (see [Changelog](CHANGELOG.md)).
+Current release: **v0.2.16** (see [Changelog](CHANGELOG.md)).
 
 ---
 
