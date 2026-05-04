@@ -94,6 +94,12 @@ A modern desktop Deezer downloader built with [Tauri 2](https://tauri.app), [Sve
 - [Rust](https://rustup.rs) (latest stable)
 - [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/) (platform-specific dependencies)
 
+**macOS only:** also install Xcode Command Line Tools:
+
+```bash
+xcode-select --install
+```
+
 ### Get your Deezer ARL token
 
 1. Log into [deezer.com](https://www.deezer.com)
@@ -117,6 +123,10 @@ npm run tauri build
 ```
 
 The built application will be in `src-tauri/target/release/bundle/`.
+
+- **Windows:** `.msi` and `.exe` installers in `bundle/msi/` and `bundle/nsis/`
+- **macOS:** `.dmg` and `.app` bundle in `bundle/dmg/` and `bundle/macos/`
+- **Linux:** `.deb` and `.AppImage` in `bundle/deb/` and `bundle/appimage/`
 
 ## Usage
 
