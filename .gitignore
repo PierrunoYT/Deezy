@@ -61,6 +61,7 @@ BUGS_FOUND.md
 BUILD_AND_RELEASE.md
 RELEASE_INSTRUCTIONS.md
 TASKS.md
+DEVELOPMENT.md
 
 # Signing keys (security-sensitive)
 **/keys/

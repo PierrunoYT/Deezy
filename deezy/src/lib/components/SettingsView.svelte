@@ -6,6 +6,8 @@
   import { _, locale } from 'svelte-i18n';
   import { supportedLocales } from '$lib/i18n';
   import ThemeManager from './ThemeManager.svelte';
+  import { check } from '@tauri-apps/plugin-updater';
+  import { relaunch } from '@tauri-apps/plugin-process';
   
   interface Props {
     onLoginSuccess?: () => void;
@@ -258,6 +260,57 @@
     statusMsg = msg;
     statusType = type;
   }
+
+  // --- Auto Updater ---
+  let updateStatus = $state<'idle' | 'checking' | 'available' | 'downloading' | 'done' | 'up-to-date' | 'error'>('idle');
+  let updateVersion = $state('');
+  let updateNotes = $state('');
+  let updateError = $state('');
+  let downloadProgress = $state(0);
+
+  async function checkForUpdates(): Promise<void> {
+    updateStatus = 'checking';
+    updateError = '';
+    try {
+      const update = await check();
+      if (update?.available) {
+        updateStatus = 'available';
+        updateVersion = update.version;
+        updateNotes = update.body ?? '';
+      } else {
+        updateStatus = 'up-to-date';
+      }
+    } catch (err) {
+      updateStatus = 'error';
+      updateError = String(err);
+    }
+  }
+
+  async function installUpdate(): Promise<void> {
+    updateStatus = 'downloading';
+    downloadProgress = 0;
+    try {
+      const update = await check();
+      if (!update?.available) return;
+      let downloaded = 0;
+      let total = 0;
+      await update.downloadAndInstall((event) => {
+        if (event.event === 'Started') {
+          total = event.data.contentLength ?? 0;
+        } else if (event.event === 'Progress') {
+          downloaded += event.data.chunkLength;
+          downloadProgress = total > 0 ? Math.round((downloaded / total) * 100) : 0;
+        } else if (event.event === 'Finished') {
+          downloadProgress = 100;
+        }
+      });
+      updateStatus = 'done';
+      setTimeout(() => relaunch(), 2000);
+    } catch (err) {
+      updateStatus = 'error';
+      updateError = String(err);
+    }
+  }
   
 </script>
 
@@ -487,6 +540,52 @@
   </div>
   
   <ThemeManager />
+
+  <div class="update-section">
+    <div class="label-text">Updates</div>
+    <p class="form-hint">Check for the latest version of Deezy.</p>
+
+    {#if updateStatus === 'idle' || updateStatus === 'up-to-date' || updateStatus === 'error'}
+      <button class="btn-secondary" onclick={checkForUpdates} type="button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
+        Check for Updates
+      </button>
+      {#if updateStatus === 'up-to-date'}
+        <p class="update-msg success">You are on the latest version.</p>
+      {/if}
+      {#if updateStatus === 'error'}
+        <p class="update-msg error">Error: {updateError}</p>
+      {/if}
+    {/if}
+
+    {#if updateStatus === 'checking'}
+      <p class="update-msg info">Checking for updates...</p>
+    {/if}
+
+    {#if updateStatus === 'available'}
+      <div class="update-available">
+        <p class="update-msg success">Update available: v{updateVersion}</p>
+        {#if updateNotes}
+          <p class="update-notes">{updateNotes}</p>
+        {/if}
+        <button class="btn-primary" onclick={installUpdate} type="button">Download & Install</button>
+      </div>
+    {/if}
+
+    {#if updateStatus === 'downloading'}
+      <p class="update-msg info">Downloading update... {downloadProgress}%</p>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width: {downloadProgress}%"></div>
+      </div>
+    {/if}
+
+    {#if updateStatus === 'done'}
+      <p class="update-msg success">Update installed! Relaunching...</p>
+    {/if}
+  </div>
 </div>
 
 <style>
@@ -818,5 +917,58 @@
     background: var(--accent-dim);
     color: var(--accent);
     border: 1px solid rgba(162, 56, 255, 0.2);
+  }
+
+  .update-section {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    max-width: 560px;
+  }
+
+  .update-available {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .update-notes {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    white-space: pre-wrap;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+
+  .update-msg {
+    font-size: 13px;
+    margin: 8px 0 0;
+  }
+
+  .update-msg.success { color: var(--success); }
+  .update-msg.error   { color: var(--error); }
+  .update-msg.info    { color: var(--accent); }
+
+  .progress-bar {
+    margin-top: 8px;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--bg-hover);
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 0.2s;
+  }
+
+  .btn-secondary svg {
+    flex-shrink: 0;
   }
 </style>

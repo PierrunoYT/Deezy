@@ -2,6 +2,18 @@
 
 All notable changes to Deezy are documented here.
 
+## [0.2.17] - 2026-05-05
+
+### Added
+
+- **Auto-updater** – Built-in update checker in Settings powered by `tauri-plugin-updater`. Shows available version and release notes, downloads and installs with a progress bar, then relaunches automatically.
+
+### Changed
+
+- **README** – Rewritten to be user-focused; technical and developer documentation moved to a separate local file.
+
+---
+
 ## [0.2.16] - 2026-05-03
 
 ### Added
