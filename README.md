@@ -50,11 +50,27 @@ A modern desktop Deezer downloader. Search for tracks, albums, artists, and play
 
 ## Install
 
-Download the latest installer for your platform from the [Releases page](https://github.com/PierrunoYT/Deezy/releases/latest):
+### Windows
 
-- **Windows:** `.exe` (NSIS) or `.msi`
-- **macOS:** `.dmg`
-- **Linux:** `.deb` or `.AppImage`
+Download the latest installer from the [Releases page](https://github.com/PierrunoYT/Deezy/releases/latest):
+
+- `.exe` (NSIS installer) — recommended
+- `.msi` (MSI package)
+
+### macOS & Linux
+
+No pre-built binaries are available yet. Build from source:
+
+```bash
+git clone https://github.com/PierrunoYT/Deezy.git
+cd Deezy/deezy
+npm install
+npm run tauri build
+```
+
+Install the output from `src-tauri/target/release/bundle/` (`.dmg` on macOS, `.deb` / `.AppImage` on Linux).
+
+> **macOS note:** Auto-update is not available — updates require rebuilding from source. Run `git pull` then `npm run tauri build` to update.
 
 ---
 
