@@ -93,6 +93,32 @@ Ensure the URL is a valid Deezer link (track, album, artist, or playlist). Suppo
 
 ---
 
+## 🔄 Updates
+
+### How do I update Deezy on Windows?
+
+Open Settings (Ctrl+3) and click **Check for Updates**. If a new version is available, click **Download & Install** — the app will update and relaunch automatically.
+
+### How do I update Deezy on macOS or Linux?
+
+Auto-updates are currently only available on Windows. If you built the app from source on macOS or Linux, update manually by pulling the latest code and rebuilding:
+
+```bash
+cd DeezyTauri
+git pull
+cd deezy
+npm install
+npm run tauri build
+```
+
+Then install the new bundle from `src-tauri/target/release/bundle/`.
+
+### Why does "Check for Updates" say no update is available on macOS/Linux?
+
+The update server currently only serves Windows builds. macOS and Linux users need to rebuild from source as described above.
+
+---
+
 ## ⚖️ Legal
 
 ### Is Deezy legal to use?
