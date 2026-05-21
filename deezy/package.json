@@ -13,11 +13,10 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-dialog": "^2",
+    "@tauri-apps/api": "^2.11",
+    "@tauri-apps/plugin-dialog": "^2.7",
     "@tauri-apps/plugin-notification": "^2.3.3",
     "@tauri-apps/plugin-process": "^2",
-    "@tauri-apps/plugin-updater": "^2.10.1",
     "svelte-dnd-action": "^0.9.69",
     "svelte-i18n": "^4.0.1"
   },

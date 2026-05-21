@@ -23,14 +23,7 @@
       "csp": "default-src 'self'; img-src 'self' https://*.dzcdn.net https://api.deezer.com data:; media-src 'self' https://*.dzcdn.net; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost"
     }
   },
-  "plugins": {
-    "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNDNjRGRDcwOEE3NjJCRTgKUldUb0szYUtjUDFrUEVmZTlOYmRkR2VndHQ3bGZ4VjdObGorTmJQTi9QdFM0bnFlbURjQi8xdSsK",
-      "endpoints": [
-        "https://github.com/PierrunoYT/Deezy/releases/latest/download/latest.json"
-      ]
-    }
-  },
+  "plugins": {},
   "bundle": {
     "active": true,
     "targets": "all",
