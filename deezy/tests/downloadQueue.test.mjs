@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { deferred, loadModule, settle, store } from './helpers.mjs';
 
-function setup() {
+function setup(completionNotice = Promise.resolve()) {
   const stores = {
     downloads: store(new Map()), downloadHistory: store([]), downloadQueue: store([]),
     activeDownloads: store(0), pausedDownloads: store(new Set()), MAX_CONCURRENT_DOWNLOADS: 3
@@ -14,7 +14,7 @@ function setup() {
     'svelte/store': { get: s => s.value },
     '@tauri-apps/api/core': { invoke: command => command === 'download_track' ? download.promise : cancel.promise },
     './rateLimiter': { downloadRateLimiter: { throttle: async () => {} } },
-    './notifications': { notificationManager: { notifyDownloadComplete: async () => {}, notifyDownloadError: async () => {} } }
+    './notifications': { notificationManager: { notifyDownloadComplete: () => completionNotice, notifyDownloadError: async () => {} } }
   });
   return { manager, stores, download, cancel };
 }
@@ -67,6 +67,20 @@ test('pause requests for inactive completed tracks are ignored', async () => {
   await manager.pauseDownload('1');
   assert.equal(stores.downloads.value.get('1'), 'complete');
   assert.equal(manager.isPaused('1'), false);
+});
+
+test('a completed track waiting for notification permission cannot be paused', async () => {
+  const notice = deferred();
+  const { manager, stores, download } = setup(notice.promise);
+  await manager.addToQueue(track);
+  download.resolve(complete);
+  await settle();
+  assert.equal(stores.activeDownloads.value, 0);
+  await manager.pauseDownload('1');
+  assert.equal(stores.downloads.value.get('1'), 'complete');
+  notice.resolve();
+  await settle();
+  assert.equal(stores.activeDownloads.value, 0);
 });
 
 test('all interrupted phases recover as resumable without mutating live state', () => {

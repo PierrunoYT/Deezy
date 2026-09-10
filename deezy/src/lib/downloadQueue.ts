@@ -218,7 +218,9 @@ class DownloadQueueManager {
         actualQuality: result.actual_quality
       });
 
-      await notificationManager.notifyDownloadComplete(track.title, track.artist);
+      void notificationManager.notifyDownloadComplete(track.title, track.artist).catch(err => {
+        console.error('Download notification failed:', err);
+      });
     } catch (err) {
       if (this.isPaused(trackId)) {
         console.log('Download was paused:', trackId);
@@ -236,7 +238,9 @@ class DownloadQueueManager {
         isPaused: false
       });
 
-      await notificationManager.notifyDownloadError(track.title, track.artist, String(err));
+      void notificationManager.notifyDownloadError(track.title, track.artist, String(err)).catch(notificationError => {
+        console.error('Download error notification failed:', notificationError);
+      });
     } finally {
       if (didIncrement) {
         this.decrementActiveCount(trackId);
@@ -261,6 +265,7 @@ class DownloadQueueManager {
   }
 
   async pauseDownload(trackId: string): Promise<void> {
+    if (get(downloads).get(trackId) === 'complete') return;
     const queuedItem = get(downloadQueue).find(item => String(item.track.id) === trackId);
     const wasActive = this.activeTrackIds.has(trackId);
     if (!wasActive && !queuedItem) return;

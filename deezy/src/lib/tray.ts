@@ -15,6 +15,8 @@ const DEFAULT_TOOLTIP = 'Deezy';
 
 class TrayManager {
   private initialized = false;
+  private generation = 0;
+  private initializing: Promise<void> | undefined;
   private unlistenPauseResume: UnlistenFn | undefined;
   private unsubscribeActiveDownloads: (() => void) | undefined;
   private unsubscribeDownloadQueue: (() => void) | undefined;
@@ -24,10 +26,24 @@ class TrayManager {
 
   async init(): Promise<void> {
     if (this.initialized) return;
+    if (this.initializing) return this.initializing;
 
-    this.unlistenPauseResume = await listen('tray-pause-resume', () => {
+    const generation = ++this.generation;
+    this.initializing = this.initialize(generation).finally(() => {
+      if (generation === this.generation) this.initializing = undefined;
+    });
+    return this.initializing;
+  }
+
+  private async initialize(generation: number): Promise<void> {
+    const unlisten = await listen('tray-pause-resume', () => {
       this.togglePauseResume();
     });
+    if (generation !== this.generation) {
+      unlisten();
+      return;
+    }
+    this.unlistenPauseResume = unlisten;
 
     this.unsubscribeActiveDownloads = activeDownloads.subscribe(() => {
       this.debouncedUpdateTrayStatus();
@@ -45,6 +61,8 @@ class TrayManager {
   }
 
   destroy(): void {
+    this.generation++;
+    this.initializing = undefined;
     this.unlistenPauseResume?.();
     this.unlistenPauseResume = undefined;
     this.unsubscribeActiveDownloads?.();

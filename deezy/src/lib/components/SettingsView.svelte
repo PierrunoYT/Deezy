@@ -70,6 +70,7 @@
   });
   
   onMount(() => {
+    let disposed = false;
     let unsubTheme = () => {};
     let unsubLocale = () => {};
     let unsubLoggedIn = () => {};
@@ -79,6 +80,7 @@
 
       try {
         const settings = await invoke<AppSettings>('get_settings');
+        if (disposed) return;
         if (settings.output_dir) outputDir = settings.output_dir;
         if (settings.quality) quality = settings.quality;
         if (settings.folder_structure) folderStructure = settings.folder_structure;
@@ -96,7 +98,9 @@
         // First run
       }
 
+      if (disposed) return;
       await refreshArlStorage();
+      if (disposed) return;
 
       // Subscribe to theme changes
       unsubTheme = theme.subscribe(t => currentTheme = t);
@@ -109,6 +113,7 @@
     })();
 
     return () => {
+      disposed = true;
       unsubTheme();
       unsubLocale();
       unsubLoggedIn();

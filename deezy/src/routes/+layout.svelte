@@ -271,6 +271,7 @@
   }
 
   onMount(() => {
+    let disposed = false;
     let unsubscribeTheme = () => {};
     let unsubscribeLocale = () => {};
     let unsubscribeHistory = () => {};
@@ -282,12 +283,15 @@
           console.error('Failed to exit cleanly:', err);
         });
       });
+      if (disposed) { unlistenExitRequested(); return; }
 
       await initializeApp();
+      if (disposed) return;
       
       await trayManager.init().catch(err => {
         console.error('Failed to initialize tray manager:', err);
       });
+      if (disposed) return;
       
       unsubscribeTheme = theme.subscribe(applyTheme);
       unsubscribeLocale = currentLocale.subscribe(newLocale => {
@@ -308,6 +312,7 @@
       unlistenProgress = await listen<DownloadProgressEvent>('download-progress', (event) => {
         handleDownloadProgress(event.payload);
       });
+      if (disposed) { unlistenProgress(); return; }
 
       unlistenTagError = await listen<TagErrorEvent>('tag-writing-error', (event) => {
         const { track_id, error } = event.payload;
@@ -319,9 +324,13 @@
           )
         );
       });
+      if (disposed) unlistenTagError();
     })();
 
     return () => {
+      disposed = true;
+      themeGeneration++;
+      trayManager.destroy();
       unlistenProgress?.();
       unlistenTagError?.();
       unlistenExitRequested?.();
