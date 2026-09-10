@@ -57,6 +57,8 @@
 
   let searchTimeout: ReturnType<typeof setTimeout> | undefined;
   let activeSearchToken = 0;
+  let activeArtistToken = 0;
+  let activePlaylistToken = 0;
 
   $effect(() => {
     try {
@@ -109,6 +111,9 @@
     });
 
     return () => {
+      activeSearchToken++;
+      activeArtistToken++;
+      activePlaylistToken++;
       document.removeEventListener('click', handleClickOutside);
       keyboardShortcuts.unregister('focus-search');
       keyboardShortcuts.unregister('clear-search');
@@ -127,6 +132,7 @@
   }
 
   function clearSearch(): void {
+    clearTimeout(searchTimeout);
     activeSearchToken += 1;
     searching = false;
     searchQuery = '';
@@ -199,6 +205,9 @@
   }
 
   function switchSearchType(type: SearchType): void {
+    clearTimeout(searchTimeout);
+    closeArtist();
+    closePlaylist();
     activeSearchToken += 1;
     searching = false;
     searchType = type;
@@ -212,6 +221,7 @@
   }
   
   async function doSearch(): Promise<void> {
+    clearTimeout(searchTimeout);
     if (!isLoggedIn) {
       errorMsg = $_('search.status.loginRequired');
       return;
@@ -291,6 +301,7 @@
   }
 
   async function openArtist(id: number, name: string, picture: string): Promise<void> {
+    const token = ++activeArtistToken;
     selectedArtist = { id, name, picture };
     artistAlbums = [];
     discographyError = '';
@@ -298,24 +309,28 @@
 
     try {
       const data = await invoke<AlbumResult[]>('get_artist_albums', { artistId: String(id) });
+      if (token !== activeArtistToken) return;
       artistAlbums = data;
       if (artistAlbums.length === 0) {
         discographyError = $_('search.artist.noAlbums');
       }
     } catch (err) {
-      discographyError = String(err);
+      if (token === activeArtistToken) discographyError = String(err);
     } finally {
-      loadingDiscography = false;
+      if (token === activeArtistToken) loadingDiscography = false;
     }
   }
 
   function closeArtist(): void {
+    activeArtistToken++;
+    loadingDiscography = false;
     selectedArtist = null;
     artistAlbums = [];
     discographyError = '';
   }
 
   async function openPlaylist(playlist: PlaylistResult): Promise<void> {
+    const token = ++activePlaylistToken;
     selectedPlaylist = { 
       id: playlist.id, 
       title: playlist.title, 
@@ -328,18 +343,21 @@
 
     try {
       const data = await invoke<Track[]>('get_playlist_tracks', { playlistId: String(playlist.id) });
+      if (token !== activePlaylistToken) return;
       playlistTracks = data;
       if (playlistTracks.length === 0) {
         playlistError = $_('search.playlist.noTracks');
       }
     } catch (err) {
-      playlistError = String(err);
+      if (token === activePlaylistToken) playlistError = String(err);
     } finally {
-      loadingPlaylist = false;
+      if (token === activePlaylistToken) loadingPlaylist = false;
     }
   }
 
   function closePlaylist(): void {
+    activePlaylistToken++;
+    loadingPlaylist = false;
     selectedPlaylist = null;
     playlistTracks = [];
     playlistError = '';

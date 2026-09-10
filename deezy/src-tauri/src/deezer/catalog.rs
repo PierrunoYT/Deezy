@@ -1,6 +1,89 @@
 use super::*;
 
+async fn collect_pages<F, Fut>(mut page: Value, mut fetch: F) -> Result<Vec<Value>, String>
+where
+    F: FnMut(Url) -> Fut,
+    Fut: std::future::Future<Output = Result<Value, String>>,
+{
+    let mut entries = Vec::new();
+    let mut visited = std::collections::HashSet::new();
+    loop {
+        let items = page.get_mut("data").and_then(Value::as_array_mut)
+            .ok_or("Invalid catalog page: missing data array")?;
+        if entries.len() + items.len() > 100_000 {
+            return Err("Catalog exceeds 100,000 entries".to_string());
+        }
+        entries.append(items);
+
+        let next = match page.get("next") {
+            None | Some(Value::Null) => break,
+            Some(Value::String(next)) if next.is_empty() => break,
+            Some(Value::String(next)) => next,
+            _ => return Err("Invalid catalog pagination URL".to_string()),
+        };
+        let mut url = Url::parse(next).map_err(|_| "Invalid catalog pagination URL")?;
+        if !matches!(url.scheme(), "http" | "https")
+            || url.host_str() != Some("api.deezer.com")
+            || url.port().is_some()
+            || !url.username().is_empty()
+            || url.password().is_some()
+        {
+            return Err("Catalog pagination must stay on the Deezer API".to_string());
+        }
+        // Some legacy API responses use http links. Always fetch over TLS.
+        url.set_scheme("https").map_err(|_| "Invalid catalog pagination scheme")?;
+        url.set_fragment(None);
+        if visited.len() >= 1_000 || !visited.insert(url.to_string()) {
+            return Err("Catalog pagination repeated or exceeded its page limit".to_string());
+        }
+        page = fetch(url).await?;
+    }
+    Ok(entries)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::collect_pages;
+    use serde_json::json;
+
+    #[tokio::test]
+    async fn collects_all_pages_in_order_and_upgrades_legacy_links() {
+        let first = json!({"data": [{"id": 1}], "next": "http://api.deezer.com/playlist/1/tracks?index=1"});
+        let result = collect_pages(first, |url| async move {
+            assert_eq!(url.scheme(), "https");
+            Ok(json!({"data": [{"id": 2}, {"id": 1}]}))
+        }).await.unwrap();
+        assert_eq!(result, vec![json!({"id": 1}), json!({"id": 2}), json!({"id": 1})]);
+    }
+
+    #[tokio::test]
+    async fn rejects_pagination_cycles() {
+        let page = json!({"data": [], "next": "https://api.deezer.com/playlist/1/tracks?index=0"});
+        assert!(collect_pages(page.clone(), |_| std::future::ready(Ok(page.clone()))).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn rejects_foreign_pagination_hosts_without_fetching() {
+        let page = json!({"data": [], "next": "https://example.com/tracks"});
+        assert!(collect_pages(page, |_| async { panic!("must not fetch a foreign host") }).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn propagates_later_page_failures_instead_of_returning_a_partial_playlist() {
+        let page = json!({"data": [{"id": 1}], "next": "https://api.deezer.com/playlist/1/tracks?index=1"});
+        assert!(collect_pages(page, |_| async { Err("network failure".to_string()) }).await.is_err());
+    }
+}
+
 impl DeezerClient {
+    async fn collect_catalog_pages(&self, page: Value) -> Result<Vec<Value>, String> {
+        collect_pages(page, |url| async move {
+            let response = self.http.get(url).send().await
+                .map_err(|e| e.without_url().to_string())?;
+            response_json(response).await
+        }).await
+    }
+
     pub async fn search_tracks(
         &self,
         query: &str,
@@ -148,9 +231,8 @@ impl DeezerClient {
         let cover_small = album_data["cover_small"].as_str().unwrap_or("").to_string();
         let cover_medium = album_data["cover_medium"].as_str().unwrap_or("").to_string();
 
-        let tracks = data["data"]
-            .as_array()
-            .ok_or("No tracks found in album")?
+        let entries = self.collect_catalog_pages(data).await?;
+        let tracks = entries
             .iter()
             .filter_map(|t| {
                 Some(SearchResult {
@@ -243,9 +325,8 @@ impl DeezerClient {
             .await
             .map_err(|e| format!("Failed to parse artist albums: {}", e))?;
 
-        let albums = data["data"]
-            .as_array()
-            .ok_or("No albums found for artist")?
+        let entries = self.collect_catalog_pages(data).await?;
+        let albums = entries
             .iter()
             .filter_map(|a| {
                 Some(AlbumResult {
@@ -338,9 +419,8 @@ impl DeezerClient {
         let cover_small = data["picture_small"].as_str().unwrap_or("").to_string();
         let cover_medium = data["picture_medium"].as_str().unwrap_or("").to_string();
 
-        let tracks = data["tracks"]["data"]
-            .as_array()
-            .ok_or("No tracks found in playlist")?
+        let entries = self.collect_catalog_pages(data["tracks"].clone()).await?;
+        let tracks = entries
             .iter()
             .filter_map(|t| {
                 Some(SearchResult {

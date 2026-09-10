@@ -2,8 +2,10 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
 
-export function loadModule(path, dependencies, globals = {}) {
-  const source = readFileSync(new URL(path, import.meta.url), 'utf8');
+export function loadModule(path, dependencies, globals = {}, expose = '') {
+  let source = readFileSync(new URL(path, import.meta.url), 'utf8');
+  if (path.endsWith('.svelte')) source = source.match(/<script lang="ts">([\s\S]*?)<\/script>/)[1];
+  source += '\n' + expose;
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
   });
