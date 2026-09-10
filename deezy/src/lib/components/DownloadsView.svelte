@@ -1,19 +1,10 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
-  import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-  import { onMount, onDestroy } from 'svelte';
-  import { downloadHistory, downloads, type DownloadItem, type DownloadStatus } from '$lib/stores';
+  import { downloadHistory, downloads, type DownloadItem } from '$lib/stores';
   import { downloadQueueManager } from '$lib/downloadQueue';
   import QueueView from './QueueView.svelte';
   import ExportHistoryModal from './ExportHistoryModal.svelte';
   import { _ } from 'svelte-i18n';
-
-  interface DownloadProgressEvent {
-    track_id: string;
-    title: string;
-    percent: number;
-    status: DownloadStatus;
-  }
 
   interface Props {
     /** Optional callback to open the Tag Editor for a downloaded file. */
@@ -24,7 +15,6 @@
 
   let downloadItems = $state<DownloadItem[]>([]);
   let showExportModal = $state(false);
-  let unlistenProgress: UnlistenFn | undefined;
 
   $effect(() => {
     const unsubHistory = downloadHistory.subscribe(val => {
@@ -33,44 +23,8 @@
     return unsubHistory;
   });
 
-  onMount(async () => {
-    unlistenProgress = await listen<DownloadProgressEvent>('download-progress', (event) => {
-      const { track_id, title, percent, status } = event.payload;
-
-      downloadHistory.update(history => {
-        const existingIndex = history.findIndex(d => d.trackId === track_id);
-
-        if (existingIndex >= 0) {
-          const oldItem = history[existingIndex];
-          if (
-            oldItem.title === title &&
-            oldItem.percent === percent &&
-            oldItem.status === status
-          ) {
-            return history;
-          }
-          return history.map((item, idx) =>
-            idx === existingIndex
-              ? { ...item, title, percent, status }
-              : item
-          );
-        }
-        return history;
-      });
-    });
-
-  });
-
-  onDestroy(() => {
-    unlistenProgress?.();
-  });
-
   function clearHistory(): void {
-    downloadHistory.set([]);
-    downloads.update(d => {
-      d.clear();
-      return d;
-    });
+    downloadQueueManager.clearHistory();
   }
 
   function retryDownload(item: DownloadItem): void {

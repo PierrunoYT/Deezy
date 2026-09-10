@@ -8,6 +8,7 @@
     userInfo,
     downloads,
     downloadHistory,
+    pausedDownloads,
     theme, 
     currentLocale, 
     type UserInfo, 
@@ -21,6 +22,7 @@
   import { locale as i18nLocale } from 'svelte-i18n';
   import { trayManager } from '$lib/tray';
   import { downloadQueueManager } from '$lib/downloadQueue';
+  import { recoverDownloadHistory } from '$lib/downloadHistory';
   import { notificationManager } from '$lib/notifications';
 
   let { children } = $props();
@@ -117,7 +119,10 @@
     try {
       const history = await invoke<DownloadItem[]>('load_download_history');
       if (history.length > 0) {
-        downloadHistory.set(history);
+        const recovered = recoverDownloadHistory(history);
+        downloadHistory.set(recovered);
+        downloads.set(new Map(recovered.map(item => [item.trackId, item.status])));
+        pausedDownloads.set(new Set(recovered.filter(item => item.status === 'paused').map(item => item.trackId)));
       }
     } catch (err) {
       console.error('Failed to load download history:', err);
@@ -182,7 +187,7 @@
     while (pendingHistory) {
       const history = pendingHistory;
       pendingHistory = undefined;
-      const toSave = history.filter(item => item.status !== 'downloading');
+      const toSave = recoverDownloadHistory(history);
 
       try {
         await invoke('save_download_history', { history: toSave });

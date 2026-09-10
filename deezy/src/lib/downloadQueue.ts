@@ -261,25 +261,35 @@ class DownloadQueueManager {
   }
 
   async pauseDownload(trackId: string): Promise<void> {
+    const queuedItem = get(downloadQueue).find(item => String(item.track.id) === trackId);
+    const wasActive = this.activeTrackIds.has(trackId);
+    if (!wasActive && !queuedItem) return;
+
     const paused = get(pausedDownloads);
     paused.add(trackId);
     pausedDownloads.set(paused);
 
-    if (this.activeTrackIds.has(trackId)) {
-      try {
-        await invoke<boolean>('cancel_download', { trackId });
-      } catch (error) {
-        console.error('Failed to cancel active download:', error);
-      }
-    }
-
-    const queuedItem = get(downloadQueue).find(item => String(item.track.id) === trackId);
     if (queuedItem) {
       this.addToHistory(queuedItem.track, trackId);
     }
 
+    const previousStatus = get(downloads).get(trackId) as DownloadStatus | undefined;
     this.updateHistoryItem(trackId, { status: 'paused', isPaused: true });
     this.updateDownloadStatus(trackId, 'paused');
+
+    if (wasActive) {
+      try {
+        await invoke<boolean>('cancel_download', { trackId });
+      } catch (error) {
+        console.error('Failed to cancel active download:', error);
+        if (this.activeTrackIds.has(trackId) && this.isPaused(trackId)) {
+          this.removeFromPausedSet(trackId);
+          const status = previousStatus ?? 'downloading';
+          this.updateHistoryItem(trackId, { status, isPaused: false });
+          this.updateDownloadStatus(trackId, status);
+        }
+      }
+    }
   }
 
   resumeDownload(trackId: string): void {
@@ -323,6 +333,17 @@ class DownloadQueueManager {
 
   clearQueue(): void {
     downloadQueue.set([]);
+  }
+
+  clearHistory(): void {
+    const retainedIds = new Set([
+      ...this.activeTrackIds,
+      ...get(downloadQueue).map(item => String(item.track.id))
+    ]);
+    downloadHistory.update(history => history.filter(item => retainedIds.has(item.trackId)));
+    downloads.update(items => new Map([...items].filter(([id]) => retainedIds.has(id))));
+    pausedDownloads.update(items => new Set([...items].filter(id => retainedIds.has(id))));
+    this.canceledDownloads = new Set([...this.canceledDownloads].filter(id => retainedIds.has(id)));
   }
 
   async prepareForExit(): Promise<void> {
