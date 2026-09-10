@@ -336,7 +336,7 @@ fn replace_file(source: &Path, destination: &Path) -> Result<(), String> {
     }
 }
 
-fn write_private(path: &Path, data: &[u8]) -> Result<(), String> {
+pub(crate) fn write_private(path: &Path, data: &[u8]) -> Result<(), String> {
     let parent = path
         .parent()
         .ok_or_else(|| "settings.json has no parent directory".to_string())?;

@@ -22,6 +22,9 @@ impl DeezerClient {
             .default_headers(headers)
             .cookie_provider(jar)
             .redirect(reqwest::redirect::Policy::custom(|attempt| {
+                if attempt.previous().len() >= 10 {
+                    return attempt.error("too many Deezer redirects");
+                }
                 if is_allowed_deezer_url(attempt.url()) {
                     attempt.follow()
                 } else {

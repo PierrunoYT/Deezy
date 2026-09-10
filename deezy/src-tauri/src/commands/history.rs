@@ -24,7 +24,7 @@ pub async fn save_download_history(history: Vec<serde_json::Value>, app: AppHand
         if data.len() as u64 > MAX_HISTORY_BYTES {
             return Err("Download history is too large to save".to_string());
         }
-        std::fs::write(&path, data).map_err(|e| e.to_string())
+        crate::settings::write_private(&path, data.as_bytes())
     }).await
 }
 

@@ -61,6 +61,10 @@ pub async fn auto_login(
     let client = DeezerClient::new(&settings.arl).await?;
     let user = serde_json::to_value(&client.user).map_err(|e| e.to_string())?;
 
+    let _settings_io = state.settings_io.lock().await;
+    if state.settings.lock().await.arl != settings.arl {
+        return Err("Account changed while automatic login was in progress".to_string());
+    }
     *state.client.lock().await = Some(client);
 
     Ok(Some(user))

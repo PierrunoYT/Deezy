@@ -527,7 +527,7 @@ fn build_download_path(
         .filter(|date| !date.is_empty())
         .or_else(|| track_data["DIGITAL_RELEASE_DATE"].as_str())
         .unwrap_or("Unknown Date");
-    let release_year = if release_date.len() >= 4 { &release_date[..4] } else { release_date };
+    let release_year: String = release_date.chars().take(4).collect();
     let track_number = parse_u32_from_value(&track_data["TRACK_NUMBER"])
         .map(|n| format!("{:02}", n))
         .unwrap_or_else(|| "00".to_string());
@@ -542,21 +542,28 @@ fn build_download_path(
         template
     };
 
-    let rendered = template
-        .replace("{artist}", artist)
-        .replace("{album}", album_title)
-        .replace("{title}", full_title)
-        .replace("{track_number}", &track_number)
-        .replace("{track}", &track_number)
-        .replace("{disc_number}", &disc_number)
-        .replace("{disc}", &disc_number)
-        .replace("{release_date}", release_date)
-        .replace("{release_year}", release_year)
-        .replace("{year}", release_year);
-
-    let mut parts = rendered
+    let placeholders = regex::Regex::new(
+        r"\{(artist|album|title|track_number|track|disc_number|disc|release_date|release_year|year)\}",
+    ).map_err(|e| e.to_string())?;
+    // Only template separators create directories. Metadata is substituted once
+    // so names containing slashes or other placeholders stay literal.
+    let mut parts = template
         .split(['/', '\\'])
-        .map(sanitize_path_component)
+        .map(|segment| {
+            let rendered = placeholders.replace_all(segment, |capture: &regex::Captures<'_>| {
+                match &capture[1] {
+                    "artist" => artist,
+                    "album" => album_title,
+                    "title" => full_title,
+                    "track_number" | "track" => &track_number,
+                    "disc_number" | "disc" => &disc_number,
+                    "release_date" => release_date,
+                    "release_year" | "year" => &release_year,
+                    _ => unreachable!(),
+                }.to_string()
+            });
+            sanitize_path_component(&rendered)
+        })
         .filter(|part| !part.is_empty())
         .collect::<Vec<_>>();
 
@@ -598,28 +605,30 @@ fn emit_progress(
 }
 
 fn clean_filename(name: &str) -> String {
-    name.chars()
-        .filter(|c| *c != '\0')
-        .map(|c| match c {
-            '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*' => '_',
-            _ => c,
-        })
-        .collect::<String>()
-        .trim()
-        .to_string()
+    let sanitized = sanitize_path_component(name);
+    if sanitized.is_empty() { "_".to_string() } else { sanitized }
 }
 
 fn sanitize_path_component(name: &str) -> String {
-    name.chars()
-        .filter(|c| *c != '\0')
+    let sanitized = name.chars()
+        .filter(|c| !c.is_control())
         .map(|c| match c {
             '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*' => '_',
             _ => c,
         })
         .collect::<String>()
         .trim()
-        .trim_matches('.')
-        .to_string()
+        .trim_matches([' ', '.'])
+        .to_string();
+    let stem = sanitized.split('.').next().unwrap_or("").trim_end().to_uppercase();
+    let device_number = |prefix: &str| stem.strip_prefix(prefix)
+        .is_some_and(|suffix| matches!(suffix, "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "¹" | "²" | "³"));
+    if matches!(stem.as_str(), "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$")
+        || device_number("COM") || device_number("LPT") {
+        format!("_{}", sanitized)
+    } else {
+        sanitized
+    }
 }
 
 fn extract_val(val: &Value) -> String {
@@ -633,7 +642,7 @@ fn extract_val(val: &Value) -> String {
 fn parse_u32_from_value(val: &Value) -> Option<u32> {
     val.as_str()
         .and_then(|s| s.parse().ok())
-        .or_else(|| val.as_u64().map(|n| n as u32))
+        .or_else(|| val.as_u64().and_then(|n| u32::try_from(n).ok()))
 }
 
 async fn create_temp_download_file(
@@ -762,11 +771,45 @@ async fn cleanup_temp_file_async(path: &Path) {
 
 #[cfg(test)]
 mod tests {
-    use super::{copy_file_noclobber, finalize_download_file};
+    use super::{build_download_path, copy_file_noclobber, finalize_download_file, parse_u32_from_value, sanitize_path_component};
+    use crate::settings::FolderStructure;
     use std::io::ErrorKind;
     use std::path::PathBuf;
     use std::sync::atomic::AtomicBool;
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn custom_paths_keep_metadata_separators_and_placeholders_literal() {
+        let path = build_download_path(
+            "output", &FolderStructure::Custom, "{artist}/{album}/{track} - {title}",
+            "AC/DC", "An {title} album", "A/B", &serde_json::json!({"TRACK_NUMBER": 2}), ".mp3",
+        ).unwrap();
+        assert_eq!(path, PathBuf::from("output").join("AC_DC").join("An {title} album").join("02 - A_B.mp3"));
+    }
+
+    #[test]
+    fn custom_paths_accept_multibyte_release_dates_without_panicking() {
+        let path = build_download_path(
+            "output", &FolderStructure::Custom, "{year}/{title}",
+            "Artist", "Album", "Song", &serde_json::json!({"PHYSICAL_RELEASE_DATE": "未定日期"}), ".mp3",
+        ).unwrap();
+        assert_eq!(path, PathBuf::from("output").join("未定日期").join("Song.mp3"));
+    }
+
+    #[test]
+    fn path_components_reject_windows_device_names_and_control_characters() {
+        for name in ["CON", "nul.mp3", "LPT1", "COM¹.flac"] {
+            assert!(sanitize_path_component(name).starts_with('_'));
+        }
+        assert_eq!(sanitize_path_component(" Song\n\t. "), "Song");
+        assert_eq!(sanitize_path_component("COM10"), "COM10");
+    }
+
+    #[test]
+    fn numeric_metadata_does_not_wrap_on_overflow() {
+        assert_eq!(parse_u32_from_value(&serde_json::json!(4_294_967_296u64)), None);
+        assert_eq!(parse_u32_from_value(&serde_json::json!("12")), Some(12));
+    }
 
     fn test_dir(name: &str) -> PathBuf {
         let unique = SystemTime::now()

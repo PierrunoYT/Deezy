@@ -26,7 +26,7 @@ impl DeezerClient {
             .json(&body)
             .send()
             .await
-            .map_err(|e| format!("API call failed: {}", e))?;
+            .map_err(|e| format!("API call failed: {}", e.without_url()))?;
 
         let data: Value = response_json(res)
             .await

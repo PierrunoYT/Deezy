@@ -93,6 +93,7 @@ async fn response_bytes(
     max_bytes: usize,
     label: &str,
 ) -> Result<Vec<u8>, String> {
+    let response = response.error_for_status().map_err(|e| e.without_url().to_string())?;
     if response
         .content_length()
         .is_some_and(|length| length > max_bytes as u64)
@@ -103,7 +104,7 @@ async fn response_bytes(
     let mut body = Vec::new();
     let mut stream = response.bytes_stream();
     while let Some(chunk) = stream.next().await {
-        let chunk = chunk.map_err(|e| e.to_string())?;
+        let chunk = chunk.map_err(|e| e.without_url().to_string())?;
         if chunk.len() > max_bytes.saturating_sub(body.len()) {
             return Err(format!("{} is too large", label));
         }
@@ -115,8 +116,16 @@ async fn response_bytes(
 
 #[cfg(test)]
 mod tests {
-    use super::is_allowed_deezer_url;
+    use super::{is_allowed_deezer_url, response_bytes};
     use url::Url;
+
+    #[tokio::test]
+    async fn rejects_http_error_bodies_before_treating_them_as_media() {
+        let response = reqwest::Response::from(
+            tauri::http::Response::builder().status(404).body("not an image").unwrap(),
+        );
+        assert!(response_bytes(response, 1024, "Cover image").await.is_err());
+    }
 
     #[test]
     fn only_allows_https_deezer_hosts() {
