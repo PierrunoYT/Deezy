@@ -110,13 +110,12 @@
     try {
       const themeData = await invoke<CustomTheme>('load_custom_theme', { themeName });
       
-      applyThemeColors(themeData.colors);
-      
       await invoke('update_settings', {
         updates: { theme: 'custom', custom_theme: themeName }
       });
       
       theme.set('custom');
+      applyThemeColors(themeData.colors);
       selectedTheme = themeName;
       
       showStatus(`Theme "${themeData.name}" applied successfully`, 'success');
@@ -128,14 +127,13 @@
   }
   
   async function resetToDefault(): Promise<void> {
-    clearThemeColors();
-    
     try {
       await invoke('update_settings', {
         updates: { theme: 'dark', custom_theme: null }
       });
       
       theme.set('dark');
+      clearThemeColors();
       selectedTheme = null;
       
       showStatus('Reset to default dark theme', 'success');

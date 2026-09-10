@@ -18,6 +18,7 @@ class AudioPlayerManager {
   private timeupdateHandler: AudioEventHandler | null = null;
   private loadedmetadataHandler: AudioEventHandler | null = null;
   private errorHandler: AudioErrorHandler | null = null;
+  private playbackGeneration = 0;
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -151,15 +152,18 @@ class AudioPlayerManager {
       volume: this.audio.volume,
     });
 
+    const generation = ++this.playbackGeneration;
     this.audio.play().catch(err => {
+      if (generation !== this.playbackGeneration) return;
       console.error('Failed to play audio:', err);
       this.stop();
     });
   }
 
   pause(): void {
-    if (!this.audio || this.audio.paused) return;
+    if (!this.audio) return;
 
+    this.playbackGeneration++;
     this.audio.pause();
     this.updatePlayerState({ isPlaying: false });
   }
@@ -167,7 +171,9 @@ class AudioPlayerManager {
   resume(): void {
     if (!this.audio || !this.audio.paused) return;
 
+    const generation = ++this.playbackGeneration;
     this.audio.play().catch(err => {
+      if (generation !== this.playbackGeneration) return;
       console.error('Failed to resume audio:', err);
       this.stop();
     });
@@ -176,10 +182,12 @@ class AudioPlayerManager {
   }
 
   stop(): void {
+    this.playbackGeneration++;
     if (this.audio) {
       this.audio.pause();
       this.audio.currentTime = 0;
-      this.audio.src = '';
+      this.audio.removeAttribute('src');
+      this.audio.load();
     }
     
     audioPlayer.set({
@@ -202,7 +210,7 @@ class AudioPlayerManager {
   }
 
   seek(time: number): void {
-    if (!this.audio) return;
+    if (!this.audio || !Number.isFinite(time) || !Number.isFinite(this.audio.duration)) return;
 
     const duration = this.audio.duration || 0;
     const clampedTime = this.clampTime(time, duration);
@@ -212,7 +220,7 @@ class AudioPlayerManager {
   }
 
   setVolume(volume: number): void {
-    if (!this.audio) return;
+    if (!this.audio || !Number.isFinite(volume)) return;
 
     const clampedVolume = this.clampVolume(volume);
     this.audio.volume = clampedVolume;

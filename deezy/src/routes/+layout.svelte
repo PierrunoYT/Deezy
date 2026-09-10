@@ -72,7 +72,9 @@
     root.classList.remove('light');
   }
 
-  async function loadAndApplyCustomTheme(): Promise<void> {
+  let themeGeneration = 0;
+
+  async function loadAndApplyCustomTheme(generation: number): Promise<void> {
     try {
       const settings = await invoke<AppSettings>('get_settings');
       if (!settings.custom_theme) return;
@@ -81,18 +83,20 @@
         themeName: settings.custom_theme 
       });
       
-      applyCustomThemeColors(themeData.colors);
+      if (generation === themeGeneration) applyCustomThemeColors(themeData.colors);
     } catch (err) {
       console.error('Failed to load custom theme:', err);
-      document.documentElement.classList.remove('light');
+      if (generation === themeGeneration) document.documentElement.classList.remove('light');
     }
   }
 
   async function applyTheme(themeValue: Theme): Promise<void> {
+    const generation = ++themeGeneration;
+    CSS_VARIABLES.forEach(variable => document.documentElement.style.removeProperty(`--${variable}`));
     if (themeValue === 'system') {
       applySystemTheme();
     } else if (themeValue === 'custom') {
-      await loadAndApplyCustomTheme();
+      await loadAndApplyCustomTheme(generation);
     } else {
       const root = document.documentElement;
       root.classList.toggle('light', themeValue === 'light');
