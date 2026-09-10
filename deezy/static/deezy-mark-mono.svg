@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="deezy-mono-title">
+  <title id="deezy-mono-title">Deezy</title>
+  <path fill="currentColor" fill-rule="evenodd" d="M112 64H240C355 64 448 150 448 256S355 448 240 448H112C85 448 64 427 64 400V112C64 85 85 64 112 64ZM216 152C209 152 204 157 204 164V252H172C163 252 159 263 165 269L228 336C233 342 241 342 247 336L310 269C316 263 312 252 303 252H272V164C272 157 267 152 260 152Z"/>
+</svg>
