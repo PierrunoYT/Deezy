@@ -4,6 +4,14 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+---
+
+## [0.2.22] - 2026-09-10
+
+### Changed
+
+- **New Deezy identity** — Introduced a violet SVG D monogram with a download-arrow cutout and a monochrome variant. Updated the sidebar, splash-screen asset, favicon, tray icon, and bundled platform icons to use the new logo.
+
 ### Fixed
 
 - **Preview playback** — Obsolete playback failures no longer stop a newer preview. Invalid seek and volume values are ignored, and stopping unloads the media source.
