@@ -46,6 +46,8 @@ A modern desktop Deezer downloader. Search for tracks, albums, artists, and play
 - **Manual updates** – Install Windows releases from GitHub or rebuild from source on macOS and Linux
 - **Secure credentials** – ARL replacements are authenticated before storage, normally kept in the OS credential store, and redacted from `settings.json`; a clearly indicated private-file fallback is available when secure storage is unavailable
 
+These docs describe the current source. Changes under [Unreleased](CHANGELOG.md#unreleased) may not yet be included in the latest installer.
+
 ---
 
 ## Install
@@ -101,6 +103,51 @@ Amp automatically runs the executable `.agents/setup` script when creating a fre
 9. **Updates** – Download the latest Windows installer from GitHub Releases, or pull and rebuild on macOS and Linux
 10. **Tray** – Minimize to tray (Ctrl+H); double-click the icon to restore
 
+Pausing cancels the current transfer; resuming downloads the track again from the
+beginning. Saved interrupted downloads appear as paused after restarting. Pending
+queue entries are not persisted. Clearing history preserves active and queued
+rows and does not delete downloaded files.
+
+Album, playlist, and artist loaders follow API pagination. If a later page fails,
+the operation reports an error instead of silently returning an incomplete list.
+
+### Custom folder templates
+
+Choose **Custom** in Settings and use a template such as:
+
+```text
+{artist}/{release_date} - {album}/{track_number} - {title}
+```
+
+Supported placeholders are `{artist}`, `{album}`, `{title}`, `{track_number}`
+(`{track}`), `{disc_number}` (`{disc}`), `{release_date}`, and `{release_year}`
+(`{year}`). Template `/` and `\` separators create directories; separators in
+metadata are sanitized, so an artist such as `AC/DC` stays in one directory.
+
+---
+
+## Development
+
+Install the Tauri prerequisites, stable Rust, Bun, and Node.js with npm. Run all
+application commands from `deezy/`:
+
+```bash
+bun install --frozen-lockfile
+bun run tauri dev
+```
+
+Before submitting a change:
+
+```bash
+npm test
+npm run check
+npm run build
+cargo test --manifest-path src-tauri/Cargo.toml
+```
+
+See [Development guide](DEVELOPMENT.md) for the module layout, state ownership,
+test coverage, and release checklist.
+
 ---
 
 ## License
@@ -111,3 +158,5 @@ MIT – see [LICENSE](LICENSE) for details.
 
 - [FAQ](FAQ.md) – Common questions about setup, security, and legal use
 - [Changelog](CHANGELOG.md) – Full version history
+- [Development guide](DEVELOPMENT.md) – Setup, architecture, testing, and releases
+- [Code review](deezy/CODE_REVIEW.md) – September 2026 fixes and validation limits

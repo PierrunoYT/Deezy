@@ -1,6 +1,6 @@
 # Deezy – Frequently Asked Questions
 
-Current release: **v0.2.20** (see [Changelog](CHANGELOG.md)).
+This FAQ describes the current source. Fixes listed under [Unreleased](CHANGELOG.md#unreleased) may not yet be included in the latest installer.
 
 ---
 
@@ -127,9 +127,25 @@ Resetting this folder removes local settings, download history, and custom theme
 - Pause and resume the download, or retry it from the download history after an error.
 - Fully exit Deezy from the tray before restarting it.
 
-The download history is persisted, but queued and active downloads are not restored after the application exits. Restarting therefore clears the current queue. A track can also be unavailable because of catalog or regional restrictions.
+Download history is persisted. Saved interrupted transfers return as paused after a restart and can be resumed manually. Pending queue entries are not persisted, so add those again after restarting. A track can also be unavailable because of catalog or regional restrictions.
 
 When you exit normally through Deezy, active downloads are canceled and partial files are cleaned before the application closes. If shutdown takes longer than usual, Deezy may still be finishing that cleanup; avoid forcibly terminating it if possible.
+
+### Does Resume continue from the same byte position?
+
+No. Pause cancels the transfer and cleans its temporary file. Resume requeues the track and starts a new download from the beginning.
+
+### Does clearing download history delete my music?
+
+No. It removes inactive history records, not audio files. Active downloads and queued tracks with history records stay visible so their progress and final file paths remain available.
+
+### Why does an album or playlist fail while loading?
+
+Deezy follows each API page to load the complete track list. A failed later page is reported as an error rather than treated as a complete result. Try again after checking your connection. Catalog loading is bounded to 100,000 entries and 1,000 follow-up pages per list, and repeated pagination links are rejected.
+
+### How are unusual artist or track names handled in custom folders?
+
+Only separators written in the folder template create directories. Slashes in metadata, such as `AC/DC`, are replaced with underscores; placeholder-like text inside metadata stays literal. Invalid filename characters and Windows device names are sanitized. See the [template examples](README.md#custom-folder-templates).
 
 ### Album covers or audio previews do not load.
 
@@ -147,7 +163,7 @@ Short-link domains are not supported. If a valid full URL still fails, update yo
 
 ### How do I update Deezy on Windows?
 
-Deezy `v0.2.20` does not include an automatic updater. Download the latest `.exe` or `.msi` from the [GitHub Releases page](https://github.com/PierrunoYT/Deezy/releases/latest), fully exit Deezy from the system tray, and run the installer.
+Deezy does not include an automatic updater. Download the latest `.exe` or `.msi` from the [GitHub Releases page](https://github.com/PierrunoYT/Deezy/releases/latest), fully exit Deezy from the system tray, and run the installer.
 
 Installing a newer version over the existing installation should preserve settings and download history, but keeping a backup of important data is recommended.
 
@@ -159,11 +175,11 @@ Prebuilt macOS and Linux packages are not currently published. If you built Deez
 cd Deezy
 git pull
 cd deezy
-bun install
+bun install --frozen-lockfile
 bun run tauri build
 ```
 
-Install the new bundle from `src-tauri/target/release/bundle/`. You can use the equivalent `npm` commands if Bun is unavailable.
+Install the new bundle from `src-tauri/target/release/bundle/`. Use Bun to install the committed lockfile; npm can run the package scripts once dependencies are installed. See the [development guide](DEVELOPMENT.md).
 
 ### Does Deezy check for updates automatically?
 

@@ -4,6 +4,25 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Preview playback** — Obsolete playback failures no longer stop a newer preview. Invalid seek and volume values are ignored, and stopping unloads the media source.
+- **Theme switching** — Built-in themes clear custom color overrides, stale custom-theme loads cannot replace a newer selection, and custom theme changes apply after successful persistence.
+- **Download state and history** — Late cancellation responses cannot overwrite completion. Clearing history retains active and queued rows; saved interrupted transfers recover as paused. History writes now use atomic replacement.
+- **Download slots** — Notification permission and delivery no longer hold a completed download's queue slot.
+- **Complete catalog loading** — Album tracks, artist albums, and playlist tracks follow API pagination, with errors for failed later pages, repeated pages, or exceeded limits.
+- **Search details** — Old artist and playlist responses cannot replace a newer selection, and superseded search debounce timers are canceled.
+- **Filenames and metadata** — Custom templates keep metadata separators and placeholder-like text literal. Unicode release dates, Windows device names, control characters, and overflowing numeric tags are handled safely.
+- **Session and HTTP handling** — Stale automatic login cannot replace a newer account; HTTP error bodies are rejected; redirect chains are limited; gateway request URLs are omitted from error messages.
+- **Subscription cleanup** — Settings and layout initialization clean up after unmounting, and concurrent or interrupted tray initialization no longer leaves duplicate listeners.
+- **Quality labels** — Added requested-quality and quality-label translations across the supported locales.
+
+### Added
+
+- **Frontend regression tests** — `npm test` runs focused playback, download state, history recovery, theme, search, and lifecycle tests with mocked browser and IPC dependencies.
+- **Backend regression coverage** — Added tests for catalog pagination, HTTP error handling, and filename/metadata edge cases.
+- **Development guide** — Documented setup, module ownership, persistence, validation, and release steps in `DEVELOPMENT.md`.
+
 ---
 
 ## [0.2.21] - 2026-08-20
