@@ -58,6 +58,7 @@ src-tauri/gen/
 
 # Project docs (local only)
 BUGS_FOUND.md
+BUG_REPORT.md
 BUILD_AND_RELEASE.md
 RELEASE.md
 RELEASE_INSTRUCTIONS.md
