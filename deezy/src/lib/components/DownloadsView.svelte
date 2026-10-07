@@ -39,8 +39,9 @@
     );
 
     downloads.update(d => {
-      d.delete(item.trackId);
-      return d;
+      const next = new Map(d);
+      next.delete(item.trackId);
+      return next;
     });
 
     downloadQueueManager.addToQueue(item.track);

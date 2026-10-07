@@ -62,8 +62,9 @@ class DownloadQueueManager {
   private removeFromPausedSet(trackId: string): void {
     const paused = get(pausedDownloads);
     if (paused.has(trackId)) {
-      paused.delete(trackId);
-      pausedDownloads.set(paused);
+      const next = new Set(paused);
+      next.delete(trackId);
+      pausedDownloads.set(next);
     }
   }
 
@@ -129,10 +130,8 @@ class DownloadQueueManager {
   }
 
   private updateDownloadStatus(trackId: string, status: DownloadStatus): void {
-    downloads.update(d => {
-      d.set(trackId, status);
-      return d;
-    });
+    // Always publish a new Map: Svelte 5 ignores reassigning the same reference.
+    downloads.update(d => new Map(d).set(trackId, status));
   }
 
   private updateHistoryItem(trackId: string, updates: Partial<DownloadItem>): void {
@@ -270,9 +269,7 @@ class DownloadQueueManager {
     const wasActive = this.activeTrackIds.has(trackId);
     if (!wasActive && !queuedItem) return;
 
-    const paused = get(pausedDownloads);
-    paused.add(trackId);
-    pausedDownloads.set(paused);
+    pausedDownloads.update(paused => new Set(paused).add(trackId));
 
     if (queuedItem) {
       this.addToHistory(queuedItem.track, trackId);
@@ -310,9 +307,11 @@ class DownloadQueueManager {
       return;
     }
 
-    const paused = get(pausedDownloads);
-    paused.delete(trackId);
-    pausedDownloads.set(paused);
+    pausedDownloads.update(paused => {
+      const next = new Set(paused);
+      next.delete(trackId);
+      return next;
+    });
 
     if (!item?.track) return;
     this.canceledDownloads.delete(trackId);
@@ -325,8 +324,9 @@ class DownloadQueueManager {
     });
 
     downloads.update(d => {
-      d.delete(trackId);
-      return d;
+      const next = new Map(d);
+      next.delete(trackId);
+      return next;
     });
 
     this.addToQueue(item.track, HIGH_PRIORITY);

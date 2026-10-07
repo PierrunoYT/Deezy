@@ -8,6 +8,14 @@ All notable changes to Deezy are documented here.
 
 - **MP3 tag safety** — The tag editor no longer treats an unreadable ID3 tag as empty. Opening such a file shows the read error instead of blank fields, and saving refuses rather than replacing the tag, so existing frames and cover art are never wiped.
 - **Settings with an unavailable keyring** — On Linux without a running or unlocked Secret Service, a failed credential read no longer blocks login and every settings change; saving continues to the private-file fallback. A failed save no longer deletes a stored credential that could not be read.
+- **Search download state** — Track rows in search results now show download progress and completion.
+- **Tag editor** — Clearing a field removes it from the file instead of restoring the old value, and a total track or disc count without a number no longer writes track 1. Saving a FLAC keeps a full `DATE` such as `2023-05-01` when the year is unchanged. Change File no longer reverts to the original file, and releasing a text selection over the backdrop no longer closes the editor.
+- **Queue reordering** — Dragging a queued track by its grip now reorders the queue.
+- **Settings before first login** — Theme, language, notification, search-history, and tray preferences are saved before an account is connected instead of reverting on restart.
+- **Settings save keeps the session** — Saving settings while logged in no longer re-authenticates unless a new ARL is entered, and a failed login or rejected setting no longer marks a working session as logged out. The download folder is now chosen with Browse only.
+- **History during downloads** — Download history is saved at most two seconds after a change, even while downloads are running.
+- **Single instance** — Launching Deezy again focuses the running window instead of starting a second copy that could overwrite newer settings.
+- **Custom export range** — Custom date ranges in history export use local days, so the last day is no longer dropped west of UTC.
 
 ---
 

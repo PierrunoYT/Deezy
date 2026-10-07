@@ -210,9 +210,10 @@
   function saveDownloadHistory(history: DownloadItem[]): void {
     pendingHistory = history;
 
-    if (saveHistoryTimeout) {
-      clearTimeout(saveHistoryTimeout);
-    }
+    // Don't restart a pending timer: progress events arrive per chunk, and
+    // restarting would postpone the save until all downloads go quiet.
+    // The timer saves whatever pendingHistory holds when it fires.
+    if (saveHistoryTimeout) return;
 
     saveHistoryTimeout = setTimeout(() => {
       saveHistoryTimeout = undefined;
@@ -241,10 +242,7 @@
   function handleDownloadProgress(event: DownloadProgressEvent): void {
     const { track_id, title, percent, status } = event;
     
-    downloads.update(d => {
-      d.set(track_id, status);
-      return d;
-    });
+    downloads.update(d => new Map(d).set(track_id, status));
 
     downloadHistory.update(history => {
       const idx = history.findIndex(item => item.trackId === track_id);

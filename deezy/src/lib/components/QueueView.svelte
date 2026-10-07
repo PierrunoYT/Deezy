@@ -1,13 +1,12 @@
 <script lang="ts">
   import { downloadQueue, type QueuedDownload } from '$lib/stores';
   import { downloadQueueManager } from '$lib/downloadQueue';
-  import { dndzone, type DndEvent } from 'svelte-dnd-action';
+  import { dragHandleZone, dragHandle, type DndEvent } from 'svelte-dnd-action';
   import { _ } from 'svelte-i18n';
 
   type QueueItemWithId = QueuedDownload & { id: string };
 
   let queueItems = $state<QueueItemWithId[]>([]);
-  let dragDisabled = $state(true);
 
   $effect(() => {
     try {
@@ -29,8 +28,7 @@
 
   function handleDndFinalize(e: CustomEvent<DndEvent<QueueItemWithId>>): void {
     queueItems = e.detail.items;
-    dragDisabled = true;
-    
+
     const reorderedQueue = queueItems.map(item => ({
       track: item.track,
       priority: item.priority
@@ -41,14 +39,6 @@
 
   function removeFromQueue(trackId: string): void {
     downloadQueueManager.removeFromQueue(trackId);
-  }
-
-  function startDrag(): void {
-    dragDisabled = false;
-  }
-
-  function endDrag(): void {
-    dragDisabled = true;
   }
 
   function getTrackSubtitle(item: QueueItemWithId): string {
@@ -64,7 +54,7 @@
     <h3 id="queue-title">{$_('downloads.queue.title')} ({queueItems.length})</h3>
     <div 
       class="queue-list"
-      use:dndzone={{items: queueItems, dragDisabled, dropTargetStyle: {}}}
+      use:dragHandleZone={{items: queueItems, dropTargetStyle: {}}}
       onconsider={handleDndConsider}
       onfinalize={handleDndFinalize}
       role="list"
@@ -76,10 +66,7 @@
             class="drag-handle" 
             aria-label="Drag to reorder"
             title="Drag to reorder"
-            onmousedown={startDrag}
-            onmouseup={endDrag}
-            ontouchstart={startDrag}
-            ontouchend={endDrag}
+            use:dragHandle
             type="button"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">

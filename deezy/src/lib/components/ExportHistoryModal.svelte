@@ -25,6 +25,12 @@
     }
   });
 
+  /** Local midnight for a `YYYY-MM-DD` value from a date input. */
+  function localDate(value: string): Date {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
   function filterHistoryByDateRange(items: DownloadItem[]): DownloadItem[] {
     if (selectedDateRange === 'all') {
       return items;
@@ -45,8 +51,10 @@
         break;
       case 'custom':
         if (startDate && endDate) {
-          const start = new Date(startDate);
-          const end = new Date(endDate);
+          // new Date('YYYY-MM-DD') parses as UTC midnight; the range must use
+          // local days, so build the dates from their parts.
+          const start = localDate(startDate);
+          const end = localDate(endDate);
           end.setHours(23, 59, 59, 999);
           return items.filter(item => {
             if (!item.timestamp) return false;
