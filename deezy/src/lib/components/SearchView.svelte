@@ -366,6 +366,7 @@
   async function downloadPlaylist(playlist: SelectedPlaylist): Promise<void> {
     if (downloadingPlaylists.has(playlist.id)) return;
     downloadingPlaylists = new Set([...downloadingPlaylists, playlist.id]);
+    const searchToken = activeSearchToken;
 
     try {
       let tracks = playlistTracks;
@@ -376,6 +377,8 @@
         await downloadQueueManager.addToQueue(track);
       }
     } catch (err) {
+      // Don't show a stale error over a newer search.
+      if (searchToken !== activeSearchToken) return;
       errorMsg = $_('search.playlist.downloadError', { values: { error: String(err) } });
     } finally {
       downloadingPlaylists = new Set([...downloadingPlaylists].filter(id => id !== playlist.id));
@@ -385,6 +388,7 @@
   async function downloadPlaylistFromResult(playlist: PlaylistResult): Promise<void> {
     if (downloadingPlaylists.has(playlist.id)) return;
     downloadingPlaylists = new Set([...downloadingPlaylists, playlist.id]);
+    const searchToken = activeSearchToken;
 
     try {
       const tracks = await invoke<Track[]>('get_playlist_tracks', { playlistId: String(playlist.id) });
@@ -392,6 +396,7 @@
         await downloadQueueManager.addToQueue(track);
       }
     } catch (err) {
+      if (searchToken !== activeSearchToken) return;
       errorMsg = $_('search.playlist.downloadError', { values: { error: String(err) } });
     } finally {
       downloadingPlaylists = new Set([...downloadingPlaylists].filter(id => id !== playlist.id));
@@ -408,6 +413,7 @@
   async function downloadAlbum(album: AlbumResult): Promise<void> {
     if (downloadingAlbums.has(album.id)) return;
     downloadingAlbums = new Set([...downloadingAlbums, album.id]);
+    const searchToken = activeSearchToken;
 
     try {
       const tracks = await invoke<Track[]>('get_album_tracks', { albumId: String(album.id) });
@@ -415,6 +421,7 @@
         await downloadQueueManager.addToQueue(track);
       }
     } catch (err) {
+      if (searchToken !== activeSearchToken) return;
       errorMsg = $_('search.album.downloadError', { values: { error: String(err) } });
     } finally {
       downloadingAlbums = new Set([...downloadingAlbums].filter(id => id !== album.id));

@@ -68,6 +68,7 @@
         "title": "Transferências",
         "clearHistory": "Limpar histórico",
         "exportHistory": "Exportar Histórico",
+        "showInFolderFailed": "Não foi possível mostrar o ficheiro na sua pasta. Ficheiros fora da pasta de transferências atual não podem ser abertos após reiniciar. ({error})",
         "empty": {
             "title": "Ainda sem transferências",
             "subtitle": "Pesquise faixas e clique no botão de transferir"
@@ -197,7 +198,8 @@
             "outputDirRequired": "Pasta de transferências é obrigatória.",
             "qualityInvalid": "Definição de qualidade inválida.",
             "customFolderTemplateRequired": "Modelo de pasta personalizado é obrigatório.",
-            "historyCleared": "Histórico de pesquisa limpo com sucesso!"
+            "historyCleared": "Histórico de pesquisa limpo com sucesso!",
+            "clearHistoryFailed": "Falha ao limpar o histórico de pesquisa: {error}"
         }
     },
     "user": {

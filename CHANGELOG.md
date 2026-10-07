@@ -16,6 +16,22 @@ All notable changes to Deezy are documented here.
 - **History during downloads** — Download history is saved at most two seconds after a change, even while downloads are running.
 - **Single instance** — Launching Deezy again focuses the running window instead of starting a second copy that could overwrite newer settings.
 - **Custom export range** — Custom date ranges in history export use local days, so the last day is no longer dropped west of UTC.
+- **Download errors** — Error messages in history, tooltips, and notifications no longer include CDN URLs.
+- **Download finalization** — On volumes without hard-link support, completed downloads are moved into place atomically instead of copied, so an interruption can't leave a truncated file under the final name.
+- **Search API errors** — Legacy search and catalog errors show Deezer's message instead of "Unknown error".
+- **Credential store** — A plaintext ARL saved with `DEEZY_NO_KEYRING` replaces the older keyring entry on the next normal launch instead of being discarded. A failed directory sync after settings were written no longer reports the save as failed.
+- **Theme names** — Names with `:` or other characters Windows reserves are rejected instead of being saved to an alternate data stream or another drive.
+- **Cover art** — The tag editor shows and replaces the front cover even when another picture precedes it.
+- **History limit** — The oldest history rows are dropped at 10,000 entries instead of every later save being rejected.
+- **Show in folder** — Network folders open correctly on Windows, and failures are shown instead of being silent.
+- **Queue removal** — Removing a resumed or retried track from the queue returns it to paused instead of leaving it stuck at 0%.
+- **Keyboard shortcuts** — Global shortcuts are ignored while a dialog is open, so Escape no longer clears the search behind it, and Space activates a focused button instead of toggling playback.
+- **Tray tooltip** — Paused queued tracks are no longer counted as in progress.
+- **Mini player** — At 1024 px or narrower, the last list row is no longer hidden behind the player.
+- **Stale search errors** — Album and playlist download errors no longer appear over a newer search.
+- **Custom theme state** — Choosing a built-in theme clears the custom theme, so its card no longer shows "Active".
+- **ARL draft** — A typed ARL is kept when leaving and returning to Settings.
+- **Translations** — Added the missing search-history error message to all locales.
 
 ---
 

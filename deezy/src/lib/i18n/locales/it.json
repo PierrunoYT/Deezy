@@ -68,6 +68,7 @@
         "title": "Download",
         "clearHistory": "Cancella cronologia",
         "exportHistory": "Esporta Cronologia",
+        "showInFolderFailed": "Impossibile mostrare il file nella sua cartella. I file fuori dalla cartella download attuale non possono essere aperti dopo un riavvio. ({error})",
         "empty": {
             "title": "Nessun download ancora",
             "subtitle": "Cerca brani e clicca sul pulsante di download"
@@ -197,7 +198,8 @@
             "outputDirRequired": "La cartella download è obbligatoria.",
             "qualityInvalid": "Impostazione qualità non valida.",
             "customFolderTemplateRequired": "Il modello cartella personalizzato è obbligatorio.",
-            "historyCleared": "Cronologia ricerche cancellata con successo!"
+            "historyCleared": "Cronologia ricerche cancellata con successo!",
+            "clearHistoryFailed": "Impossibile cancellare la cronologia ricerche: {error}"
         }
     },
     "user": {

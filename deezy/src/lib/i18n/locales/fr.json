@@ -68,6 +68,7 @@
     "title": "Téléchargements",
     "clearHistory": "Effacer l'historique",
     "exportHistory": "Exporter l'Historique",
+    "showInFolderFailed": "Impossible d'afficher ce fichier dans son dossier. Les fichiers hors du dossier de téléchargement actuel ne peuvent pas être ouverts après un redémarrage. ({error})",
     "empty": {
       "title": "Aucun téléchargement pour le moment",
       "subtitle": "Recherchez des morceaux et cliquez sur le bouton de téléchargement"
@@ -197,7 +198,8 @@
       "outputDirRequired": "Le dossier de téléchargement est requis.",
       "qualityInvalid": "Paramètre de qualité invalide.",
       "customFolderTemplateRequired": "Le modèle de dossier personnalisé est requis.",
-      "historyCleared": "Historique de recherche effacé avec succès !"
+      "historyCleared": "Historique de recherche effacé avec succès !",
+      "clearHistoryFailed": "Impossible d'effacer l'historique de recherche : {error}"
     }
   },
   "user": {

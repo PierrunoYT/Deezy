@@ -68,6 +68,7 @@
     "title": "Descargas",
     "clearHistory": "Limpiar historial",
     "exportHistory": "Exportar Historial",
+    "showInFolderFailed": "No se pudo mostrar el archivo en su carpeta. Los archivos fuera de la carpeta de descargas actual no se pueden abrir tras reiniciar. ({error})",
     "empty": {
       "title": "Aún no hay descargas",
       "subtitle": "Busca canciones y haz clic en el botón de descarga"
@@ -197,7 +198,8 @@
       "outputDirRequired": "Se requiere la carpeta de descargas.",
       "qualityInvalid": "Configuración de calidad inválida.",
       "customFolderTemplateRequired": "Se requiere la plantilla de carpeta personalizada.",
-      "historyCleared": "¡Historial de búsqueda limpiado exitosamente!"
+      "historyCleared": "¡Historial de búsqueda limpiado exitosamente!",
+      "clearHistoryFailed": "No se pudo limpiar el historial de búsqueda: {error}"
     }
   },
   "user": {

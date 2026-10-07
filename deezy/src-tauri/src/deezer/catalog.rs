@@ -41,10 +41,32 @@ where
     Ok(entries)
 }
 
+/// The message from a legacy API `{"error": {"type", "message", "code"}}` body.
+/// Fields are looked up by name: serde_json sorts object keys, so the first
+/// value is the numeric `code`, not the message.
+fn legacy_api_error(data: &Value) -> Option<String> {
+    let error = data.get("error")?.as_object().filter(|obj| !obj.is_empty())?;
+    let text = |key: &str| error.get(key).and_then(Value::as_str).filter(|s| !s.is_empty());
+    Some(
+        text("message")
+            .or_else(|| text("type"))
+            .map(str::to_string)
+            .or_else(|| error.get("code").map(|code| format!("code {}", code)))
+            .unwrap_or_else(|| "Unknown error".to_string()),
+    )
+}
+
 #[cfg(test)]
 mod tests {
-    use super::collect_pages;
+    use super::{collect_pages, legacy_api_error};
     use serde_json::json;
+
+    #[test]
+    fn reads_the_legacy_error_message_by_name() {
+        let body = json!({"error": {"type": "DataException", "message": "no data", "code": 800}});
+        assert_eq!(legacy_api_error(&body).as_deref(), Some("no data"));
+        assert_eq!(legacy_api_error(&json!({"data": []})), None);
+    }
 
     #[tokio::test]
     async fn collects_all_pages_in_order_and_upgrades_legacy_links() {
@@ -107,17 +129,8 @@ impl DeezerClient {
             .await
             .map_err(|e| format!("Failed to parse results: {}", e))?;
 
-        if let Some(error) = data.get("error") {
-            if let Some(obj) = error.as_object() {
-                if !obj.is_empty() {
-                    let msg = obj
-                        .values()
-                        .next()
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("Unknown error");
-                    return Err(format!("API error: {}", msg));
-                }
-            }
+        if let Some(message) = legacy_api_error(&data) {
+            return Err(format!("API error: {}", message));
         }
 
         let tracks = data["data"]
@@ -171,17 +184,8 @@ impl DeezerClient {
             .await
             .map_err(|e| format!("Failed to parse results: {}", e))?;
 
-        if let Some(error) = data.get("error") {
-            if let Some(obj) = error.as_object() {
-                if !obj.is_empty() {
-                    let msg = obj
-                        .values()
-                        .next()
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("Unknown error");
-                    return Err(format!("API error: {}", msg));
-                }
-            }
+        if let Some(message) = legacy_api_error(&data) {
+            return Err(format!("API error: {}", message));
         }
 
         let albums = data["data"]
@@ -275,17 +279,8 @@ impl DeezerClient {
             .await
             .map_err(|e| format!("Failed to parse results: {}", e))?;
 
-        if let Some(error) = data.get("error") {
-            if let Some(obj) = error.as_object() {
-                if !obj.is_empty() {
-                    let msg = obj
-                        .values()
-                        .next()
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("Unknown error");
-                    return Err(format!("API error: {}", msg));
-                }
-            }
+        if let Some(message) = legacy_api_error(&data) {
+            return Err(format!("API error: {}", message));
         }
 
         let artists = data["data"]
@@ -367,17 +362,8 @@ impl DeezerClient {
             .await
             .map_err(|e| format!("Failed to parse results: {}", e))?;
 
-        if let Some(error) = data.get("error") {
-            if let Some(obj) = error.as_object() {
-                if !obj.is_empty() {
-                    let msg = obj
-                        .values()
-                        .next()
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("Unknown error");
-                    return Err(format!("API error: {}", msg));
-                }
-            }
+        if let Some(message) = legacy_api_error(&data) {
+            return Err(format!("API error: {}", message));
         }
 
         let playlists = data["data"]

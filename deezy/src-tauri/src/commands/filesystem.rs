@@ -20,8 +20,12 @@ pub async fn show_in_folder(
             return Err("Target directory not found".to_string());
         }
 
+        // canonicalize returns verbatim paths, which Explorer doesn't accept:
+        // \\?\UNC\server\share -> \\server\share, and \\?\C:\dir -> C:\dir.
         let mut windows_dir = target_dir.to_string_lossy().replace('/', "\\");
-        if let Some(stripped) = windows_dir.strip_prefix(r"\\?\") {
+        if let Some(stripped) = windows_dir.strip_prefix(r"\\?\UNC\") {
+            windows_dir = format!(r"\\{}", stripped);
+        } else if let Some(stripped) = windows_dir.strip_prefix(r"\\?\") {
             windows_dir = stripped.to_string();
         }
 

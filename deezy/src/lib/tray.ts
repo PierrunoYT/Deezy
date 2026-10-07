@@ -123,7 +123,9 @@ class TrayManager {
     const queue = get(downloadQueue);
     const paused = get(pausedDownloads);
 
-    const downloadsActive = active > 0 || queue.some(item => !paused.has(String(item.track.id)));
+    // Paused tracks stay in the queue; only count the ones still waiting to run.
+    const waiting = queue.filter(item => !paused.has(String(item.track.id))).length;
+    const downloadsActive = active > 0 || waiting > 0;
     const downloadsPaused = paused.size > 0;
 
     try {
@@ -133,7 +135,7 @@ class TrayManager {
       };
       await invoke('update_tray_status', statusUpdate);
 
-      const tooltip = this.buildTooltip(active, queue.length, paused.size, downloadsActive, downloadsPaused);
+      const tooltip = this.buildTooltip(active, waiting, paused.size, downloadsActive, downloadsPaused);
       const tooltipUpdate: TrayTooltipUpdate = { tooltip };
       await invoke('set_tray_tooltip', tooltipUpdate);
     } catch (error) {

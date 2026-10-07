@@ -44,6 +44,11 @@ pub struct Settings {
     pub locale: String,
     #[serde(default = "default_true")]
     pub close_to_tray: bool,
+    /// Set on disk only when the plaintext ARL was saved with the keyring
+    /// disabled (`DEEZY_NO_KEYRING`). Such a credential is newer than whatever
+    /// the keyring holds; other plaintext may be stale and loses to the keyring.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub arl_saved_without_keyring: bool,
 }
 
 fn default_true() -> bool {
@@ -81,6 +86,7 @@ impl Default for Settings {
             notifications_enabled: true,
             locale: "en".to_string(),
             close_to_tray: true,
+            arl_saved_without_keyring: false,
         }
     }
 }
@@ -375,10 +381,13 @@ pub(crate) fn write_private(path: &Path, data: &[u8]) -> Result<(), String> {
             drop(file);
 
             replace_file(&temp_path, path)?;
+            // The rename has committed, so settings.json already holds the new
+            // content. Failing here would make callers roll back state that is
+            // on disk; a failed directory sync only weakens crash durability.
             #[cfg(unix)]
-            std::fs::File::open(parent)
-                .and_then(|directory| directory.sync_all())
-                .map_err(|e| e.to_string())?;
+            if let Err(e) = std::fs::File::open(parent).and_then(|directory| directory.sync_all()) {
+                eprintln!("Warning: could not sync settings directory: {}", e);
+            }
             Ok(())
         })();
 
@@ -455,7 +464,22 @@ impl Settings {
             return Ok(settings);
         }
 
-        // A credential already in the keyring is authoritative. This also
+        // Plaintext saved deliberately with the keyring disabled is the newest
+        // credential (e.g. another account used with DEEZY_NO_KEYRING), so it
+        // replaces the keyring entry. If the keyring can't take it, keep using it.
+        if settings.arl_saved_without_keyring && !settings.arl.is_empty() {
+            if save_arl_to_keyring(&settings.arl).is_ok() {
+                let mut clean = settings.clone();
+                clean.arl = String::new();
+                clean.arl_saved_without_keyring = false;
+                let data = serde_json::to_string_pretty(&clean).map_err(|e| e.to_string())?;
+                write_private(&path, data.as_bytes())?;
+            }
+            settings.arl_saved_without_keyring = false;
+            return Ok(settings);
+        }
+
+        // Otherwise a credential already in the keyring is authoritative. This
         // prevents stale plaintext left by an interrupted save from replacing it.
         if let Ok(Some(arl)) = load_arl_from_keyring() {
             if !arl.is_empty() {
@@ -487,10 +511,14 @@ impl Settings {
         self.validate()?;
 
         let path = Self::path(app)?;
+        // The marker is decided here per storage path, never taken from callers.
+        let mut on_disk = self.clone();
+        on_disk.arl_saved_without_keyring = false;
+
         if self.arl.trim().is_empty() {
             // No credential yet (preferences saved before the first login).
             // Leave the keyring untouched so an entry we couldn't read survives.
-            let data = serde_json::to_string_pretty(self).map_err(|e| e.to_string())?;
+            let data = serde_json::to_string_pretty(&on_disk).map_err(|e| e.to_string())?;
             write_private(&path, data.as_bytes())?;
         } else if keyring_enabled() {
             // A read error (e.g. no Secret Service running on Linux) means the
@@ -505,9 +533,8 @@ impl Settings {
             };
             match save_arl_to_keyring(&self.arl) {
                 Ok(()) => {
-                    let mut settings_for_disk = self.clone();
-                    settings_for_disk.arl = String::new();
-                    let data = serde_json::to_string_pretty(&settings_for_disk)
+                    on_disk.arl = String::new();
+                    let data = serde_json::to_string_pretty(&on_disk)
                         .map_err(|e| e.to_string())?;
                     if let Err(write_error) = write_private(&path, data.as_bytes()) {
                         let rollback = match previous_arl {
@@ -536,12 +563,13 @@ impl Settings {
                         "Warning: secure credential storage unavailable ({}). Storing ARL in settings.json",
                         e
                     );
-                    let data = serde_json::to_string_pretty(self).map_err(|e| e.to_string())?;
+                    let data = serde_json::to_string_pretty(&on_disk).map_err(|e| e.to_string())?;
                     write_private(&path, data.as_bytes())?;
                 }
             }
         } else {
-            let data = serde_json::to_string_pretty(self).map_err(|e| e.to_string())?;
+            on_disk.arl_saved_without_keyring = true;
+            let data = serde_json::to_string_pretty(&on_disk).map_err(|e| e.to_string())?;
             write_private(&path, data.as_bytes())?;
         }
 

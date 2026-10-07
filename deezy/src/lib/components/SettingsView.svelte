@@ -27,7 +27,9 @@
   
   let { onLoginSuccess }: Props = $props();
   
-  let arl = $state('');
+  // Start from the saved draft. The effect below mirrors arl into the draft
+  // store and runs before onMount, so restoring there would blank it first.
+  let arl = $state($settingsArlDraft);
   let outputDir = $state('');
   let quality = $state<QualityOption>('MP3_320');
   let folderStructure = $state<FolderStructure>('flat');
@@ -76,8 +78,6 @@
     let unsubLoggedIn = () => {};
 
     void (async () => {
-      arl = $settingsArlDraft;
-
       try {
         const settings = await invoke<AppSettings>('get_settings');
         if (disposed) return;
@@ -187,9 +187,8 @@
       let user: UserInfo | null;
       if (trimmedArl) {
         user = await invoke<UserInfo>('login', { arl: trimmedArl });
-      } else if (isLoggedIn) {
-        user = null;
-        userInfo.subscribe(value => user = value)();
+      } else if ($loggedIn) {
+        user = $userInfo;
       } else {
         user = await invoke<UserInfo | null>('auto_login');
       }
@@ -235,7 +234,9 @@
     theme.set(newTheme);
     
     try {
-      await updateSetting('theme', newTheme);
+      // A built-in theme replaces any custom one.
+      await invoke('update_settings', { updates: { theme: newTheme, custom_theme: null } });
+      customTheme = null;
     } catch (err) {
       console.error('Failed to save theme:', err);
     }

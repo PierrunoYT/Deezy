@@ -120,8 +120,21 @@ fn sanitize_theme_name(name: &str) -> Result<String, String> {
     if sanitized.is_empty() {
         return Err("Theme name cannot be empty".to_string());
     }
-    if sanitized.contains('.') || sanitized.contains('/') || sanitized.contains('\\') || sanitized.contains("..") {
+    // Reject everything Windows treats specially: `:` selects an NTFS alternate
+    // stream ("a:b.json") or a drive ("C:foo"), and the rest are invalid in
+    // file names. A theme saved under such a name never appears in the list.
+    if sanitized
+        .chars()
+        .any(|c| c.is_control() || matches!(c, '.' | '/' | '\\' | ':' | '<' | '>' | '"' | '|' | '?' | '*'))
+    {
         return Err("Theme name contains invalid characters".to_string());
+    }
+    let is_device_name = matches!(sanitized.as_str(), "con" | "prn" | "aux" | "nul")
+        || ((sanitized.starts_with("com") || sanitized.starts_with("lpt"))
+            && sanitized.len() == 4
+            && sanitized.as_bytes()[3].is_ascii_digit());
+    if is_device_name {
+        return Err("Theme name is reserved by the operating system".to_string());
     }
     Ok(sanitized)
 }

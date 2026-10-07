@@ -186,4 +186,11 @@
     padding: 0;
     padding-bottom: 80px;
   }
+
+  /* MiniPlayer stacks into one column here and grows to about 132px. */
+  @media (max-width: 1024px) {
+    #content {
+      padding-bottom: 140px;
+    }
+  }
 </style>

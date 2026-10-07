@@ -7,6 +7,7 @@ import {
   activeDownloads,
   pausedDownloads,
   MAX_CONCURRENT_DOWNLOADS,
+  MAX_HISTORY_ENTRIES,
   type Track,
   type QueuedDownload,
   type DownloadItem,
@@ -147,7 +148,9 @@ class DownloadQueueManager {
       const existing = history.find(item => item.trackId === trackId);
       
       if (!existing) {
-        return [this.createDownloadHistoryItem(track, trackId), ...history];
+        // Newest first, so the oldest rows are dropped once the backend's
+        // limit is reached; otherwise every later save would be rejected.
+        return [this.createDownloadHistoryItem(track, trackId), ...history].slice(0, MAX_HISTORY_ENTRIES);
       }
       
       return history.map(item =>
@@ -371,9 +374,20 @@ class DownloadQueueManager {
   }
 
   removeFromQueue(trackId: string): void {
-    downloadQueue.update(queue => 
+    downloadQueue.update(queue =>
       queue.filter(item => String(item.track.id) !== trackId)
     );
+
+    // A resumed or retried track already has a history row marked
+    // "downloading". Return it to paused so it isn't stuck at 0% and can be
+    // resumed again.
+    if (this.activeTrackIds.has(trackId)) return;
+    const row = get(downloadHistory).find(item => item.trackId === trackId);
+    if (row && row.status !== 'complete') {
+      pausedDownloads.update(paused => new Set(paused).add(trackId));
+      this.updateHistoryItem(trackId, { status: 'paused', isPaused: true });
+      this.updateDownloadStatus(trackId, 'paused');
+    }
   }
 
   getActiveTrackIds(): string[] {

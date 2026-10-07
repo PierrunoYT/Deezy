@@ -68,6 +68,7 @@
     "title": "Downloads",
     "clearHistory": "Verlauf löschen",
     "exportHistory": "Verlauf Exportieren",
+    "showInFolderFailed": "Die Datei konnte nicht in ihrem Ordner angezeigt werden. Dateien außerhalb des aktuellen Download-Ordners lassen sich nach einem Neustart nicht öffnen. ({error})",
     "empty": {
       "title": "Noch keine Downloads",
       "subtitle": "Suchen Sie nach Titeln und klicken Sie auf die Download-Schaltfläche"
@@ -197,7 +198,8 @@
       "outputDirRequired": "Download-Ordner ist erforderlich.",
       "qualityInvalid": "Ungültige Qualitätseinstellung.",
       "customFolderTemplateRequired": "Benutzerdefinierte Ordnervorlage ist erforderlich.",
-      "historyCleared": "Suchverlauf erfolgreich gelöscht!"
+      "historyCleared": "Suchverlauf erfolgreich gelöscht!",
+      "clearHistoryFailed": "Suchverlauf konnte nicht gelöscht werden: {error}"
     }
   },
   "user": {

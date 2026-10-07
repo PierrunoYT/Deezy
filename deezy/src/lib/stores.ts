@@ -84,6 +84,8 @@ export interface AudioPlayerState {
 }
 
 export const MAX_CONCURRENT_DOWNLOADS = 3;
+/** Matches MAX_HISTORY_ENTRIES in commands/history.rs, which rejects larger saves. */
+export const MAX_HISTORY_ENTRIES = 10_000;
 export const DEFAULT_VOLUME = 0.7;
 export const DEFAULT_THEME: Theme = 'dark';
 export const DEFAULT_LOCALE = 'en';

@@ -68,6 +68,7 @@
     "title": "Downloads",
     "clearHistory": "Clear history",
     "exportHistory": "Export History",
+    "showInFolderFailed": "Couldn't show this file in its folder. Files outside the current download folder can't be opened after a restart. ({error})",
     "empty": {
       "title": "No downloads yet",
       "subtitle": "Search for tracks and click the download button"
@@ -197,7 +198,8 @@
       "outputDirRequired": "Download folder is required.",
       "qualityInvalid": "Invalid quality setting.",
       "customFolderTemplateRequired": "Custom folder template is required.",
-      "historyCleared": "Search history cleared successfully!"
+      "historyCleared": "Search history cleared successfully!",
+      "clearHistoryFailed": "Failed to clear search history: {error}"
     }
   },
   "user": {

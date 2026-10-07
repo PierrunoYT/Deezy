@@ -1,4 +1,4 @@
-use std::io::{self, ErrorKind, Write};
+use std::io::{self, ErrorKind};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -99,7 +99,7 @@ pub async fn download_track(
         .get(&url)
         .send()
         .await
-        .map_err(|e| format!("Download failed: {}", e))?;
+        .map_err(|e| format!("Download failed: {}", e.without_url()))?;
 
     let status = response.status();
     if !status.is_success() {
@@ -703,16 +703,16 @@ fn finalize_download_file(
                 return Ok(candidate);
             }
             Err(e) if e.kind() == ErrorKind::AlreadyExists => continue,
-            Err(link_error) => match copy_file_noclobber(temp_path, &candidate, cancel_flag) {
-                Ok(()) => {
-                    cleanup_temp_file(temp_path);
-                    return Ok(candidate);
-                }
+            // Volumes without hard links (e.g. FAT/exFAT). The temp file is in
+            // the same directory, so a rename is atomic: the final name never
+            // holds a partial file, unlike copying into it.
+            Err(link_error) => match rename_noclobber(temp_path, &candidate) {
+                Ok(()) => return Ok(candidate),
                 Err(e) if e.kind() == ErrorKind::AlreadyExists => continue,
-                Err(copy_error) => {
+                Err(rename_error) => {
                     return Err(format!(
-                        "Failed to finalize download file (link: {}; copy fallback: {})",
-                        link_error, copy_error
+                        "Failed to finalize download file (link: {}; rename fallback: {})",
+                        link_error, rename_error
                     ));
                 }
             },
@@ -722,43 +722,38 @@ fn finalize_download_file(
     Err("Too many files with the same name".to_string())
 }
 
-fn copy_file_noclobber(
-    source_path: &Path,
-    destination_path: &Path,
-    cancel_flag: &AtomicBool,
-) -> io::Result<()> {
-    use std::io::Read;
+/// Rename `source_path` to `destination_path`, failing with `AlreadyExists`
+/// instead of replacing an existing file.
+#[cfg(windows)]
+fn rename_noclobber(source_path: &Path, destination_path: &Path) -> io::Result<()> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Storage::FileSystem::MoveFileExW;
 
-    let mut source = std::fs::File::open(source_path)?;
-    let mut destination = std::fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(destination_path)?;
-
-    let copy_result = (|| {
-        let mut buffer = [0u8; 1024 * 1024];
-        loop {
-            if cancel_flag.load(Ordering::Relaxed) {
-                return Err(io::Error::new(ErrorKind::Interrupted, "download canceled"));
-            }
-            let read = source.read(&mut buffer)?;
-            if read == 0 {
-                break;
-            }
-            destination.write_all(&buffer[..read])?;
-        }
-        destination.flush()
-    })();
-    drop(destination);
-
-    if let Err(error) = copy_result {
-        // Do not leave a partial file that would be mistaken for a completed
-        // download or force later attempts to choose a numbered filename.
-        let _ = std::fs::remove_file(destination_path);
-        return Err(error);
+    let source_wide: Vec<u16> = source_path.as_os_str().encode_wide().chain(Some(0)).collect();
+    let destination_wide: Vec<u16> = destination_path
+        .as_os_str()
+        .encode_wide()
+        .chain(Some(0))
+        .collect();
+    // Without MOVEFILE_REPLACE_EXISTING the move fails if the destination exists.
+    let result = unsafe { MoveFileExW(source_wide.as_ptr(), destination_wide.as_ptr(), 0) };
+    if result == 0 {
+        Err(io::Error::last_os_error())
+    } else {
+        Ok(())
     }
+}
 
-    Ok(())
+/// Rename `source_path` to `destination_path`, failing with `AlreadyExists`
+/// instead of replacing an existing file. Only used where hard links are
+/// unsupported, which also rules out RENAME_NOREPLACE on most such volumes, so
+/// the existence check and rename are separate steps.
+#[cfg(not(windows))]
+fn rename_noclobber(source_path: &Path, destination_path: &Path) -> io::Result<()> {
+    if std::fs::symlink_metadata(destination_path).is_ok() {
+        return Err(io::Error::new(ErrorKind::AlreadyExists, "destination exists"));
+    }
+    std::fs::rename(source_path, destination_path)
 }
 
 fn cleanup_temp_file(path: &Path) {
@@ -771,7 +766,7 @@ async fn cleanup_temp_file_async(path: &Path) {
 
 #[cfg(test)]
 mod tests {
-    use super::{build_download_path, copy_file_noclobber, finalize_download_file, parse_u32_from_value, sanitize_path_component};
+    use super::{build_download_path, rename_noclobber, finalize_download_file, parse_u32_from_value, sanitize_path_component};
     use crate::settings::FolderStructure;
     use std::io::ErrorKind;
     use std::path::PathBuf;
@@ -853,23 +848,34 @@ mod tests {
     }
 
     #[test]
-    fn copy_fallback_never_overwrites_an_existing_file() {
-        let dir = test_dir("copy-no-clobber");
+    fn rename_fallback_never_overwrites_an_existing_file() {
+        let dir = test_dir("rename-no-clobber");
         let source_path = dir.join("source.part");
         let destination_path = dir.join("destination.mp3");
         std::fs::write(&source_path, b"new audio").expect("source should be written");
         std::fs::write(&destination_path, b"existing audio")
             .expect("destination should be written");
 
-        let error = copy_file_noclobber(
-            &source_path,
-            &destination_path,
-            &AtomicBool::new(false),
-        )
-            .expect_err("copy should reject an existing destination");
+        let error = rename_noclobber(&source_path, &destination_path)
+            .expect_err("rename should reject an existing destination");
 
         assert_eq!(error.kind(), ErrorKind::AlreadyExists);
         assert_eq!(std::fs::read(&destination_path).unwrap(), b"existing audio");
+        assert_eq!(std::fs::read(&source_path).unwrap(), b"new audio");
+        std::fs::remove_dir_all(dir).expect("test directory should be removed");
+    }
+
+    #[test]
+    fn rename_fallback_moves_to_a_free_name() {
+        let dir = test_dir("rename-free");
+        let source_path = dir.join("source.part");
+        let destination_path = dir.join("destination.mp3");
+        std::fs::write(&source_path, b"new audio").expect("source should be written");
+
+        rename_noclobber(&source_path, &destination_path).expect("rename should succeed");
+
+        assert_eq!(std::fs::read(&destination_path).unwrap(), b"new audio");
+        assert!(!source_path.exists());
         std::fs::remove_dir_all(dir).expect("test directory should be removed");
     }
 }

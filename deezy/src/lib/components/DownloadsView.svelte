@@ -15,6 +15,8 @@
 
   let downloadItems = $state<DownloadItem[]>([]);
   let showExportModal = $state(false);
+  let revealError = $state('');
+  let revealErrorTimeout: ReturnType<typeof setTimeout> | undefined;
 
   $effect(() => {
     const unsubHistory = downloadHistory.subscribe(val => {
@@ -63,7 +65,12 @@
     try {
       await invoke('show_in_folder', { filePath: item.filePath });
     } catch (err) {
+      // Files outside the current download folder aren't approved after a
+      // restart. Say so instead of failing silently.
       console.error('Failed to show file in folder:', err);
+      revealError = $_('downloads.showInFolderFailed', { values: { error: String(err) } });
+      clearTimeout(revealErrorTimeout);
+      revealErrorTimeout = setTimeout(() => revealError = '', 6000);
     }
   }
 
@@ -130,6 +137,10 @@
       </div>
     {/if}
   </div>
+
+  {#if revealError}
+    <div class="reveal-error" role="alert">{revealError}</div>
+  {/if}
 
   <QueueView />
 
@@ -527,5 +538,14 @@
   .error-msg {
     font-size: 14px;
     cursor: help;
+  }
+
+  .reveal-error {
+    margin-bottom: 16px;
+    padding: 10px 14px;
+    border: 1px solid var(--error);
+    border-radius: 8px;
+    color: var(--error);
+    font-size: 13px;
   }
 </style>

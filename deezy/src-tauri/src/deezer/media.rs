@@ -63,7 +63,7 @@ impl DeezerClient {
             .get(&url)
             .send()
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| e.without_url().to_string())?;
 
         if res.status().is_success() {
             if let Some(len) = res.content_length() {
@@ -85,7 +85,7 @@ impl DeezerClient {
                 .get(&url)
                 .send()
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| e.without_url().to_string())?;
 
             if res.status().is_success() {
                 if let Some(len) = res.content_length() {

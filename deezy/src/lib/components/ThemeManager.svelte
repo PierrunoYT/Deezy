@@ -47,6 +47,14 @@
       loadCurrentTheme()
     ]);
   });
+
+  // Switching to a built-in theme elsewhere in Settings deselects the custom
+  // card, so it no longer shows "Active" (and deleting it won't reset to Dark).
+  $effect(() => {
+    return theme.subscribe(value => {
+      if (value !== 'custom') selectedTheme = null;
+    });
+  });
   
   async function loadCustomThemes(): Promise<void> {
     try {

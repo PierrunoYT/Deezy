@@ -120,12 +120,29 @@ export class KeyboardShortcutsManager {
     );
   }
 
+  /** Controls whose own Space activation must not be taken over by play/pause. */
+  private isSpaceActivated(target: HTMLElement): boolean {
+    return target.closest?.(
+      'button, a[href], select, summary, [role="button"], [role="checkbox"], [role="switch"], [role="tab"], [role="option"], [role="menuitem"]'
+    ) != null;
+  }
+
   handleKeyDown(event: KeyboardEvent): void {
     if (!this.enabled) return;
 
+    // A modal (or another handler) already dealt with this key, e.g. Escape
+    // closing the dialog. Global shortcuts must not act behind an open modal.
+    if (event.defaultPrevented) return;
+    if (typeof document !== 'undefined' && document.querySelector('[aria-modal="true"]')) return;
+
     const target = event.target as HTMLElement;
-    
+
     if (this.shouldIgnoreInInput(event, target)) {
+      return;
+    }
+
+    // preventDefault on Space would stop a focused button's click in WebView2.
+    if (event.key === ' ' && this.isSpaceActivated(target)) {
       return;
     }
 

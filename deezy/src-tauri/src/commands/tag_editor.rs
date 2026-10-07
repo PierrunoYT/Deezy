@@ -131,7 +131,7 @@ fn read_file_tags_blocking(filePath: String) -> Result<FileTagData, String> {
 
             let comment = tag.comments().next().map(|c| c.text.clone());
 
-            let (cover_data, cover_mime) = tag.pictures().next()
+            let (cover_data, cover_mime) = id3_shown_cover(&tag)
                 .filter(|p| p.data.len() as u64 <= MAX_COVER_ART_BYTES)
                 .map(|p| (
                     Some(B64.encode(&p.data)),
@@ -172,7 +172,7 @@ fn read_file_tags_blocking(filePath: String) -> Result<FileTagData, String> {
             let label        = get("LABEL");
             let comment      = get("COMMENT");
 
-            let (cover_data, cover_mime) = tag.pictures().next()
+            let (cover_data, cover_mime) = flac_shown_cover(&tag)
                 .filter(|p| p.data.len() as u64 <= MAX_COVER_ART_BYTES)
                 .map(|p| (
                     Some(B64.encode(&p.data)),
@@ -285,11 +285,14 @@ fn write_file_tags_blocking(filePath: String, tags: WriteTagData) -> Result<(), 
                 ));
             }
 
+            // Remove or replace the picture the editor showed, which is not
+            // always a front cover.
+            let shown_type = id3_shown_cover(&tag).map(|p| p.picture_type);
             if tags.remove_cover {
-                tag.remove_picture_by_type(id3::frame::PictureType::CoverFront);
+                if let Some(t) = shown_type { tag.remove_picture_by_type(t); }
             } else if let Some(cover_bytes) = new_cover {
                 let mime = detect_image_mime(&cover_bytes)?;
-                tag.remove_picture_by_type(id3::frame::PictureType::CoverFront);
+                if let Some(t) = shown_type { tag.remove_picture_by_type(t); }
                 tag.add_frame(id3::Frame::with_content(
                     "APIC",
                     id3::Content::Picture(id3::frame::Picture {
@@ -336,11 +339,12 @@ fn write_file_tags_blocking(filePath: String, tags: WriteTagData) -> Result<(), 
                 if let Some(v) = tags.year { tag.set_vorbis("DATE", vec![v.to_string()]); }
             }
 
+            let shown_type = flac_shown_cover(&tag).map(|p| p.picture_type);
             if tags.remove_cover {
-                tag.remove_picture_type(metaflac::block::PictureType::CoverFront);
+                if let Some(t) = shown_type { tag.remove_picture_type(t); }
             } else if let Some(cover_bytes) = new_cover {
                 let mime = detect_image_mime(&cover_bytes)?;
-                tag.remove_picture_type(metaflac::block::PictureType::CoverFront);
+                if let Some(t) = shown_type { tag.remove_picture_type(t); }
                 tag.add_picture(&mime, metaflac::block::PictureType::CoverFront, cover_bytes);
             }
 
@@ -351,6 +355,20 @@ fn write_file_tags_blocking(filePath: String, tags: WriteTagData) -> Result<(), 
     }
 
     Ok(())
+}
+
+/// The picture the editor shows: the front cover, or else the first picture.
+fn id3_shown_cover(tag: &id3::Tag) -> Option<&id3::frame::Picture> {
+    tag.pictures()
+        .find(|p| p.picture_type == id3::frame::PictureType::CoverFront)
+        .or_else(|| tag.pictures().next())
+}
+
+/// The picture the editor shows: the front cover, or else the first picture.
+fn flac_shown_cover(tag: &metaflac::Tag) -> Option<&metaflac::block::Picture> {
+    tag.pictures()
+        .find(|p| p.picture_type == metaflac::block::PictureType::CoverFront)
+        .or_else(|| tag.pictures().next())
 }
 
 /// A trimmed, non-empty text value, or `None` when the field was cleared.
