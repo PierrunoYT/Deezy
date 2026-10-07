@@ -35,9 +35,9 @@ A modern desktop Deezer downloader. Search for tracks, albums, artists, and play
 - **Smart queue** – Up to 3 concurrent downloads with drag-and-drop reordering, pause/resume, and retry
 - **Album & playlist download** – Download all tracks with one click
 - **Quality options** – MP3 128, MP3 320, or FLAC with automatic fallback
-- **Full metadata** – Title, artist, album, year, track number, genre, and 1000×1000 cover art embedded
+- **Full metadata** – Title, artist, album, album artist, year, track and disc number, genre, label, and 1000×1000 cover art embedded
 - **Folder structure** – Organize downloads as Flat, Artist/Track, Artist/Album/Track, Album/Track, or with a custom template
-- **Tag editor** – Edit metadata and cover art on any local MP3 or FLAC file
+- **Tag editor** – Edit metadata and cover art on any local MP3 or FLAC file; files with an unreadable tag are reported and left untouched instead of being overwritten
 - **Download history** – Persistent history with CSV/JSON export and open-in-file-manager
 - **Themes** – Light, Dark, System, and fully custom JSON themes
 - **Internationalization** – English, Spanish, French, German, Portuguese, and Italian
@@ -70,7 +70,7 @@ bun install --frozen-lockfile
 bun run tauri build
 ```
 
-Install the output from `src-tauri/target/release/bundle/` (`.dmg` on macOS, `.deb` / `.AppImage` on Linux).
+Install the output from `src-tauri/target/release/bundle/` (`.dmg` on macOS, `.deb` / `.rpm` / `.AppImage` on Linux).
 
 > **Update note:** Deezy does not currently include an automatic updater. Pull the latest source, run `bun install --frozen-lockfile`, and run `bun run tauri build` again to update a source-built installation.
 
@@ -86,7 +86,7 @@ Amp automatically runs the executable `.agents/setup` script when creating a fre
 2. Open DevTools (`F12`) → **Application** (Chrome) or **Storage** (Firefox) → **Cookies** → `https://www.deezer.com`
 3. Copy the complete value of the `arl` cookie
 
-> Treat the ARL like a password. Deezy normally stores it in Windows Credential Manager, macOS Keychain, or Linux Secret Service and excludes it from `settings.json`. If secure storage is unavailable, Deezy can use a clearly indicated private-file fallback. A replacement is authenticated before the working credential is changed. The ARL can expire or be invalidated and may need to be updated.
+> Treat the ARL like a password. Deezy normally stores it in Windows Credential Manager, macOS Keychain, or Linux Secret Service and excludes it from `settings.json`. If secure storage is unavailable or cannot be read (for example, no running Secret Service on Linux), Deezy can use a clearly indicated private-file fallback. A replacement is authenticated before the working credential is changed. The ARL can expire or be invalidated and may need to be updated.
 
 ---
 
@@ -101,7 +101,7 @@ Amp automatically runs the executable `.agents/setup` script when creating a fre
 7. **History** – View completed downloads, open files in Explorer/Finder, or export history
 8. **Customize** – Change theme, language, folder structure, and notifications in Settings (Ctrl+3)
 9. **Updates** – Download the latest Windows installer from GitHub Releases, or pull and rebuild on macOS and Linux
-10. **Tray** – Minimize to tray (Ctrl+H); double-click the icon to restore
+10. **Tray** – Minimize to tray (Ctrl+H); left-click the icon to show or hide the window
 
 Pausing cancels the current transfer; resuming downloads the track again from the
 beginning. Saved interrupted downloads appear as paused after restarting. Pending
