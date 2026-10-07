@@ -161,7 +161,7 @@ fn read_file_tags_blocking(filePath: String) -> Result<FileTagData, String> {
             let artist       = get("ARTIST");
             let album        = get("ALBUM");
             let album_artist = get("ALBUMARTIST");
-            let year         = get("DATE").and_then(|d| d[..4.min(d.len())].parse::<i32>().ok());
+            let year         = get("DATE").as_deref().and_then(year_of_date);
             let track_num    = get("TRACKNUMBER").and_then(|v| v.parse::<u32>().ok());
             let total_tracks = get("TOTALTRACKS").or_else(|| get("TRACKTOTAL"))
                                    .and_then(|v| v.parse::<u32>().ok());
@@ -245,33 +245,42 @@ fn write_file_tags_blocking(filePath: String, tags: WriteTagData) -> Result<(), 
                 .map_err(|e| format!("Failed to read existing ID3 tag; not saving to avoid data loss: {}", e))?
                 .unwrap_or_default();
 
-            if let Some(v) = &tags.title        { tag.set_title(v); }
-            if let Some(v) = &tags.artist       { tag.set_artist(v); }
-            if let Some(v) = &tags.album        { tag.set_album(v); }
-            if let Some(v) = &tags.album_artist { tag.set_album_artist(v); }
-            if let Some(v) = tags.year          { tag.set_year(v); }
-            if let Some(v) = tags.track         { tag.set_track(v); }
-            if let Some(v) = tags.total_tracks  { tag.set_total_tracks(v); }
-            if let Some(v) = tags.disc          { tag.set_disc(v); }
-            if let Some(v) = tags.total_discs   { tag.set_total_discs(v); }
-            if let Some(v) = &tags.genre        { tag.set_genre(v); }
+            match non_empty(&tags.title)        { Some(v) => tag.set_title(v),        None => tag.remove_title() }
+            match non_empty(&tags.artist)       { Some(v) => tag.set_artist(v),       None => tag.remove_artist() }
+            match non_empty(&tags.album)        { Some(v) => tag.set_album(v),        None => tag.remove_album() }
+            match non_empty(&tags.album_artist) { Some(v) => tag.set_album_artist(v), None => tag.remove_album_artist() }
+            match tags.year                     { Some(v) => tag.set_year(v),         None => tag.remove_year() }
+            match non_empty(&tags.genre)        { Some(v) => tag.set_genre(v),        None => tag.remove_genre() }
 
-            if let Some(v) = &tags.label {
-                tag.remove("TPUB");
+            // TRCK/TPOS hold "n/N". A total without a number can't be stored
+            // (the id3 crate would invent "1/N"), so it is dropped instead.
+            tag.remove_track();
+            if let Some(n) = tags.track {
+                tag.set_track(n);
+                if let Some(total) = tags.total_tracks { tag.set_total_tracks(total); }
+            }
+            tag.remove_disc();
+            if let Some(n) = tags.disc {
+                tag.set_disc(n);
+                if let Some(total) = tags.total_discs { tag.set_total_discs(total); }
+            }
+
+            tag.remove("TPUB");
+            if let Some(v) = non_empty(&tags.label) {
                 tag.add_frame(id3::Frame::with_content(
                     "TPUB",
-                    id3::Content::Text(v.clone()),
+                    id3::Content::Text(v.to_string()),
                 ));
             }
 
-            if let Some(v) = &tags.comment {
-                tag.remove("COMM");
+            tag.remove("COMM");
+            if let Some(v) = non_empty(&tags.comment) {
                 tag.add_frame(id3::Frame::with_content(
                     "COMM",
                     id3::Content::Comment(id3::frame::Comment {
                         lang: "eng".to_string(),
                         description: String::new(),
-                        text: v.clone(),
+                        text: v.to_string(),
                     }),
                 ));
             }
@@ -299,18 +308,33 @@ fn write_file_tags_blocking(filePath: String, tags: WriteTagData) -> Result<(), 
             let mut tag = metaflac::Tag::read_from_path(path)
                 .map_err(|e| format!("FLAC read error: {}", e))?;
 
-            if let Some(v) = &tags.title        { tag.set_vorbis("TITLE",       vec![v.as_str()]); }
-            if let Some(v) = &tags.artist       { tag.set_vorbis("ARTIST",      vec![v.as_str()]); }
-            if let Some(v) = &tags.album        { tag.set_vorbis("ALBUM",       vec![v.as_str()]); }
-            if let Some(v) = &tags.album_artist { tag.set_vorbis("ALBUMARTIST", vec![v.as_str()]); }
-            if let Some(v) = tags.year          { tag.set_vorbis("DATE",        vec![v.to_string()]); }
-            if let Some(v) = tags.track         { tag.set_vorbis("TRACKNUMBER", vec![v.to_string()]); }
-            if let Some(v) = tags.total_tracks  { tag.set_vorbis("TOTALTRACKS", vec![v.to_string()]); }
-            if let Some(v) = tags.disc          { tag.set_vorbis("DISCNUMBER",  vec![v.to_string()]); }
-            if let Some(v) = tags.total_discs   { tag.set_vorbis("TOTALDISCS",  vec![v.to_string()]); }
-            if let Some(v) = &tags.genre        { tag.set_vorbis("GENRE",       vec![v.as_str()]); }
-            if let Some(v) = &tags.label        { tag.set_vorbis("LABEL",       vec![v.as_str()]); }
-            if let Some(v) = &tags.comment      { tag.set_vorbis("COMMENT",     vec![v.as_str()]); }
+            let mut set_or_remove = |keys: &[&str], value: Option<String>| {
+                for key in keys { tag.remove_vorbis(key); }
+                if let Some(v) = value { tag.set_vorbis(keys[0], vec![v]); }
+            };
+            let text = |v: &Option<String>| non_empty(v).map(str::to_string);
+            let num = |v: Option<u32>| v.map(|n| n.to_string());
+
+            set_or_remove(&["TITLE"],                      text(&tags.title));
+            set_or_remove(&["ARTIST"],                     text(&tags.artist));
+            set_or_remove(&["ALBUM"],                      text(&tags.album));
+            set_or_remove(&["ALBUMARTIST"],                text(&tags.album_artist));
+            set_or_remove(&["TRACKNUMBER"],                num(tags.track));
+            set_or_remove(&["TOTALTRACKS", "TRACKTOTAL"],  num(tags.total_tracks));
+            set_or_remove(&["DISCNUMBER"],                 num(tags.disc));
+            set_or_remove(&["TOTALDISCS", "DISCTOTAL"],    num(tags.total_discs));
+            set_or_remove(&["GENRE"],                      text(&tags.genre));
+            set_or_remove(&["LABEL"],                      text(&tags.label));
+            set_or_remove(&["COMMENT"],                    text(&tags.comment));
+
+            // The editor only exposes the year. Keep a full DATE such as
+            // "2023-05-01" when its year is unchanged.
+            let existing_date = tag.get_vorbis("DATE").and_then(|mut v| v.next()).map(str::to_string);
+            let existing_year = existing_date.as_deref().and_then(year_of_date);
+            if tags.year != existing_year {
+                tag.remove_vorbis("DATE");
+                if let Some(v) = tags.year { tag.set_vorbis("DATE", vec![v.to_string()]); }
+            }
 
             if tags.remove_cover {
                 tag.remove_picture_type(metaflac::block::PictureType::CoverFront);
@@ -327,6 +351,16 @@ fn write_file_tags_blocking(filePath: String, tags: WriteTagData) -> Result<(), 
     }
 
     Ok(())
+}
+
+/// A trimmed, non-empty text value, or `None` when the field was cleared.
+fn non_empty(value: &Option<String>) -> Option<&str> {
+    value.as_deref().map(str::trim).filter(|v| !v.is_empty())
+}
+
+/// The year from a date such as "2023" or "2023-05-01".
+fn year_of_date(date: &str) -> Option<i32> {
+    date.get(..4).and_then(|y| y.parse().ok())
 }
 
 /// Detect MIME type from image magic bytes.

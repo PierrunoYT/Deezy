@@ -1,6 +1,6 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { _ } from 'svelte-i18n';
 
   interface Props {
@@ -65,7 +65,10 @@
     if (show) {
       error = '';
       successMsg = '';
-      if (initialFilePath && initialFilePath !== filePath) {
+      // Read filePath untracked: picking another file must not re-run this
+      // effect, which would switch back to the initial file.
+      const current = untrack(() => filePath);
+      if (initialFilePath && initialFilePath !== current) {
         filePath = initialFilePath;
         loadTagsFromPath(initialFilePath);
       }
@@ -203,8 +206,17 @@
     }
   }
 
+  // Close only when the press also started on the backdrop. A text selection
+  // dragged out of a field and released over it fires click on the backdrop too.
+  let pressStartedOnBackdrop = false;
+
+  function handleBackdropMousedown(e: MouseEvent): void {
+    pressStartedOnBackdrop = e.target === e.currentTarget;
+  }
+
   function handleBackdropClick(e: MouseEvent): void {
-    if (e.target === e.currentTarget) onClose();
+    if (pressStartedOnBackdrop && e.target === e.currentTarget) onClose();
+    pressStartedOnBackdrop = false;
   }
 
   function handleKeydown(e: KeyboardEvent): void {
@@ -219,6 +231,7 @@
 {#if show}
   <div
     class="modal-backdrop"
+    onmousedown={handleBackdropMousedown}
     onclick={handleBackdropClick}
     onkeydown={handleKeydown}
     role="dialog"

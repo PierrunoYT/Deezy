@@ -91,7 +91,8 @@ pub struct FileTagData {
 }
 
 /// Tag fields to write back to an audio file.
-/// `None` means "do not change this field".
+/// Each field is the complete desired value: `None` (or an empty string)
+/// removes the field from the file.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WriteTagData {
     pub title: Option<String>,
