@@ -4,6 +4,11 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- **MP3 tag safety** — The tag editor no longer treats an unreadable ID3 tag as empty. Opening such a file shows the read error instead of blank fields, and saving refuses rather than replacing the tag, so existing frames and cover art are never wiped.
+- **Settings with an unavailable keyring** — On Linux without a running or unlocked Secret Service, a failed credential read no longer blocks login and every settings change; saving continues to the private-file fallback. A failed save no longer deletes a stored credential that could not be read.
+
 ---
 
 ## [0.2.22] - 2026-09-10

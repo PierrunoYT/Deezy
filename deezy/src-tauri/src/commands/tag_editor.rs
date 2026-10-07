@@ -106,8 +106,11 @@ fn read_file_tags_blocking(filePath: String) -> Result<FileTagData, String> {
     match ext.as_str() {
         "mp3" => {
             use id3::TagLike;
-            let tag = id3::Tag::read_from_path(path)
-                .unwrap_or_else(|_| id3::Tag::new());
+            // Only a missing tag means "empty". Any other read failure must surface,
+            // otherwise the editor shows blank fields for a tag it couldn't parse.
+            let tag = id3::no_tag_ok(id3::Tag::read_from_path(path))
+                .map_err(|e| format!("Failed to read ID3 tag: {}", e))?
+                .unwrap_or_default();
 
             let title        = tag.title().map(|s| s.to_string());
             let artist       = tag.artist().map(|s| s.to_string());
@@ -236,8 +239,11 @@ fn write_file_tags_blocking(filePath: String, tags: WriteTagData) -> Result<(), 
         "mp3" => {
             use id3::TagLike;
 
-            let mut tag = id3::Tag::read_from_path(path)
-                .unwrap_or_else(|_| id3::Tag::new());
+            // Never write over a tag we couldn't parse: that would delete every
+            // existing frame, including the cover art.
+            let mut tag = id3::no_tag_ok(id3::Tag::read_from_path(path))
+                .map_err(|e| format!("Failed to read existing ID3 tag; not saving to avoid data loss: {}", e))?
+                .unwrap_or_default();
 
             if let Some(v) = &tags.title        { tag.set_title(v); }
             if let Some(v) = &tags.artist       { tag.set_artist(v); }

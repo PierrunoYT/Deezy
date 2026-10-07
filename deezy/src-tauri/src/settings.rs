@@ -491,8 +491,16 @@ impl Settings {
 
         let path = Self::path(app)?;
         if keyring_enabled() {
-            let previous_arl = load_arl_from_keyring()
-                .map_err(|e| format!("Cannot safely update credential: {}", e))?;
+            // A read error (e.g. no Secret Service running on Linux) means the
+            // previous credential is unknown. Continue so the plaintext fallback
+            // below can still run instead of blocking every save.
+            let (previous_arl, previous_known) = match load_arl_from_keyring() {
+                Ok(arl) => (arl, true),
+                Err(e) => {
+                    eprintln!("Warning: could not read previous credential: {}", e);
+                    (None, false)
+                }
+            };
             match save_arl_to_keyring(&self.arl) {
                 Ok(()) => {
                     let mut settings_for_disk = self.clone();
@@ -502,6 +510,8 @@ impl Settings {
                     if let Err(write_error) = write_private(&path, data.as_bytes()) {
                         let rollback = match previous_arl {
                             Some(ref arl) if !arl.is_empty() => save_arl_to_keyring(arl),
+                            // Don't delete a credential we never managed to read.
+                            _ if !previous_known => Err("previous credential unknown".to_string()),
                             _ => delete_arl_from_keyring(),
                         };
                         return Err(match rollback {
