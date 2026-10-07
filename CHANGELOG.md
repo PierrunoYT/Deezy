@@ -4,6 +4,10 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+---
+
+## [0.2.23] - 2026-10-07
+
 ### Fixed
 
 - **MP3 tag safety** — The tag editor no longer treats an unreadable ID3 tag as empty. Opening such a file shows the read error instead of blank fields, and saving refuses rather than replacing the tag, so existing frames and cover art are never wiped.
