@@ -178,17 +178,27 @@
         custom_folder_template: customFolderTemplate.trim()
       };
 
-      const user = trimmedArl
-        ? await invoke<UserInfo>('login', { arl: trimmedArl })
-        : await invoke<UserInfo | null>('auto_login');
+      // Save preferences first: a rejected update must not touch the session.
+      await invoke('update_settings', { updates });
+
+      // Re-authenticate only when a new ARL was entered or nobody is logged in.
+      // A failed login leaves the backend's existing session in place, so the
+      // catch below must not clear loggedIn either.
+      let user: UserInfo | null;
+      if (trimmedArl) {
+        user = await invoke<UserInfo>('login', { arl: trimmedArl });
+      } else if (isLoggedIn) {
+        user = null;
+        userInfo.subscribe(value => user = value)();
+      } else {
+        user = await invoke<UserInfo | null>('auto_login');
+      }
 
       if (!user) {
         showStatus($_('settings.status.arlRequired'), 'error');
-        loggedIn.set(false);
         return;
       }
 
-      await invoke('update_settings', { updates });
       await refreshArlStorage();
 
       notificationManager.setEnabled(enableNotifications);
@@ -206,7 +216,6 @@
       }
     } catch (err) {
       showStatus($_('settings.status.loginFailed', { values: { error: String(err) } }), 'error');
-      loggedIn.set(false);
     } finally {
       saving = false;
     }
@@ -352,8 +361,9 @@
         <input 
           type="text" 
           id="output-input" 
-          bind:value={outputDir}
+          value={outputDir}
           placeholder={$_('settings.outputDir.placeholder')}
+          readonly
         />
         <button class="btn-secondary" onclick={pickFolder}>{$_('settings.outputDir.browse')}</button>
       </div>

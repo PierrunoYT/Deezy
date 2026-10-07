@@ -402,12 +402,9 @@ impl Settings {
     }
 
     pub fn validate(&self) -> Result<(), String> {
-        // Validate ARL
-        if self.arl.trim().is_empty() {
-            return Err("ARL token is required".to_string());
-        }
-
-        if self.arl.trim().len() < 100 {
+        // An empty ARL is allowed so preferences can be saved before the first
+        // login. Credential paths (login, Save & Login) require one themselves.
+        if !self.arl.trim().is_empty() && self.arl.trim().len() < 100 {
             return Err("ARL token appears to be invalid (too short)".to_string());
         }
 
@@ -490,7 +487,12 @@ impl Settings {
         self.validate()?;
 
         let path = Self::path(app)?;
-        if keyring_enabled() {
+        if self.arl.trim().is_empty() {
+            // No credential yet (preferences saved before the first login).
+            // Leave the keyring untouched so an entry we couldn't read survives.
+            let data = serde_json::to_string_pretty(self).map_err(|e| e.to_string())?;
+            write_private(&path, data.as_bytes())?;
+        } else if keyring_enabled() {
             // A read error (e.g. no Secret Service running on Linux) means the
             // previous credential is unknown. Continue so the plaintext fallback
             // below can still run instead of blocking every save.
