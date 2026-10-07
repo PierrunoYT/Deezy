@@ -29,6 +29,16 @@ pub struct AppState {
 
 pub fn run() {
     tauri::Builder::default()
+        // Must be registered first. A second launch would load its own copy of
+        // settings and overwrite newer changes made by this one, so it focuses
+        // the running window instead (which may be hidden in the tray).
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_process::init())
