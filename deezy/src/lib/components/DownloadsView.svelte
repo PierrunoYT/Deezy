@@ -199,7 +199,7 @@
             </div>
           </div>
           <div class="download-status {getStatusClass(item.status)}">
-            {getStatusText(item.status, item.percent)}
+            {item.skipped ? $_('downloads.status.skipped') : getStatusText(item.status, item.percent)}
             {#if item.status === 'complete' && item.actualQuality}
               <span class="quality-info">
                 {#if item.requestedQuality && item.requestedQuality !== item.actualQuality}

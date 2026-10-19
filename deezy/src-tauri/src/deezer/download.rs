@@ -9,6 +9,7 @@ use serde_json::Value;
 use tauri::Emitter;
 use tokio::io::AsyncWriteExt;
 
+use super::bandwidth::BandwidthLimiter;
 use super::models::DownloadProgress;
 use super::models::DownloadResult;
 use super::{crypto, get_quality_ext, DeezerClient};
@@ -16,6 +17,10 @@ use crate::settings::FolderStructure;
 
 const MAX_TRACK_DOWNLOAD_BYTES: u64 = 1024 * 1024 * 1024; // 1 GiB safety cap
 const IN_PROGRESS_SUFFIX: &str = ".deezy.part";
+/// Extensions a track can be saved with. A file with any of them at the
+/// destination counts as already downloaded, whatever quality was requested,
+/// since the delivered quality can differ from the requested one.
+const AUDIO_EXTENSIONS: [&str; 2] = [".mp3", ".flac"];
 
 pub async fn download_track(
     client: &DeezerClient,
@@ -24,6 +29,9 @@ pub async fn download_track(
     quality: &str,
     folder_structure: &FolderStructure,
     custom_folder_template: &str,
+    skip_existing: bool,
+    bandwidth: &BandwidthLimiter,
+    speed_limit_kbps: u32,
     app: &tauri::AppHandle,
     cancel_flag: Arc<AtomicBool>,
 ) -> Result<DownloadResult, String> {
@@ -59,6 +67,28 @@ pub async fn download_track(
     }
 
     emit_progress(app, track_id, &full_title, 0.0, "resolving");
+
+    if skip_existing {
+        let existing = find_existing_download(
+            output_dir,
+            folder_structure,
+            custom_folder_template,
+            &artist,
+            &album_title,
+            &full_title,
+            track_data,
+        )
+        .await?;
+        if let Some(existing_path) = existing {
+            emit_progress(app, track_id, &full_title, 100.0, "complete");
+            return Ok(DownloadResult {
+                file_path: existing_path.to_string_lossy().to_string(),
+                requested_quality: quality.to_string(),
+                actual_quality: String::new(),
+                status: "skipped".to_string(),
+            });
+        }
+    }
 
     let (url, actual_quality) = client
         .get_track_download_url(&track, quality, true)
@@ -161,6 +191,11 @@ pub async fn download_track(
             cleanup_temp_file_async(&temp_download_path).await;
             return Err("Download aborted: file exceeds allowed size limit".to_string());
         }
+        // Not reading the stream while waiting lets TCP flow control slow the
+        // server down. A cancellation is picked up by the chunk loop below.
+        bandwidth
+            .acquire(bytes.len(), speed_limit_kbps, &cancel_flag)
+            .await;
         buffer.extend_from_slice(&bytes);
 
         while buffer.len() >= 2048 {
@@ -586,6 +621,37 @@ fn build_download_path(
     Ok(path.join(clean_filename(&file_name)))
 }
 
+/// Returns the path of a file already saved for this track, if any.
+async fn find_existing_download(
+    output_dir: &str,
+    folder_structure: &FolderStructure,
+    custom_folder_template: &str,
+    artist: &str,
+    album_title: &str,
+    full_title: &str,
+    track_data: &Value,
+) -> Result<Option<PathBuf>, String> {
+    for ext in AUDIO_EXTENSIONS {
+        let candidate = build_download_path(
+            output_dir,
+            folder_structure,
+            custom_folder_template,
+            artist,
+            album_title,
+            full_title,
+            track_data,
+            ext,
+        )?;
+        if tokio::fs::metadata(&candidate)
+            .await
+            .is_ok_and(|metadata| metadata.is_file() && metadata.len() > 0)
+        {
+            return Ok(Some(candidate));
+        }
+    }
+    Ok(None)
+}
+
 fn emit_progress(
     app: &tauri::AppHandle,
     track_id: &str,
@@ -766,7 +832,7 @@ async fn cleanup_temp_file_async(path: &Path) {
 
 #[cfg(test)]
 mod tests {
-    use super::{build_download_path, rename_noclobber, finalize_download_file, parse_u32_from_value, sanitize_path_component};
+    use super::{build_download_path, find_existing_download, rename_noclobber, finalize_download_file, parse_u32_from_value, sanitize_path_component};
     use crate::settings::FolderStructure;
     use std::io::ErrorKind;
     use std::path::PathBuf;
@@ -819,6 +885,28 @@ mod tests {
         ));
         std::fs::create_dir_all(&dir).expect("test directory should be created");
         dir
+    }
+
+    #[tokio::test]
+    async fn existing_downloads_are_found_in_either_format() {
+        let dir = test_dir("existing-download");
+        let output_dir = dir.to_string_lossy().to_string();
+        let track_data = serde_json::json!({});
+        let find = || find_existing_download(
+            &output_dir, &FolderStructure::ArtistTrack, "", "Artist", "Album", "Song", &track_data,
+        );
+
+        assert_eq!(find().await.unwrap(), None);
+
+        let artist_dir = dir.join("Artist");
+        std::fs::create_dir_all(&artist_dir).expect("artist directory should be created");
+        let flac_path = artist_dir.join("Artist - Song.flac");
+        std::fs::write(&flac_path, b"").expect("empty file should be written");
+        assert_eq!(find().await.unwrap(), None, "an empty file is not a download");
+
+        std::fs::write(&flac_path, b"audio").expect("audio should be written");
+        assert_eq!(find().await.unwrap(), Some(flac_path));
+        std::fs::remove_dir_all(dir).expect("test directory should be removed");
     }
 
     #[test]

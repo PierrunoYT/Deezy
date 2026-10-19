@@ -1,3 +1,4 @@
+pub mod bandwidth;
 pub mod crypto;
 pub mod download;
 pub mod models;

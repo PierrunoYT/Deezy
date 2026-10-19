@@ -18,6 +18,9 @@ export interface AppSettings {
   notifications_enabled: boolean;
   locale: string;
   close_to_tray: boolean;
+  skip_existing_files: boolean;
+  download_delay_seconds: number;
+  download_speed_limit_kbps: number;
 }
 
 export interface ArlStorageStatus {
@@ -68,6 +71,8 @@ export interface DownloadItem {
   filePath?: string;
   requestedQuality?: QualityOption;
   actualQuality?: QualityOption;
+  /** The file was already on disk, so nothing was downloaded. */
+  skipped?: boolean;
 }
 
 export interface QueuedDownload {
@@ -100,6 +105,8 @@ export const pausedDownloads: Writable<Set<string>> = writable(new Set());
 
 export const theme: Writable<Theme> = writable(DEFAULT_THEME);
 export const notificationsEnabled: Writable<boolean> = writable(false);
+/** Minimum pause between the start of consecutive downloads, mirrored from settings. */
+export const downloadDelaySeconds: Writable<number> = writable(0);
 export const searchHistory: Writable<string[]> = writable([]);
 export const currentLocale: Writable<string> = writable(DEFAULT_LOCALE);
 export const settingsArlDraft: Writable<string> = writable('');

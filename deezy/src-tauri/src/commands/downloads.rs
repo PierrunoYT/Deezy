@@ -38,7 +38,7 @@ async fn execute_download_track(
     cancel_flag: Arc<AtomicBool>,
 ) -> Result<DownloadResult, String> {
     // Get or recreate the client
-    let (mut client, output_dir, quality, folder_structure, custom_folder_template, arl) = {
+    let (mut client, output_dir, quality, folder_structure, custom_folder_template, arl, skip_existing, speed_limit_kbps) = {
         let lock = state.client.lock().await;
         let settings = state.settings.lock().await;
         
@@ -55,6 +55,8 @@ async fn execute_download_track(
             settings.folder_structure.clone(),
             settings.custom_folder_template.clone(),
             settings.arl.clone(),
+            settings.skip_existing_files,
+            settings.download_speed_limit_kbps,
         )
     };
     
@@ -89,6 +91,9 @@ async fn execute_download_track(
         &effective_quality,
         &folder_structure,
         &custom_folder_template,
+        skip_existing,
+        &state.bandwidth,
+        speed_limit_kbps,
         app,
         cancel_flag.clone(),
     )
@@ -119,6 +124,9 @@ async fn execute_download_track(
                         &retry_quality,
                         &folder_structure,
                         &custom_folder_template,
+                        skip_existing,
+                        &state.bandwidth,
+                        speed_limit_kbps,
                         app,
                         cancel_flag.clone(),
                     )

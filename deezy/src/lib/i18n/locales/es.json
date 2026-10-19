@@ -47,7 +47,12 @@
     "album": {
       "downloadAll": "Descargar Todo",
       "adding": "Agregando...",
-      "tracks": "{count, plural, =1 {1 canción} other {# canciones}}"
+      "tracks": "{count, plural, =1 {1 canción} other {# canciones}}",
+      "viewTracks": "Ver canciones",
+      "loadingTracks": "Cargando canciones del álbum...",
+      "noTracks": "No se encontraron canciones en este álbum.",
+      "back": "Volver a los resultados",
+      "backToDiscography": "Volver a la discografía"
     },
     "playlist": {
       "downloadAll": "Descargar Todo",
@@ -82,7 +87,8 @@
       "paused": "Pausado",
       "downloading": "{percent}%",
       "tagging": "Escribiendo etiquetas...",
-      "resolving": "Resolviendo..."
+      "resolving": "Resolviendo...",
+      "skipped": "Ya descargado"
     },
     "actions": {
       "pause": "Pausar descarga",
@@ -200,6 +206,27 @@
       "customFolderTemplateRequired": "Se requiere la plantilla de carpeta personalizada.",
       "historyCleared": "¡Historial de búsqueda limpiado exitosamente!",
       "clearHistoryFailed": "No se pudo limpiar el historial de búsqueda: {error}"
+    },
+    "skipExisting": {
+      "label": "Omitir archivos existentes",
+      "hint": "Antes de cada descarga, busca en la carpeta de descargas un archivo con el mismo nombre (MP3 o FLAC). Si existe, la canción se omite, incluso después de borrar el historial de descargas.",
+      "enabled": "Omitir archivos ya presentes",
+      "disabled": "Descargar siempre"
+    },
+    "downloadDelay": {
+      "label": "Pausa entre descargas",
+      "hint": "Esperar este tiempo antes de iniciar cada siguiente descarga. Espaciar los lotes grandes hace que la descarga se parezca más a una escucha normal.",
+      "none": "Sin pausa",
+      "seconds": "{count, plural, =1 {1 segundo} other {# segundos}}"
+    },
+    "speedLimit": {
+      "label": "Límite de velocidad de descarga",
+      "hint": "Limita la velocidad total de todas las descargas. A velocidad de reproducción (1411 kbit/s para FLAC, 320 kbit/s para MP3 320), cada canción tarda en descargarse más o menos lo que dura.",
+      "unlimited": "Ilimitada",
+      "mbps": "{value} Mbit/s",
+      "kbps": "{value} kbit/s",
+      "flacPlayback": "{value} kbit/s (velocidad de reproducción FLAC)",
+      "mp3Playback": "{value} kbit/s (velocidad de reproducción MP3 320)"
     }
   },
   "user": {

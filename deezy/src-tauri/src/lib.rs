@@ -25,6 +25,7 @@ pub struct AppState {
     pub tray_state: tray::TrayState,
     pub download_cancellations: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
     pub file_grants: Arc<Mutex<FileGrants>>,
+    pub bandwidth: Arc<deezer::bandwidth::BandwidthLimiter>,
 }
 
 pub fn run() {
@@ -49,6 +50,7 @@ pub fn run() {
             tray_state: tray::TrayState::new(),
             download_cancellations: Arc::new(Mutex::new(HashMap::new())),
             file_grants: Arc::new(Mutex::new(FileGrants::default())),
+            bandwidth: Arc::new(deezer::bandwidth::BandwidthLimiter::new()),
         })
         .setup(|app| {
             // Create system tray

@@ -40,6 +40,12 @@
   let loadingDiscography = $state<boolean>(false);
   let discographyError = $state<string>('');
 
+  // Album detail state
+  let selectedAlbum = $state<AlbumResult | null>(null);
+  let albumTracks = $state<Track[]>([]);
+  let loadingAlbum = $state<boolean>(false);
+  let albumError = $state<string>('');
+
   // Playlist detail state
   let selectedPlaylist = $state<SelectedPlaylist | null>(null);
   let playlistTracks = $state<Track[]>([]);
@@ -58,6 +64,7 @@
   let searchTimeout: ReturnType<typeof setTimeout> | undefined;
   let activeSearchToken = 0;
   let activeArtistToken = 0;
+  let activeAlbumToken = 0;
   let activePlaylistToken = 0;
 
   $effect(() => {
@@ -113,6 +120,7 @@
     return () => {
       activeSearchToken++;
       activeArtistToken++;
+      activeAlbumToken++;
       activePlaylistToken++;
       document.removeEventListener('click', handleClickOutside);
       keyboardShortcuts.unregister('focus-search');
@@ -122,7 +130,9 @@
   });
 
   function handleEscapeAction(): void {
-    if (selectedPlaylist) {
+    if (selectedAlbum) {
+      closeAlbum();
+    } else if (selectedPlaylist) {
       closePlaylist();
     } else if (selectedArtist) {
       closeArtist();
@@ -206,6 +216,7 @@
 
   function switchSearchType(type: SearchType): void {
     clearTimeout(searchTimeout);
+    closeAlbum();
     closeArtist();
     closePlaylist();
     activeSearchToken += 1;
@@ -301,6 +312,7 @@
   }
 
   async function openArtist(id: number, name: string, picture: string): Promise<void> {
+    closeAlbum();
     const token = ++activeArtistToken;
     selectedArtist = { id, name, picture };
     artistAlbums = [];
@@ -327,6 +339,35 @@
     selectedArtist = null;
     artistAlbums = [];
     discographyError = '';
+  }
+
+  async function openAlbum(album: AlbumResult): Promise<void> {
+    const token = ++activeAlbumToken;
+    selectedAlbum = album;
+    albumTracks = [];
+    albumError = '';
+    loadingAlbum = true;
+
+    try {
+      const data = await invoke<Track[]>('get_album_tracks', { albumId: String(album.id) });
+      if (token !== activeAlbumToken) return;
+      albumTracks = data;
+      if (albumTracks.length === 0) {
+        albumError = $_('search.album.noTracks');
+      }
+    } catch (err) {
+      if (token === activeAlbumToken) albumError = String(err);
+    } finally {
+      if (token === activeAlbumToken) loadingAlbum = false;
+    }
+  }
+
+  function closeAlbum(): void {
+    activeAlbumToken++;
+    loadingAlbum = false;
+    selectedAlbum = null;
+    albumTracks = [];
+    albumError = '';
   }
 
   async function openPlaylist(playlist: PlaylistResult): Promise<void> {
@@ -416,7 +457,10 @@
     const searchToken = activeSearchToken;
 
     try {
-      const tracks = await invoke<Track[]>('get_album_tracks', { albumId: String(album.id) });
+      // Reuse the track list already loaded for the open album.
+      const tracks = selectedAlbum?.id === album.id && albumTracks.length > 0
+        ? albumTracks
+        : await invoke<Track[]>('get_album_tracks', { albumId: String(album.id) });
       for (const track of tracks) {
         await downloadQueueManager.addToQueue(track);
       }
@@ -509,7 +553,31 @@
 
 <div class="view search-view">
   <div class="search-header">
-    {#if selectedArtist}
+    {#if selectedAlbum}
+      <div class="artist-page-header">
+        <button class="btn-back" onclick={closeAlbum}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+          {selectedArtist ? $_('search.album.backToDiscography') : $_('search.album.back')}
+        </button>
+        <div class="artist-hero">
+          {#if selectedAlbum.cover_medium}
+            <img class="artist-hero-img playlist-cover" src={selectedAlbum.cover_medium} alt={selectedAlbum.title} />
+          {:else}
+            <div class="artist-hero-placeholder">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+            </div>
+          {/if}
+          <div class="artist-hero-info">
+            <div class="artist-hero-name">{selectedAlbum.title}</div>
+            <div class="artist-hero-meta">{selectedAlbum.artist || selectedArtist?.name || ''}</div>
+          </div>
+        </div>
+      </div>
+    {:else if selectedArtist}
       <div class="artist-page-header">
         <button class="btn-back" onclick={closeArtist}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -646,6 +714,11 @@
     {discographyError}
     {downloadingAlbums}
     {downloadAlbum}
+    {selectedAlbum}
+    {albumTracks}
+    {loadingAlbum}
+    {albumError}
+    {openAlbum}
     {selectedPlaylist}
     {downloadingPlaylists}
     {downloadPlaylist}

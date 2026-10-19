@@ -91,6 +91,9 @@ pub async fn update_settings(
             "notifications_enabled" => settings.notifications_enabled = serde_json::from_value(value).map_err(|e| e.to_string())?,
             "enable_search_history" => settings.enable_search_history = serde_json::from_value(value).map_err(|e| e.to_string())?,
             "close_to_tray" => settings.close_to_tray = serde_json::from_value(value).map_err(|e| e.to_string())?,
+            "skip_existing_files" => settings.skip_existing_files = serde_json::from_value(value).map_err(|e| e.to_string())?,
+            "download_delay_seconds" => settings.download_delay_seconds = serde_json::from_value(value).map_err(|e| e.to_string())?,
+            "download_speed_limit_kbps" => settings.download_speed_limit_kbps = serde_json::from_value(value).map_err(|e| e.to_string())?,
             "locale" => settings.locale = serde_json::from_value(value).map_err(|e| e.to_string())?,
             _ => return Err(format!("Setting '{}' cannot be updated individually", key)),
         }

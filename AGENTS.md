@@ -69,10 +69,11 @@ deezy/                          # All source lives here
 `+layout.svelte` mounts → loads download history → loads settings (calls `get_settings`) → initialises i18n → applies theme → calls `auto_login` (reads ARL from OS keyring via Rust) → sets `loggedIn` store → shows the app shell (2.2 s minimum splash).
 
 ### Download pipeline
-1. Frontend calls `downloadQueueManager.addToQueue(track)` — queued if 3 downloads already active.
+1. Frontend calls `downloadQueueManager.addToQueue(track)` — queued if 3 downloads already active. Starts are spaced at least `download_delay_seconds` apart (mirrored in the `downloadDelaySeconds` store); skipped tracks don't count.
 2. Queue pops the next item and calls `invoke('download_track', { trackId })`.
 3. Rust: resolves track metadata via `song.getData` (private Deezer API), gets a CDN URL, streams the encrypted audio.
-4. Decryption: every **3rd** 2048-byte chunk is Blowfish-CBC decrypted; all other chunks are written as-is.
+   If `skip_existing_files` is on and a non-empty `.mp3` or `.flac` already exists at the destination path, Rust returns `status: "skipped"` without fetching a download URL; the frontend marks the row complete with `skipped: true`.
+4. Decryption: every **3rd** 2048-byte chunk is Blowfish-CBC decrypted; all other chunks are written as-is. Received bytes are paced through the shared `BandwidthLimiter` (`AppState.bandwidth`) when `download_speed_limit_kbps` > 0; the limit is the total across all concurrent downloads.
 5. Audio is written to a `.deezy.part` temp file, then moved to the final path on completion.
 6. Rust emits `download-progress` Tauri events with `{ track_id, title, percent, status }` throughout.
 7. After streaming, metadata tags (ID3v2.4 for MP3, Vorbis comments for FLAC) and cover art are written.

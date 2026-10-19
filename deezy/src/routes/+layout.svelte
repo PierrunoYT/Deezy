@@ -15,6 +15,7 @@
     type DownloadItem,
     type DownloadStatus,
     notificationsEnabled,
+    downloadDelaySeconds,
     type Theme,
     type AppSettings
   } from '$lib/stores';
@@ -140,6 +141,8 @@
       const notificationsOn = settings.notifications_enabled ?? true;
       notificationsEnabled.set(notificationsOn);
       notificationManager.setEnabled(notificationsOn);
+
+      downloadDelaySeconds.set(settings.download_delay_seconds ?? 0);
 
       const savedLocale = settings.locale || 'en';
       await initI18n(savedLocale);

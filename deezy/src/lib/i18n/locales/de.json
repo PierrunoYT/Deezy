@@ -47,7 +47,12 @@
     "album": {
       "downloadAll": "Alles Herunterladen",
       "adding": "Wird hinzugefügt...",
-      "tracks": "{count, plural, =1 {1 Titel} other {# Titel}}"
+      "tracks": "{count, plural, =1 {1 Titel} other {# Titel}}",
+      "viewTracks": "Titel anzeigen",
+      "loadingTracks": "Albumtitel werden geladen...",
+      "noTracks": "Keine Titel in diesem Album gefunden.",
+      "back": "Zurück zu den Ergebnissen",
+      "backToDiscography": "Zurück zur Diskografie"
     },
     "playlist": {
       "downloadAll": "Alles Herunterladen",
@@ -82,7 +87,8 @@
       "paused": "Pausiert",
       "downloading": "{percent}%",
       "tagging": "Tags werden geschrieben...",
-      "resolving": "Wird aufgelöst..."
+      "resolving": "Wird aufgelöst...",
+      "skipped": "Bereits heruntergeladen"
     },
     "actions": {
       "pause": "Download pausieren",
@@ -200,6 +206,27 @@
       "customFolderTemplateRequired": "Benutzerdefinierte Ordnervorlage ist erforderlich.",
       "historyCleared": "Suchverlauf erfolgreich gelöscht!",
       "clearHistoryFailed": "Suchverlauf konnte nicht gelöscht werden: {error}"
+    },
+    "skipExisting": {
+      "label": "Vorhandene Dateien überspringen",
+      "hint": "Vor jedem Download wird im Download-Ordner nach einer Datei mit gleichem Namen (MP3 oder FLAC) gesucht. Wird sie gefunden, wird der Titel übersprungen – auch nachdem der Download-Verlauf gelöscht wurde.",
+      "enabled": "Vorhandene Dateien überspringen",
+      "disabled": "Immer herunterladen"
+    },
+    "downloadDelay": {
+      "label": "Pause zwischen Downloads",
+      "hint": "So lange warten, bevor der nächste Download startet. Große Mengen zeitlich zu verteilen lässt das Herunterladen eher wie normales Hören wirken.",
+      "none": "Keine Pause",
+      "seconds": "{count, plural, =1 {1 Sekunde} other {# Sekunden}}"
+    },
+    "speedLimit": {
+      "label": "Download-Geschwindigkeitslimit",
+      "hint": "Begrenzt die Gesamtgeschwindigkeit aller Downloads. Bei Wiedergabegeschwindigkeit (1411 kbit/s für FLAC, 320 kbit/s für MP3 320) dauert der Download eines Titels etwa so lange wie das Anhören.",
+      "unlimited": "Unbegrenzt",
+      "mbps": "{value} Mbit/s",
+      "kbps": "{value} kbit/s",
+      "flacPlayback": "{value} kbit/s (FLAC-Wiedergabegeschwindigkeit)",
+      "mp3Playback": "{value} kbit/s (MP3-320-Wiedergabegeschwindigkeit)"
     }
   },
   "user": {

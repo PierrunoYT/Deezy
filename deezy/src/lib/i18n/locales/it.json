@@ -47,7 +47,12 @@
         "album": {
             "downloadAll": "Scarica Tutto",
             "adding": "Aggiunta in corso...",
-            "tracks": "{count, plural, =1 {1 brano} other {# brani}}"
+            "tracks": "{count, plural, =1 {1 brano} other {# brani}}",
+            "viewTracks": "Vedi brani",
+            "loadingTracks": "Caricamento dei brani dell'album...",
+            "noTracks": "Nessun brano trovato in questo album.",
+            "back": "Torna ai risultati",
+            "backToDiscography": "Torna alla discografia"
         },
         "playlist": {
             "downloadAll": "Scarica Tutto",
@@ -82,7 +87,8 @@
             "paused": "In pausa",
             "downloading": "{percent}%",
             "tagging": "Scrittura tag...",
-            "resolving": "Risoluzione..."
+            "resolving": "Risoluzione...",
+            "skipped": "Già scaricato"
         },
         "actions": {
             "pause": "Metti in pausa",
@@ -200,6 +206,27 @@
             "customFolderTemplateRequired": "Il modello cartella personalizzato è obbligatorio.",
             "historyCleared": "Cronologia ricerche cancellata con successo!",
             "clearHistoryFailed": "Impossibile cancellare la cronologia ricerche: {error}"
+        },
+        "skipExisting": {
+            "label": "Salta file esistenti",
+            "hint": "Prima di ogni download, cerca nella cartella di download un file con lo stesso nome (MP3 o FLAC). Se esiste, il brano viene saltato, anche dopo aver cancellato la cronologia dei download.",
+            "enabled": "Salta i file già presenti",
+            "disabled": "Scarica sempre"
+        },
+        "downloadDelay": {
+            "label": "Pausa tra i download",
+            "hint": "Attendi questo tempo prima di avviare ogni download successivo. Distanziare i grandi lotti rende il download più simile a un ascolto normale.",
+            "none": "Nessuna pausa",
+            "seconds": "{count, plural, =1 {1 secondo} other {# secondi}}"
+        },
+        "speedLimit": {
+            "label": "Limite di velocità di download",
+            "hint": "Limita la velocità totale di tutti i download. Alla velocità di riproduzione (1411 kbit/s per FLAC, 320 kbit/s per MP3 320) ogni brano si scarica in circa il tempo necessario ad ascoltarlo.",
+            "unlimited": "Illimitata",
+            "mbps": "{value} Mbit/s",
+            "kbps": "{value} kbit/s",
+            "flacPlayback": "{value} kbit/s (velocità di riproduzione FLAC)",
+            "mp3Playback": "{value} kbit/s (velocità di riproduzione MP3 320)"
         }
     },
     "user": {

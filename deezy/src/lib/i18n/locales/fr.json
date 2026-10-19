@@ -47,7 +47,12 @@
     "album": {
       "downloadAll": "Tout Télécharger",
       "adding": "Ajout...",
-      "tracks": "{count, plural, =1 {1 morceau} other {# morceaux}}"
+      "tracks": "{count, plural, =1 {1 morceau} other {# morceaux}}",
+      "viewTracks": "Voir les titres",
+      "loadingTracks": "Chargement des titres de l'album...",
+      "noTracks": "Aucun titre trouvé dans cet album.",
+      "back": "Retour aux résultats",
+      "backToDiscography": "Retour à la discographie"
     },
     "playlist": {
       "downloadAll": "Tout Télécharger",
@@ -82,7 +87,8 @@
       "paused": "En pause",
       "downloading": "{percent}%",
       "tagging": "Écriture des tags...",
-      "resolving": "Résolution..."
+      "resolving": "Résolution...",
+      "skipped": "Déjà téléchargé"
     },
     "actions": {
       "pause": "Mettre en pause",
@@ -200,6 +206,27 @@
       "customFolderTemplateRequired": "Le modèle de dossier personnalisé est requis.",
       "historyCleared": "Historique de recherche effacé avec succès !",
       "clearHistoryFailed": "Impossible d'effacer l'historique de recherche : {error}"
+    },
+    "skipExisting": {
+      "label": "Ignorer les fichiers existants",
+      "hint": "Avant chaque téléchargement, vérifie si un fichier du même nom (MP3 ou FLAC) existe déjà dans le dossier de téléchargement. Si c'est le cas, le titre est ignoré, même après l'effacement de l'historique.",
+      "enabled": "Ignorer les fichiers déjà présents",
+      "disabled": "Toujours télécharger"
+    },
+    "downloadDelay": {
+      "label": "Pause entre les téléchargements",
+      "hint": "Attendre ce délai avant de lancer chaque téléchargement suivant. Espacer les gros lots rend le téléchargement plus proche d'une écoute normale.",
+      "none": "Aucune pause",
+      "seconds": "{count, plural, =1 {1 seconde} other {# secondes}}"
+    },
+    "speedLimit": {
+      "label": "Limite de vitesse de téléchargement",
+      "hint": "Limite la vitesse totale de tous les téléchargements. À la vitesse de lecture (1411 kbit/s pour le FLAC, 320 kbit/s pour le MP3 320), chaque titre se télécharge à peu près en sa durée d'écoute.",
+      "unlimited": "Illimitée",
+      "mbps": "{value} Mbit/s",
+      "kbps": "{value} kbit/s",
+      "flacPlayback": "{value} kbit/s (vitesse de lecture FLAC)",
+      "mp3Playback": "{value} kbit/s (vitesse de lecture MP3 320)"
     }
   },
   "user": {

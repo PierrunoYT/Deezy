@@ -47,7 +47,12 @@
     "album": {
       "downloadAll": "Download All",
       "adding": "Adding...",
-      "tracks": "{count, plural, =1 {1 track} other {# tracks}}"
+      "tracks": "{count, plural, =1 {1 track} other {# tracks}}",
+      "viewTracks": "View tracks",
+      "loadingTracks": "Loading album tracks...",
+      "noTracks": "No tracks found in this album.",
+      "back": "Back to results",
+      "backToDiscography": "Back to discography"
     },
     "playlist": {
       "downloadAll": "Download All",
@@ -82,7 +87,8 @@
       "paused": "Paused",
       "downloading": "{percent}%",
       "tagging": "Writing tags...",
-      "resolving": "Resolving..."
+      "resolving": "Resolving...",
+      "skipped": "Already downloaded"
     },
     "actions": {
       "pause": "Pause download",
@@ -200,6 +206,27 @@
       "customFolderTemplateRequired": "Custom folder template is required.",
       "historyCleared": "Search history cleared successfully!",
       "clearHistoryFailed": "Failed to clear search history: {error}"
+    },
+    "skipExisting": {
+      "label": "Skip Existing Files",
+      "hint": "Before downloading, check the download folder for a file with the same name (MP3 or FLAC). If one is found, the track is skipped, even after the download history was cleared.",
+      "enabled": "Skip files already on disk",
+      "disabled": "Always download"
+    },
+    "downloadDelay": {
+      "label": "Pause Between Downloads",
+      "hint": "Wait this long before starting each next download. Spacing out large batches makes downloading look more like normal listening.",
+      "none": "No pause",
+      "seconds": "{count, plural, =1 {1 second} other {# seconds}}"
+    },
+    "speedLimit": {
+      "label": "Download Speed Limit",
+      "hint": "Caps the total speed of all downloads. At playback speed (1411 kbit/s for FLAC, 320 kbit/s for MP3 320), each track takes about as long to download as it does to listen to.",
+      "unlimited": "Unlimited",
+      "mbps": "{value} Mbit/s",
+      "kbps": "{value} kbit/s",
+      "flacPlayback": "{value} kbit/s (FLAC playback speed)",
+      "mp3Playback": "{value} kbit/s (MP3 320 playback speed)"
     }
   },
   "user": {

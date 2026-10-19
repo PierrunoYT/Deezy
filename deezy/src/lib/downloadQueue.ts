@@ -6,6 +6,7 @@ import {
   downloadQueue,
   activeDownloads,
   pausedDownloads,
+  downloadDelaySeconds,
   MAX_CONCURRENT_DOWNLOADS,
   MAX_HISTORY_ENTRIES,
   type Track,
@@ -20,7 +21,7 @@ interface DownloadResult {
   file_path: string;
   requested_quality: QualityOption;
   actual_quality: QualityOption;
-  status: 'complete' | 'canceled';
+  status: 'complete' | 'skipped' | 'canceled';
 }
 
 type DownloadStatus = 'downloading' | 'complete' | 'error' | 'paused' | 'resolving' | 'tagging';
@@ -28,12 +29,14 @@ type DownloadStatus = 'downloading' | 'complete' | 'error' | 'paused' | 'resolvi
 const DEFAULT_PRIORITY = 0;
 const HIGH_PRIORITY = 100;
 const QUEUE_CHECK_INTERVAL = 1000;
+const MS_PER_SECOND = 1000;
 
 class DownloadQueueManager {
   private processing = false;
   private activeCount = 0;
   private activeTrackIds = new Set<string>();
   private canceledDownloads = new Set<string>();
+  private lastStartedAt = 0;
 
   async addToQueue(track: Track, priority: number = DEFAULT_PRIORITY): Promise<void> {
     const trackId = String(track.id);
@@ -102,9 +105,26 @@ class DownloadQueueManager {
           break;
         }
 
+        // Wait in short steps so pausing, removing or reordering queued items
+        // and changing the delay all take effect during a long pause.
+        const delayMs = get(downloadDelaySeconds) * MS_PER_SECOND;
+        const remainingDelay = this.lastStartedAt + delayMs - Date.now();
+        if (remainingDelay > 0) {
+          await new Promise(resolve => setTimeout(resolve, Math.min(remainingDelay, QUEUE_CHECK_INTERVAL)));
+          continue;
+        }
+
         const item = queue[itemIndex];
         downloadQueue.update(q => q.filter((_, index) => index !== itemIndex));
-        this.downloadTrack(item.track);
+        const previousStartedAt = this.lastStartedAt;
+        const startedAt = Date.now();
+        this.lastStartedAt = startedAt;
+        this.downloadTrack(item.track, () => {
+          // A skipped track downloaded nothing, so it must not delay the next one.
+          if (this.lastStartedAt === startedAt) {
+            this.lastStartedAt = previousStartedAt;
+          }
+        });
       }
     } finally {
       this.processing = false;
@@ -161,6 +181,7 @@ class DownloadQueueManager {
               percent: 0, 
               isPaused: false, 
               errorMsg: undefined, 
+              skipped: undefined,
               timestamp: new Date().toISOString() 
             }
           : item
@@ -168,7 +189,7 @@ class DownloadQueueManager {
     });
   }
 
-  private async downloadTrack(track: Track): Promise<void> {
+  private async downloadTrack(track: Track, onSkipped: () => void): Promise<void> {
     const trackId = String(track.id);
     
     if (this.isPaused(trackId)) {
@@ -210,15 +231,23 @@ class DownloadQueueManager {
       this.canceledDownloads.delete(trackId);
       this.removeFromPausedSet(trackId);
       
+      const skipped = result.status === 'skipped';
       this.updateDownloadStatus(trackId, 'complete');
       this.updateHistoryItem(trackId, {
         percent: 100,
         status: 'complete',
         isPaused: false,
         filePath: result.file_path,
-        requestedQuality: result.requested_quality,
-        actualQuality: result.actual_quality
+        // The quality of a file that was already on disk is unknown.
+        requestedQuality: skipped ? undefined : result.requested_quality,
+        actualQuality: skipped ? undefined : result.actual_quality,
+        skipped
       });
+
+      if (skipped) {
+        onSkipped();
+        return;
+      }
 
       void notificationManager.notifyDownloadComplete(track.title, track.artist).catch(err => {
         console.error('Download notification failed:', err);

@@ -47,7 +47,12 @@
         "album": {
             "downloadAll": "Transferir Tudo",
             "adding": "A adicionar...",
-            "tracks": "{count, plural, =1 {1 faixa} other {# faixas}}"
+            "tracks": "{count, plural, =1 {1 faixa} other {# faixas}}",
+            "viewTracks": "Ver faixas",
+            "loadingTracks": "A carregar as faixas do álbum...",
+            "noTracks": "Nenhuma faixa encontrada neste álbum.",
+            "back": "Voltar aos resultados",
+            "backToDiscography": "Voltar à discografia"
         },
         "playlist": {
             "downloadAll": "Transferir Tudo",
@@ -82,7 +87,8 @@
             "paused": "Pausado",
             "downloading": "{percent}%",
             "tagging": "A escrever etiquetas...",
-            "resolving": "A resolver..."
+            "resolving": "A resolver...",
+            "skipped": "Já transferido"
         },
         "actions": {
             "pause": "Pausar transferência",
@@ -200,6 +206,27 @@
             "customFolderTemplateRequired": "Modelo de pasta personalizado é obrigatório.",
             "historyCleared": "Histórico de pesquisa limpo com sucesso!",
             "clearHistoryFailed": "Falha ao limpar o histórico de pesquisa: {error}"
+        },
+        "skipExisting": {
+            "label": "Ignorar ficheiros existentes",
+            "hint": "Antes de cada transferência, procura na pasta de transferências um ficheiro com o mesmo nome (MP3 ou FLAC). Se existir, a faixa é ignorada, mesmo depois de limpar o histórico de transferências.",
+            "enabled": "Ignorar ficheiros já presentes",
+            "disabled": "Transferir sempre"
+        },
+        "downloadDelay": {
+            "label": "Pausa entre transferências",
+            "hint": "Aguardar este tempo antes de iniciar cada transferência seguinte. Espaçar lotes grandes torna a transferência mais parecida com uma audição normal.",
+            "none": "Sem pausa",
+            "seconds": "{count, plural, =1 {1 segundo} other {# segundos}}"
+        },
+        "speedLimit": {
+            "label": "Limite de velocidade de transferência",
+            "hint": "Limita a velocidade total de todas as transferências. À velocidade de reprodução (1411 kbit/s para FLAC, 320 kbit/s para MP3 320), cada faixa demora a transferir mais ou menos o tempo que dura.",
+            "unlimited": "Ilimitada",
+            "mbps": "{value} Mbit/s",
+            "kbps": "{value} kbit/s",
+            "flacPlayback": "{value} kbit/s (velocidade de reprodução FLAC)",
+            "mp3Playback": "{value} kbit/s (velocidade de reprodução MP3 320)"
         }
     },
     "user": {

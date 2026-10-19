@@ -6,6 +6,7 @@
     userInfo,
     theme,
     notificationsEnabled,
+    downloadDelaySeconds,
     searchHistory,
     currentLocale,
     settingsArlDraft,
@@ -39,6 +40,9 @@
   let enableNotifications = $state($notificationsEnabled);
   let enableSearchHistory = $state(true);
   let closeToTray = $state(true);
+  let skipExistingFiles = $state(true);
+  let downloadDelay = $state($downloadDelaySeconds);
+  let speedLimitKbps = $state(0);
   let selectedLocale = $state('en');
   let showArl = $state(false);
   let saving = $state(false);
@@ -50,6 +54,19 @@
   let arlStoredInPlainFile = $derived(arlStorage?.storage === 'plain_file');
 
   const VALID_QUALITIES = ['MP3_128', 'MP3_320', 'FLAC'] as const;
+  const DELAY_PRESETS = [0, 2, 5, 10, 30, 60];
+  // Kilobits per second. 1411 and 320 match FLAC and MP3 320 playback speed.
+  const SPEED_LIMIT_PRESETS = [0, 10000, 5000, 2000, 1411, 320];
+  const FLAC_PLAYBACK_KBPS = 1411;
+  const MP3_PLAYBACK_KBPS = 320;
+
+  // Keep a value set outside the presets (e.g. by editing settings.json) selectable.
+  let delayOptions = $derived(withValue(DELAY_PRESETS, downloadDelay));
+  let speedLimitOptions = $derived(withValue(SPEED_LIMIT_PRESETS, speedLimitKbps));
+
+  function withValue(presets: number[], value: number): number[] {
+    return presets.includes(value) ? presets : [...presets, value].sort((a, b) => a - b);
+  }
   const MIN_ARL_LENGTH = 100;
   const FOLDER_TEMPLATE_PLACEHOLDERS = {
     artist: '{artist}',
@@ -94,6 +111,9 @@
         if (settings.close_to_tray !== undefined) {
           closeToTray = settings.close_to_tray;
         }
+        skipExistingFiles = settings.skip_existing_files ?? true;
+        downloadDelay = settings.download_delay_seconds ?? 0;
+        speedLimitKbps = settings.download_speed_limit_kbps ?? 0;
       } catch {
         // First run
       }
@@ -269,6 +289,39 @@
     }
   }
 
+  async function saveSkipExistingFiles(): Promise<void> {
+    try {
+      await updateSetting('skip_existing_files', skipExistingFiles);
+    } catch (err) {
+      console.error('Failed to save skip existing files setting:', err);
+    }
+  }
+
+  async function saveDownloadDelay(): Promise<void> {
+    downloadDelaySeconds.set(downloadDelay);
+    try {
+      await updateSetting('download_delay_seconds', downloadDelay);
+    } catch (err) {
+      console.error('Failed to save download delay setting:', err);
+    }
+  }
+
+  async function saveSpeedLimit(): Promise<void> {
+    try {
+      await updateSetting('download_speed_limit_kbps', speedLimitKbps);
+    } catch (err) {
+      console.error('Failed to save download speed limit setting:', err);
+    }
+  }
+
+  function formatSpeedLimit(kbps: number): string {
+    if (kbps === 0) return $_('settings.speedLimit.unlimited');
+    if (kbps === FLAC_PLAYBACK_KBPS) return $_('settings.speedLimit.flacPlayback', { values: { value: kbps } });
+    if (kbps === MP3_PLAYBACK_KBPS) return $_('settings.speedLimit.mp3Playback', { values: { value: kbps } });
+    if (kbps % 1000 === 0) return $_('settings.speedLimit.mbps', { values: { value: kbps / 1000 } });
+    return $_('settings.speedLimit.kbps', { values: { value: kbps } });
+  }
+
   async function clearSearchHistory(): Promise<void> {
     if (!confirm($_('settings.searchHistory.clearConfirm'))) {
       return;
@@ -408,6 +461,52 @@
           {$_('settings.folderStructure.customHint', { values: FOLDER_TEMPLATE_PLACEHOLDERS })}
         </p>
       {/if}
+    </div>
+
+    <div class="form-group">
+      <div class="label-text">{$_('settings.skipExisting.label')}</div>
+      <p class="form-hint">
+        {$_('settings.skipExisting.hint')}
+      </p>
+      <label class="toggle-wrapper">
+        <span class="toggle-container">
+          <input 
+            type="checkbox" 
+            bind:checked={skipExistingFiles}
+            onchange={saveSkipExistingFiles}
+          />
+          <span class="toggle-slider"></span>
+        </span>
+        <span class="toggle-label">
+          {skipExistingFiles ? $_('settings.skipExisting.enabled') : $_('settings.skipExisting.disabled')}
+        </span>
+      </label>
+    </div>
+
+    <div class="form-group">
+      <label for="download-delay-select">{$_('settings.downloadDelay.label')}</label>
+      <p class="form-hint">
+        {$_('settings.downloadDelay.hint')}
+      </p>
+      <select id="download-delay-select" bind:value={downloadDelay} onchange={saveDownloadDelay}>
+        {#each delayOptions as seconds (seconds)}
+          <option value={seconds}>
+            {seconds === 0 ? $_('settings.downloadDelay.none') : $_('settings.downloadDelay.seconds', { values: { count: seconds } })}
+          </option>
+        {/each}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="speed-limit-select">{$_('settings.speedLimit.label')}</label>
+      <p class="form-hint">
+        {$_('settings.speedLimit.hint')}
+      </p>
+      <select id="speed-limit-select" bind:value={speedLimitKbps} onchange={saveSpeedLimit}>
+        {#each speedLimitOptions as kbps (kbps)}
+          <option value={kbps}>{formatSpeedLimit(kbps)}</option>
+        {/each}
+      </select>
     </div>
 
     <div class="form-group">

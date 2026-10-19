@@ -7,6 +7,7 @@ use tauri::Manager;
 const KEYRING_SERVICE: &str = "com.pierr.deezy";
 const KEYRING_USER: &str = "arl_token";
 const MAX_SETTINGS_BYTES: u64 = 1024 * 1024;
+const MAX_DOWNLOAD_DELAY_SECONDS: u32 = 3600;
 static TEMP_FILE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -44,6 +45,15 @@ pub struct Settings {
     pub locale: String,
     #[serde(default = "default_true")]
     pub close_to_tray: bool,
+    /// Skip a track when its destination file (MP3 or FLAC) is already on disk.
+    #[serde(default = "default_true")]
+    pub skip_existing_files: bool,
+    /// Minimum pause between the start of consecutive downloads.
+    #[serde(default)]
+    pub download_delay_seconds: u32,
+    /// Total download bandwidth across all downloads, in kilobits per second. 0 means unlimited.
+    #[serde(default)]
+    pub download_speed_limit_kbps: u32,
     /// Set on disk only when the plaintext ARL was saved with the keyring
     /// disabled (`DEEZY_NO_KEYRING`). Such a credential is newer than whatever
     /// the keyring holds; other plaintext may be stale and loses to the keyring.
@@ -86,6 +96,9 @@ impl Default for Settings {
             notifications_enabled: true,
             locale: "en".to_string(),
             close_to_tray: true,
+            skip_existing_files: true,
+            download_delay_seconds: 0,
+            download_speed_limit_kbps: 0,
             arl_saved_without_keyring: false,
         }
     }
@@ -442,6 +455,13 @@ impl Settings {
 
         if self.folder_structure == FolderStructure::Custom && self.custom_folder_template.trim().is_empty() {
             return Err("Custom folder template is required".to_string());
+        }
+
+        if self.download_delay_seconds > MAX_DOWNLOAD_DELAY_SECONDS {
+            return Err(format!(
+                "Pause between downloads cannot exceed {} seconds",
+                MAX_DOWNLOAD_DELAY_SECONDS
+            ));
         }
 
         let serialized = serde_json::to_vec(self).map_err(|e| e.to_string())?;
