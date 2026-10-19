@@ -4,6 +4,10 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+---
+
+## [0.2.24] - 2026-10-19
+
 ### Added
 
 - **Skip existing files** — Before downloading, Deezy checks whether an MP3 or FLAC file for the track already exists at its destination path. If it does, the track is skipped and shown as "Already downloaded", even after the download history was cleared. On by default; turn it off in Settings to always download. Files saved under a different folder structure are not detected.
