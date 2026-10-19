@@ -77,6 +77,23 @@ Custom templates support `{artist}`, `{album}`, `{title}`, `{track_number}`, `{d
 
 Yes. Click **Download All** on an album or playlist to add all its available tracks to the download queue. Deezy runs up to three downloads concurrently.
 
+To choose individual tracks instead, click the album or playlist title. This also works for albums in an artist's discography.
+
+### Will Deezy download a track again if I already have it?
+
+Not by default. With **Skip Existing Files** enabled in Settings, Deezy checks whether an MP3 or FLAC file for the track already exists at the path it would save to. If it does, the track is skipped and shown as "Already downloaded", even if the download history was cleared.
+
+Only the current folder structure is checked. If you change the folder structure, files saved under the previous one are not detected. Turn the setting off to always download; a second copy is then saved with a numbered name such as `Artist - Title (1).mp3`.
+
+### Can I slow down or space out downloads?
+
+Yes. In Settings:
+
+- **Pause Between Downloads** waits 2–60 seconds before starting each next download.
+- **Download Speed Limit** caps the total speed of all downloads. The 1411 kbit/s (FLAC) and 320 kbit/s (MP3 320) presets download each track in about the time it takes to listen to it.
+
+Spacing out large batches makes the activity look more like normal listening. It does not remove the risk described in [Is it safe to use my Deezer account?](#is-it-safe-to-use-my-deezer-account)
+
 ### Can I paste a Deezer link to download?
 
 Yes. The **Deezer URL** field in Search accepts `deezer.com` track, album, playlist, and artist links, such as `https://www.deezer.com/track/123456`.

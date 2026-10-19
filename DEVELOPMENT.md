@@ -61,13 +61,23 @@ handlers and client methods are split into their respective submodules.
 
 `DownloadQueueManager` owns the active count and limits concurrency to three
 downloads. UI progress events update statuses without changing that count.
-Notification delivery does not hold a download slot.
+Notification delivery does not hold a download slot. When the pause-between-
+downloads setting is set, starts are spaced at least that far apart (read from
+the `downloadDelaySeconds` store); a skipped track releases its spacing.
 
 The backend resolves metadata and media, streams/decrypts audio into a unique
 `.deezy.part` file, and writes tags on that temporary file. Tagging failures emit
 warnings without failing the audio download. Final publication avoids overwriting
 existing files, choosing a numbered name on collision. Filesystems without hard
-link support use a copy fallback with partial-file cleanup.
+link support use an atomic no-overwrite rename instead.
+
+With skip existing files enabled (the default), the backend first builds the
+destination path for both `.mp3` and `.flac`. If a non-empty file exists at
+either, it returns `status: "skipped"` without requesting a media URL. Only the
+current folder structure is checked; the download folder is not scanned.
+
+A download speed limit paces received bytes through one `BandwidthLimiter` in
+`AppState`, so the limit applies to all concurrent downloads combined.
 
 Pause requests cancel the transfer. Resume starts a fresh download, not a ranged
 continuation. Completion is final once the file is published; later pause requests

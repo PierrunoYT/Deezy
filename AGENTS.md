@@ -21,7 +21,15 @@ bun run check
 # or: npm run check
 ```
 
-There is no test suite.
+```bash
+# Frontend tests (node --test, mocked stores and IPC)
+npm test
+
+# Rust tests
+cargo test --manifest-path src-tauri/Cargo.toml
+```
+
+Frontend tests in `tests/*.test.mjs` load modules with hand-written mocks of their imports. When a module gains a new store or Svelte `$store` reference, add it to the mocks or the tests fail.
 
 ---
 
@@ -51,6 +59,7 @@ deezy/                          # All source lives here
       deezer/
         mod.rs                  # DeezerClient (HTTP, login, search, URL resolution)
         download.rs             # streaming download + BF decryption + tagging
+        bandwidth.rs            # shared download speed limiter
         crypto.rs               # Blowfish/AES key derivation and URL encryption
         models.rs               # shared Rust structs (Serialize/Deserialize)
       settings.rs               # Settings struct, load/save, keyring integration
