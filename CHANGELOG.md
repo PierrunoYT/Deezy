@@ -4,6 +4,13 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **Skip existing files** — Before downloading, Deezy checks whether an MP3 or FLAC file for the track already exists at its destination path. If it does, the track is skipped and shown as "Already downloaded", even after the download history was cleared. On by default; turn it off in Settings to always download. Files saved under a different folder structure are not detected.
+- **Album track lists** — Clicking an album title in an artist's discography or in album search results opens its track list, like playlists, so individual tracks can be downloaded.
+- **Pause between downloads** — A new setting spaces download starts 2–60 seconds apart. Skipped tracks don't trigger the pause.
+- **Download speed limit** — A new setting caps the total speed of all downloads, with presets that match FLAC (1411 kbit/s) and MP3 320 (320 kbit/s) playback speed.
+
 ---
 
 ## [0.2.23] - 2026-10-07
