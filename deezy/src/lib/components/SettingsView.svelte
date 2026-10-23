@@ -1096,10 +1096,15 @@
     flex-shrink: 0;
   }
 
+  /* Toggles are <label>s inside .form-group, so this must outrank the
+     `.form-group label` block style or the switch and text fall out of line. */
+  .form-group .toggle-wrapper,
   .toggle-wrapper {
     display: flex;
     align-items: center;
     gap: 12px;
+    margin-bottom: 0;
+    font-weight: 500;
     cursor: pointer;
     user-select: none;
     width: fit-content;
