@@ -32,7 +32,7 @@ A modern desktop Deezer and Spotify downloader. Search for tracks, albums, artis
 ## Features
 
 - **Search** – Find tracks, albums, artists, and playlists on Deezer or Spotify with debounced search
-- **Spotify source** – Download through librespot with full metadata and cover art; OGG Vorbis and FLAC are preferred, with MP3 or M4A/AAC used when supplied by Spotify
+- **Spotify source** – Download through librespot with full metadata and cover art; OGG Vorbis is preferred, then MP3; FLAC is only used for the Lossless setting, and M4A/AAC only when none of those are available
 - **URL download** – Paste full `deezer.com` or `open.spotify.com` track, album, artist, or playlist URLs to add their content to the queue
 - **Audio preview** – Play 30-second Deezer previews before downloading
 - **Smart queue** – 1 to 10 simultaneous downloads (3 by default) with drag-and-drop reordering, pause/resume, and retry
@@ -41,13 +41,13 @@ A modern desktop Deezer and Spotify downloader. Search for tracks, albums, artis
 - **Skip existing files** – Tracks whose audio file is already at the destination are skipped, even after clearing history
 - **Download pacing** – Optional pause between downloads and a total speed limit, including presets that match playback speed
 - **Quality options** – Deezer MP3 128, MP3 320, or FLAC; Spotify 96/160/320 kbps or lossless FLAC, with format fallback
-- **Full metadata** – Title, artist, album, album artist, year, track and disc number, and high-resolution cover art embedded
+- **Full metadata** – Title, artist, album, year, track and disc number, and cover art embedded; Deezer downloads also embed the album artist, which Spotify downloads do not
 - **Folder structure** – Organize downloads as Flat, Artist/Track, Artist/Album/Track, Album/Track, or with a custom template
 - **Tag editor** – Edit metadata and cover art on any local MP3, FLAC, OGG, or M4A file (including Spotify downloads); files with an unreadable tag are reported and left untouched instead of being overwritten
 - **Download history** – Persistent history with CSV/JSON export and open-in-file-manager
 - **Themes** – Light, Dark, System, and fully custom JSON themes
 - **Internationalization** – English, Spanish, French, German, Portuguese, and Italian
-- **Keyboard shortcuts** – Ctrl+F, Ctrl+1/2/3, Ctrl+H, Space, Shift+? and more
+- **Keyboard shortcuts** – Ctrl+F, Ctrl+1/2/3, Ctrl+, (Settings), Ctrl+H, Esc (clear search / go back), Space, Shift+? and more
 - **System tray** – Minimize to tray with download status and quick controls
 - **Manual updates** – Install Windows releases from GitHub or rebuild from source on macOS and Linux
 - **Secure credentials** – ARL replacements are authenticated before storage, normally kept in the OS credential store, and redacted from `settings.json`; a clearly indicated private-file fallback is available when secure storage is unavailable
@@ -102,7 +102,7 @@ Open **Settings → Spotify** and click **Connect Spotify**. Complete the browse
 
 Deezy normally uses librespot's shared Client ID. Because every librespot install shares its Web API quota, search can hit `429` rate limits. To avoid that, add `http://127.0.0.1:5588/login` as a redirect URI in your own Spotify Developer Dashboard app, paste its Client ID into **Settings → Spotify Client ID**, and reconnect. Your ID is used only for search and library requests; downloads still use the default ID, since Spotify rejects track metadata requests from other Client IDs. Connecting with a custom ID opens the browser login twice — approve both. Changing the saved ID while connected disconnects you, and clearing the field restores the default.
 
-Catalog metadata and downloads go through the AP session independently of Web API search quotas. A Pathfinder search fallback exists for rate-limited track, album, and artist searches, but Spotify currently refuses it, so a custom Client ID is the reliable fix for `429` errors.
+Track metadata, downloads, Loved Tracks and the tracks of a playlist or album go through the AP session independently of Web API search quotas, but search itself (and playlist search and your playlist list, which have no fallback) uses the Web API and its quota. A Pathfinder search fallback exists for rate-limited track, album, and artist searches, but Spotify currently refuses it, so a custom Client ID is the reliable fix for `429` errors.
 
 ---
 

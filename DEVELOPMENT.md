@@ -49,7 +49,7 @@ Paths below are relative to `deezy/`.
 | `src/lib/tray.ts` | Tray event listener and status subscriptions |
 | `src/lib/components/search/` | Search and library (Loved Tracks, My Playlists) result rendering, types, and styles |
 | `src-tauri/src/lib.rs` | Managed application state, command registration, window events |
-| `src-tauri/src/commands/` | IPC handlers grouped by account, catalog, downloads, filesystem, history, settings, Spotify, tags, themes, and tray |
+| `src-tauri/src/commands/` | IPC handlers grouped by account, catalog, downloads, filesystem, history, settings, Spotify, tag editor, themes, and tray |
 | `src-tauri/src/deezer/` | Authentication, gateway and catalog requests, user library (Loved Tracks, profile playlists), media resolution, crypto, downloads, and models |
 | `src-tauri/src/spotify/` | OAuth/AP sessions, Web API and Pathfinder search, AP catalog metadata, librespot audio streaming, and OGG/FLAC/MP3/M4A tagging |
 | `src-tauri/src/paths.rs` | Provider-neutral destination paths and safe temp-file finalization shared by both engines |
@@ -168,8 +168,9 @@ component script blocks, then supplies mocked stores, browser APIs, and IPC. The
 tests cover state transitions and asynchronous races, not rendered Svelte DOM
 behavior. Rust tests live beside the backend code under `#[cfg(test)]`.
 
-The [September code review](deezy/CODE_REVIEW.md) records the completed validation:
-17 frontend tests, 15 Rust tests, clean Svelte diagnostics, and a production
+The [September code review](deezy/CODE_REVIEW.md) records the validation as of
+2026-09-10: 17 frontend tests, 15 Rust tests (the suites have grown since, and the
+Spotify code postdates that review), clean Svelte diagnostics, and a production
 frontend build. Live authenticated downloads, native notification prompts,
 installer generation, and macOS/Linux runtime behavior were not exercised in
 that review. Test these separately when changes affect those paths.
@@ -178,9 +179,10 @@ that review. Test these separately when changes affect those paths.
 
 1. Pick the version number with the semantic-versioning rules in `AGENTS.md`
    (patch for fixes only, minor for any new feature). Update it together in `deezy/package.json`,
-   `deezy/src-tauri/Cargo.toml`, and `deezy/src-tauri/tauri.conf.json`. Refresh any
-   affected metadata in the committed frontend lockfile. `Cargo.lock` is currently
-   ignored by this repository.
+   `deezy/src-tauri/Cargo.toml`, and `deezy/src-tauri/tauri.conf.json`. The committed
+   `bun.lock` does not contain the app version, so a bump alone needs no lockfile
+   change (only a dependency change does). `Cargo.lock` is currently ignored by
+   this repository, so Rust dependencies are not pinned in Git.
 2. Move the relevant `CHANGELOG.md` Unreleased entries into a dated version
    section. Keep source-only changes distinct from shipped installer behavior.
 3. Install locked dependencies and run the test, check, and frontend build
@@ -190,5 +192,8 @@ that review. Test these separately when changes affect those paths.
    tagging, restart recovery, themes, and tray shutdown on the release platform.
 5. Build with `bun run tauri build` and verify the generated artifacts under
    `src-tauri/target/release/bundle/`.
-6. Create the release commit/tag and publish the appropriate installers and notes
-   through the repository's release process. The app has no automatic updater.
+6. Make one release commit named `chore: prepare version X.Y.Z release` and an
+   annotated tag `vX.Y.Z` with the message `Deezy vX.Y.Z`, then publish the
+   appropriate installers and notes through the repository's release process.
+   Do not push the commit or tag before the smoke test in step 4 has passed. The
+   app has no automatic updater.

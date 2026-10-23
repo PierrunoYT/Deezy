@@ -43,7 +43,7 @@ deezy/                          # All source lives here
       +layout.svelte             # app init, theme, i18n, download-progress listener
       +page.svelte               # top-level shell: Sidebar + view switcher
     lib/
-      components/               # Svelte components (one per view/modal)
+      components/               # Svelte components (one per view/modal); search/ holds the results pieces
       i18n/                     # svelte-i18n setup + locale JSON files
       audioPlayer.ts            # AudioPlayerManager singleton (preview playback)
       downloadQueue.ts          # DownloadQueueManager singleton (queue + concurrency)
@@ -52,14 +52,29 @@ deezy/                          # All source lives here
       rateLimiter.ts            # throttle between download invocations
       stores.ts                 # all Svelte writable stores + shared types
       tray.ts                   # frontend tray manager
+      downloadHistory.ts        # download history load/save (debounced) and caps
+  tests/                        # frontend tests (node --test, hand-written mocks)
   src-tauri/
     src/
-      lib.rs                    # AppState definition + Tauri builder + window setup
+      lib.rs                    # AppState definition + Tauri builder, single-instance, panic hook, window/close-to-tray
       commands.rs               # shared command helpers + module exports
       commands/                 # #[tauri::command] handlers grouped by domain
+        account.rs              # login/logout, auto_login, exit_app
+        catalog.rs              # Deezer catalog/library IPC, `with_session_retry`
+        downloads.rs            # download_track / cancel_download (both providers)
+        filesystem.rs           # music URL parsing and other filesystem IPC
+        history.rs              # download history IPC
+        settings.rs             # get/save/update settings (allow-list partial updates)
         spotify.rs              # Spotify auth, search, catalog, and library IPC
+        tag_editor.rs           # Tag Editor read/write for MP3, FLAC, OGG, M4A
+        themes.rs               # theme IPC (calls ../themes.rs)
+        tray.rs                 # tray IPC
       deezer/
-        mod.rs                  # DeezerClient (HTTP, login, search, URL resolution)
+        mod.rs                  # DeezerClient struct and wiring; request logic lives in the submodules below
+        auth.rs                 # login, getUserData, free-account detection
+        catalog.rs              # search, album, artist, playlist requests
+        gateway.rs              # private GW API calls
+        media.rs                # track data + download URL (media API with legacy fallback)
         download.rs             # streaming download + BF decryption + tagging
         bandwidth.rs            # shared download speed limiter
         library.rs              # user library (Loved Tracks, profile playlists, private playlist tracks) via GW
@@ -117,7 +132,7 @@ deezy/                          # All source lives here
 `Settings::save()` writes settings to disk with `arl: ""`. On first save (or migration from an old build with ARL in the JSON), the ARL is moved to the OS keyring (`keyring` crate). `Settings::load()` then reads it back from keyring. Any code that modifies settings must preserve the ARL through this round-trip — `save_settings` merges a blank `arl` from the frontend with the stored value before saving.
 
 ### Session auto-refresh
-`download_track` automatically rebuilds `DeezerClient` (re-authenticates) and retries **once** on CSRF or token errors. If the retry also fails, it surfaces "Session expired. Please go to Settings and log in again."
+For Deezer, `download_track` automatically rebuilds `DeezerClient` (re-authenticates) and retries **once** on CSRF or token errors (any error text containing "CSRF" or "token"). The Spotify path has no such retry, and library calls use `with_session_retry` in `commands/catalog.rs`. If the retry also fails, it surfaces "Session expired. Please go to Settings and log in again."
 
 ### Free-account quality override
 If `user.is_free_account` is true, the effective quality is silently overridden to `MP3_128` regardless of user settings — enforced in both the initial download path and the CSRF-retry path.
@@ -135,6 +150,11 @@ Versions follow semantic versioning (`MAJOR.MINOR.PATCH`) as of the next release
 - When asked to release: choose the number from the rules above and state it with a one-line reason before changing anything. If the user names a number that breaks the rules, say so once and follow their choice.
 - The release itself follows the checklist in `DEVELOPMENT.md`: bump all three files, turn the Unreleased entries into a dated `## [X.Y.Z] - YYYY-MM-DD` section (leaving a new empty Unreleased above it), run the tests and checks, then make one commit `chore: prepare version X.Y.Z release` and an annotated tag `vX.Y.Z` with the message `Deezy vX.Y.Z`. Do not push the commit or tag unless the user asks.
 
+### Settings and file access rules
+- Every settings write takes `AppState.settings_io` first, which serialises writes to `settings.json` and the keyring.
+- `update_settings` (`commands/settings.rs`) is an allow-list: a new setting needs a field in `Settings`, validation in `settings.rs`, and an explicit key there; unknown keys return an error.
+- The renderer cannot point the backend at arbitrary paths. An `output_dir` change must already be approved (`grant_folder`, via `pick_folder`, `get_settings`, or `auto_login`), and audio or cover-image paths must be granted (`grant_audio_file`, `grant_image_file`) or inside `output_dir`. A new command that takes a path should use the `require_*` helpers in `commands.rs`.
+
 ### Svelte 5 runes syntax
 The project uses Svelte 5. Components use `$state(...)`, `$props()`, and `$derived(...)` — not Svelte 4 `let`/`$:` reactive declarations. Do not introduce Svelte 4 patterns.
 
@@ -142,7 +162,7 @@ The project uses Svelte 5. Components use `$state(...)`, `$props()`, and `$deriv
 When `folder_structure` is `Custom`, the template (default: `{artist}/{release_date} - {album}/{track_number} - {title}`) supports: `{artist}`, `{album}`, `{title}`, `{track_number}` (alias `{track}`), `{disc_number}` (alias `{disc}`), `{release_date}`, `{release_year}` (alias `{year}`). Template segments are split on `/` and `\`; each segment is sanitised with `sanitize_path_component`.
 
 ### Tag failure is non-fatal
-If `write_mp3_tags` / `write_flac_tags` fails, a `tag-writing-error` event is emitted but the download is still marked complete — the audio file is intact and already renamed from `.deezy.part`.
+If `write_mp3_tags` / `write_flac_tags` fails, a `tag-writing-error` event is emitted but the download is still marked complete. Tagging runs on the `.deezy.part` temp file *before* it is published, so the file is still named `.deezy.part` when the event fires and is renamed to its final path right after; the audio is intact either way.
 
 ### CSP restricts image and media origins
 `tauri.conf.json` CSP allows images only from `*.dzcdn.net`, `api.deezer.com`, `*.scdn.co` and `*.spotifycdn.com`; media from `*.dzcdn.net` and `*.scdn.co`. Adding new external image or media sources requires updating the CSP.
@@ -154,13 +174,14 @@ If `write_mp3_tags` / `write_flac_tags` fails, a `tag-writing-error` event is em
 ### Spotify is a second, independent download engine
 - **Catalog uses Web API + AP + Pathfinder**: track/album/artist search starts on the Web API and falls back to Pathfinder on 429 (currently refused by Spotify, see Rate limits); playlist search and user playlists stay on the Web API. Direct track/album/artist/playlist metadata, Loved Tracks, and download metadata use the librespot AP session; artist discographies fall back to the Web API when AP metadata is rejected. AP track lists use 8 concurrent requests, artist discographies are capped at 120 albums, and total track-metadata failure is an error rather than an empty list.
 - **Audio** uses the librespot AP session (`librespot-core` / `-metadata` / `-audio`), which delivers the **encrypted** stream: `AudioFile::open` alone yields unplayable data, so `download.rs` must request the audio key, wrap the stream in `AudioDecrypt`, and skip the Spotify header before writing. Tagging uses `lofty` for OGG/FLAC/MP3/M4A because the existing Deezer `id3` / `metaflac` stack cannot cover all Spotify formats.
+- **Quality selection**: `format_order` in `spotify/download.rs` gives each `spotify_quality` setting its own order: `normal` starts at 96 kbps, `high` at 160, `very-high` (default, and any unknown value) at 320, and `lossless` at FLAC 24-bit/FLAC. Each order prefers OGG Vorbis and then MP3 at a bitrate, and falls back to the other bitrates; FLAC is only requested for `lossless`, and AAC/M4A is only the arbitrary last resort when none of those exist.
 - **Rate limits**: Web API 429s retry at most twice only when `Retry-After` is at most 5 seconds; longer waits fail immediately. Pathfinder fallback failures are appended to the original rate-limit error. As of 2026-10-23 Spotify refuses Pathfinder for this client (`403 Client/request not allowed` on every operation), so the fallback currently cannot rescue a rate-limited default ID — a custom Client ID is the practical fix.
 - **Track keys are prefixed**: Spotify tracks use `spotify:<base62>` in `Track.id`, the queue, history and the cancellation map, so they can never collide with numeric Deezer IDs. `download_track` dispatches on that prefix (`spotify::is_spotify_track`); everything else flows through the unchanged queue.
-- **Auth is OAuth PKCE**, not an ARL. `librespot-oauth` opens the browser and listens on `127.0.0.1:5588/login`. Two client IDs are in play: the **AP session** (track metadata + audio) always uses librespot's keymaster default, because Spotify answers AP metadata requests made under any other client ID with `400 Bad Request`; the **Web API** (search, playlists, library) uses the custom ID when one is set (saved `spotify_client_id` setting → `DEEZY_SPOTIFY_CLIENT_ID` → default), so search draws on the user's own quota instead of the one shared by every librespot install. A custom ID therefore needs a second browser login. Changing the setting while connected logs out. The default token is stored in the OS keyring under `com.pierr.deezy` / `spotify_oauth`, the custom-ID token under `spotify_oauth_web` (with its client ID; ignored if the ID changed), both separate from the ARL; persistence is best-effort. Without a stored custom token (restart before reconnecting) the Web API falls back to the default token.
+- **Auth is OAuth PKCE**, not an ARL. `librespot-oauth` opens the browser and listens on `127.0.0.1:5588/login`. Two client IDs are in play: the **AP session** (track metadata + audio) always uses librespot's keymaster default, because Spotify answers AP metadata requests made under any other client ID with `400 Bad Request`; the **Web API** (search and the user's playlist list; Loved Tracks and a playlist's tracks come from the AP) uses the custom ID when one is set (saved `spotify_client_id` setting → `DEEZY_SPOTIFY_CLIENT_ID` → default), so search draws on the user's own quota instead of the one shared by every librespot install. A custom ID therefore needs a second browser login. The Settings screen logs out after the ID changes (`saveSpotifyClientId` calls `spotify_logout`); the backend only trims and saves the value. The default token is stored in the OS keyring under `com.pierr.deezy` / `spotify_oauth`, the custom-ID token under `spotify_oauth_web` (with its client ID; ignored if the ID changed), both separate from the ARL; persistence is best-effort. Without a stored custom token (restart before reconnecting) the Web API falls back to the default token.
 - **Tagging the temp file**: the `.deezy.part` extension hides the format from lofty, so `spotify/tags.rs` sniffs it with `guess_file_type()`. The Tag Editor (`commands/tag_editor.rs`) edits MP3 (`id3`), FLAC (`metaflac`), and OGG/M4A (`lofty`, so Spotify downloads can be edited too); the Downloads view shows its button for `.mp3`, `.flac`, `.ogg` and `.m4a`.
 - **Token refresh and restore**: refreshes are serialised through `refresh_gate` (a request that waited re-uses the token the winner just fetched, since Spotify may rotate refresh tokens). `restore` retries once with a refreshed token when the AP rejects the stored one, and clears it (forcing a fresh login) only if that refresh also fails. A download makes one AP metadata request (`ap::track_with_files`) for both catalog metadata and file IDs.
 - **Account type is not checked**: `Profile.product` is read from the AP session (`free` when unknown) and shown in the UI, but nothing in the download path gates on it. Whether Spotify serves audio to Free accounts through librespot is unverified for this build; quality is whatever formats the track's AP metadata lists (e.g. OGG 96/160/320 and AAC, no FLAC for many tracks), chosen by `select_file`. Custom-ID Development-mode apps may carry Spotify-side restrictions (user allow-list, owner Premium) that Deezy neither checks nor reports.
-- **Callback port reuse**: the two logins reuse port 5588, so the "connected" page declares an empty icon (no `/favicon.ico` request), the second login waits 2 s, and it retries on `Auth code param not found` (a stray browser request mistaken for the auth response).
+- **Callback port reuse**: the two logins reuse port 5588, so the "connected" page declares an empty icon (no `/favicon.ico` request), the second login waits 2 s, and it retries on `Auth code param not found` (3 attempts in total) (a stray browser request mistaken for the auth response).
 - **Diagnostics**: `spotify::debug_log` prints to stderr and appends to `deezy-debug.log` in the temp dir; `lib.rs` installs a panic hook that logs through it. It records app start, every `download_track` command entry/result/error (both providers), each Spotify download step, second-login retries, Pathfinder rejections (with the response body), and the query plus top results of every Web API `/search` — read it when a download or search misbehaves, since release builds have no console.
 - **Settings are Deezer-independent**: `save_settings` no longer requires an ARL, and the Spotify source is usable with no Deezer login. `spotify_status` restores the client on startup.
 - **Build pin**: `librespot-core 0.8.0`'s build script resolves `vergen-gitcl 1.0.8` + `vergen 9.1.0`, which pulls two incompatible `vergen-lib` versions and fails to compile. `[build-dependencies] vergen = "=9.0.6"` in `Cargo.toml` keeps it on `vergen-lib 0.1.6`. Do not relax that pin without testing a clean `Cargo.lock`.
@@ -172,7 +193,7 @@ When the media API (`media.deezer.com/v1/get_url`) is unavailable, the URL is co
 
 ## Theming
 
-Themes are CSS variables applied to `document.documentElement`. Built-in values: `light`, `dark`, `system`. Custom themes are JSON files stored in the app data dir (managed by the `themes.rs` commands). The active custom theme name is stored in `settings.custom_theme`. CSS variable names follow kebab-case: `--bg-darkest`, `--accent`, `--text-primary`, etc. See `CSS_VARIABLES` in `+layout.svelte` for the full list.
+Built-in themes are `light`, `dark` and `system`; they only toggle a `light` class on `document.documentElement` and set no variables. Custom themes are JSON files in `<app data dir>/themes/` (managed by the `themes.rs` commands) and are applied as inline CSS variables on `document.documentElement`, which are cleared on every theme change. The active custom theme name is stored in `settings.custom_theme` (the `Theme` type also has a `custom` value). CSS variable names follow kebab-case: `--bg-darkest`, `--accent`, `--text-primary`, etc. See `CSS_VARIABLES` in `+layout.svelte` for the full list.
 
 ---
 
