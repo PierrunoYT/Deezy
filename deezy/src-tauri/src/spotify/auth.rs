@@ -192,7 +192,18 @@ async fn connect_with_profile(
     session
         .connect(Credentials::with_access_token(token.access_token.clone()), false)
         .await
-        .map_err(|e| format!("Spotify session failed: {}", e))?;
+        .map_err(|e| {
+            if client_id == DEFAULT_CLIENT_ID {
+                format!("Spotify session failed: {}", e)
+            } else {
+                // Spotify may refuse AP logins for third-party client IDs.
+                format!(
+                    "Spotify session failed with a custom Client ID: {}. \
+                     Clear the Client ID in Settings to use the default.",
+                    e
+                )
+            }
+        })?;
 
     // The AP already knows the account type and country, so a Web API call is
     // only needed for a display name we may have cached earlier.
