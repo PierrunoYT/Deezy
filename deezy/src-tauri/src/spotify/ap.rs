@@ -11,7 +11,7 @@ use librespot_metadata::external_id::ExternalIds;
 use librespot_metadata::image::Images;
 use librespot_metadata::{Album, Artist, Metadata, Playlist, Track};
 
-use super::api::{SpotifyAlbum, SpotifyArtist, SpotifyTrack};
+use super::api::{SpotifyAlbum, SpotifyTrack};
 use super::track_key;
 
 /// Refuse artist discographies that would need an unbounded number of calls.
@@ -144,20 +144,6 @@ pub fn album_from_metadata(album: &Album) -> SpotifyAlbum {
         cover_medium,
         nb_tracks: album.tracks().count() as u64,
         release_date: release_date(&album.date),
-        provider: "spotify".to_string(),
-    }
-}
-
-fn artist_from_metadata(artist: &Artist) -> SpotifyArtist {
-    let (picture_small, picture_medium) = cover_urls(&artist.portrait_group);
-
-    SpotifyArtist {
-        id: id_of(&artist.id),
-        name: artist.name.clone(),
-        picture_small,
-        picture_medium,
-        nb_album: 0,
-        nb_fan: artist.popularity.max(0) as u64,
         provider: "spotify".to_string(),
     }
 }
