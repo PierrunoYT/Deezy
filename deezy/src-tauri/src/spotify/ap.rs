@@ -4,6 +4,7 @@
 //! by every install, so it can be globally exhausted. AP requests are made as
 //! a normal client and stay well within their own limits.
 
+use futures::{stream, StreamExt};
 use librespot_core::{date::Date, Session, SpotifyUri};
 use librespot_metadata::artist::Artists;
 use librespot_metadata::external_id::ExternalIds;
@@ -15,6 +16,10 @@ use super::track_key;
 
 /// Refuse artist discographies that would need an unbounded number of calls.
 const MAX_ARTIST_ALBUMS: usize = 120;
+
+/// Metadata requests in flight at once; enough to be quick without hammering
+/// the AP.
+const METADATA_CONCURRENCY: usize = 8;
 
 fn uri(id: &str) -> Result<SpotifyUri, String> {
     SpotifyUri::from_uri(id).map_err(|e| format!("Invalid Spotify id: {}", e))
@@ -172,19 +177,24 @@ async fn load_track(session: &Session, uri: &SpotifyUri) -> Option<SpotifyTrack>
         .and_then(|track| track_from_metadata(&track).ok())
 }
 
+/// Loads metadata for many tracks with a bounded number of AP requests in
+/// flight, keeping the original order.
+async fn load_tracks(session: &Session, uris: Vec<SpotifyUri>) -> Vec<SpotifyTrack> {
+    stream::iter(uris)
+        .map(|uri| async move { load_track(session, &uri).await })
+        .buffered(METADATA_CONCURRENCY)
+        .filter_map(|track| async move { track })
+        .collect()
+        .await
+}
+
 pub async fn album_tracks(session: &Session, album_id: &str) -> Result<Vec<SpotifyTrack>, String> {
     let uri = album_uri(album_id)?;
     let album = Album::get(session, &uri)
         .await
         .map_err(|e| format!("Spotify album metadata failed: {}", e))?;
 
-    let mut tracks = Vec::new();
-    for track_uri in album.tracks() {
-        if let Some(track) = load_track(session, track_uri).await {
-            tracks.push(track);
-        }
-    }
-    Ok(tracks)
+    Ok(load_tracks(session, album.tracks().cloned().collect()).await)
 }
 
 pub async fn playlist_tracks(
@@ -196,13 +206,7 @@ pub async fn playlist_tracks(
         .await
         .map_err(|e| format!("Spotify playlist metadata failed: {}", e))?;
 
-    let mut tracks = Vec::new();
-    for track_uri in playlist.tracks() {
-        if let Some(track) = load_track(session, track_uri).await {
-            tracks.push(track);
-        }
-    }
-    Ok(tracks)
+    Ok(load_tracks(session, playlist.tracks().cloned().collect()).await)
 }
 
 pub async fn artist_albums(
@@ -232,12 +236,17 @@ pub async fn artist_albums(
         }
     }
 
-    let mut albums = Vec::new();
-    for album_uri in uris {
-        if let Ok(album) = Album::get(session, &album_uri).await {
-            albums.push(album_from_metadata(&album));
-        }
-    }
+    let albums = stream::iter(uris)
+        .map(|album_uri| async move {
+            Album::get(session, &album_uri)
+                .await
+                .ok()
+                .map(|album| album_from_metadata(&album))
+        })
+        .buffered(METADATA_CONCURRENCY)
+        .filter_map(|album| async move { album })
+        .collect()
+        .await;
     Ok(albums)
 }
 
@@ -262,11 +271,5 @@ pub async fn liked_tracks(session: &Session, username: &str) -> Result<Vec<Spoti
         .filter(|uri| matches!(uri, SpotifyUri::Track { .. }))
         .collect();
 
-    let mut tracks = Vec::new();
-    for uri in uris {
-        if let Some(track) = load_track(session, &uri).await {
-            tracks.push(track);
-        }
-    }
-    Ok(tracks)
+    Ok(load_tracks(session, uris).await)
 }
