@@ -367,7 +367,7 @@
       },
       "files": {
         "title": "¿Dónde están mis archivos?",
-        "text": "Las descargas van a la carpeta elegida en Configuración, por defecto una carpeta Wavekeep dentro de tu carpeta Música. Las etiquetas y la carátula están incrustadas y puedes editarlas después con el editor de etiquetas."
+        "text": "Las descargas van a la carpeta elegida en Configuración, por defecto una carpeta Wavekeep dentro de tu carpeta Música. Las etiquetas y la carátula están incrustadas y puedes editarlas después con el editor de etiquetas. Si usabas Deezy, se conserva tu carpeta de descargas actual."
       },
       "log": {
         "title": "¿Algo ha salido mal?",
@@ -389,7 +389,7 @@
       },
       "ban": {
         "q": "¿Pueden banear mi cuenta?",
-        "a": "Es posible, porque la descarga automatizada puede provocar restricciones. Usa una cuenta secundaria si la tuya te importa y mantén las descargas moderadas y espaciadas con el retraso de descarga de Configuración."
+        "a": "Es posible, porque la descarga automatizada puede provocar restricciones. Usa una cuenta secundaria si la tuya te importa y mantén las descargas moderadas y espaciadas con «Pausa entre descargas» y «Límite de velocidad de descarga» en Configuración."
       },
       "arl": {
         "q": "¿Cómo obtengo mi ARL de Deezer?",
@@ -401,7 +401,7 @@
       },
       "rateLimit": {
         "q": "La búsqueda de Spotify indica que se alcanzó el límite (429)",
-        "a": "El Client ID de Spotify predeterminado de Wavekeep lo comparten todos los usuarios de librespot, así que su cuota de búsqueda puede agotarse. Añade tu propio Client ID en Configuración → Spotify, con el URI de redirección http://127.0.0.1:5588/login, y luego desconecta y vuelve a conectar."
+        "a": "El Client ID de Spotify predeterminado de Wavekeep lo comparten todos los usuarios de librespot, así que su cuota de búsqueda puede agotarse. Crea una app en el Spotify Developer Dashboard (developer.spotify.com) con el URI de redirección http://127.0.0.1:5588/login, pega su Client ID en Configuración → Spotify y luego desconecta y vuelve a conectar."
       },
       "twoLogins": {
         "q": "¿Por qué Spotify pide iniciar sesión dos veces?",
@@ -409,7 +409,7 @@
       },
       "failed": {
         "q": "Una descarga falló. ¿Qué hago?",
-        "a": "Pulsa Reintentar en Descargas. En Deezer, comprueba que tu ARL siga siendo válido en Configuración. En Spotify, desconecta y vuelve a conectar. Si sigue fallando, revisa wavekeep-debug.log en la carpeta de registros de Wavekeep."
+        "a": "Pulsa Reintentar en Descargas. En Deezer, comprueba que tu ARL siga siendo válido en Configuración. En Spotify, desconecta y vuelve a conectar. Si sigue fallando, pulsa «Copiar registro reciente» en la pestaña Importante e inclúyelo en tu informe."
       },
       "tags": {
         "q": "¿Cómo edito etiquetas o carátulas?",

@@ -367,7 +367,7 @@
             },
             "files": {
                 "title": "Onde estão os meus ficheiros?",
-                "text": "As transferências vão para a pasta escolhida nas Definições, por predefinição uma pasta Wavekeep dentro da pasta Música. As etiquetas e a capa ficam incorporadas e podes editá-las depois com o editor de etiquetas."
+                "text": "As transferências vão para a pasta escolhida nas Definições, por predefinição uma pasta Wavekeep dentro da pasta Música. As etiquetas e a capa ficam incorporadas e podes editá-las depois com o editor de etiquetas. Se usavas o Deezy, a tua pasta de transferências atual é mantida."
             },
             "log": {
                 "title": "Algo correu mal?",
@@ -389,7 +389,7 @@
             },
             "ban": {
                 "q": "A minha conta pode ser banida?",
-                "a": "É possível, porque a transferência automatizada pode provocar restrições. Usa uma conta secundária se a tua conta for importante e mantém as transferências moderadas e espaçadas com o atraso de transferência nas Definições."
+                "a": "É possível, porque a transferência automatizada pode provocar restrições. Usa uma conta secundária se a tua conta for importante e mantém as transferências moderadas e espaçadas com «Pausa entre transferências» e «Limite de velocidade de transferência» nas Definições."
             },
             "arl": {
                 "q": "Como obtenho o meu ARL do Deezer?",
@@ -401,7 +401,7 @@
             },
             "rateLimit": {
                 "q": "A pesquisa do Spotify diz que o limite foi atingido (429)",
-                "a": "O Client ID do Spotify predefinido do Wavekeep é partilhado por todos os utilizadores do librespot, por isso a sua quota de pesquisa pode esgotar-se. Adiciona o teu próprio Client ID em Definições → Spotify, com o URI de redirecionamento http://127.0.0.1:5588/login, e depois desliga e volta a ligar."
+                "a": "O Client ID do Spotify predefinido do Wavekeep é partilhado por todos os utilizadores do librespot, por isso a sua quota de pesquisa pode esgotar-se. Cria uma app no Spotify Developer Dashboard (developer.spotify.com) com o URI de redirecionamento http://127.0.0.1:5588/login, cola o seu Client ID em Definições → Spotify e depois desliga e volta a ligar."
             },
             "twoLogins": {
                 "q": "Porque pede o Spotify dois inícios de sessão?",
@@ -409,7 +409,7 @@
             },
             "failed": {
                 "q": "Uma transferência falhou. O que posso fazer?",
-                "a": "Carrega em Tentar novamente em Transferências. No Deezer, verifica se o teu ARL continua válido nas Definições. No Spotify, desliga e volta a ligar. Se continuar a falhar, consulta o wavekeep-debug.log na pasta de registos do Wavekeep."
+                "a": "Carrega em Tentar novamente em Transferências. No Deezer, verifica se o teu ARL continua válido nas Definições. No Spotify, desliga e volta a ligar. Se continuar a falhar, carrega em «Copiar registo recente» no separador Importante e junta-o ao teu relatório."
             },
             "tags": {
                 "q": "Como edito etiquetas ou capas?",

@@ -367,7 +367,7 @@
       },
       "files": {
         "title": "Où sont mes fichiers ?",
-        "text": "Les téléchargements vont dans le dossier choisi dans les Paramètres, par défaut un dossier Wavekeep dans votre dossier Musique. Les tags et la pochette sont intégrés, et vous pouvez les modifier ensuite avec l'éditeur de tags."
+        "text": "Les téléchargements vont dans le dossier choisi dans les Paramètres, par défaut un dossier Wavekeep dans votre dossier Musique. Les tags et la pochette sont intégrés, et vous pouvez les modifier ensuite avec l'éditeur de tags. Si vous utilisiez Deezy, votre dossier de téléchargement actuel est conservé."
       },
       "log": {
         "title": "Un problème ?",
@@ -389,7 +389,7 @@
       },
       "ban": {
         "q": "Mon compte peut-il être banni ?",
-        "a": "C'est possible, car le téléchargement automatisé peut déclencher des restrictions. Utilisez un compte secondaire si votre compte compte pour vous, et gardez des téléchargements modestes et espacés grâce au délai de téléchargement dans les Paramètres."
+        "a": "C'est possible, car le téléchargement automatisé peut déclencher des restrictions. Utilisez un compte secondaire si votre compte compte pour vous, et gardez des téléchargements modestes et espacés grâce à « Pause entre les téléchargements » et « Limite de vitesse de téléchargement » dans les Paramètres."
       },
       "arl": {
         "q": "Comment obtenir mon ARL Deezer ?",
@@ -401,7 +401,7 @@
       },
       "rateLimit": {
         "q": "La recherche Spotify indique que la limite de requêtes est atteinte (429)",
-        "a": "L'ID client Spotify par défaut de Wavekeep est partagé par tous les utilisateurs de librespot : son quota de recherche peut donc être épuisé. Ajoutez votre propre ID client dans Paramètres → Spotify, avec l'URI de redirection http://127.0.0.1:5588/login, puis déconnectez-vous et reconnectez-vous."
+        "a": "L'ID client Spotify par défaut de Wavekeep est partagé par tous les utilisateurs de librespot : son quota de recherche peut donc être épuisé. Créez une application dans le Spotify Developer Dashboard (developer.spotify.com) avec l'URI de redirection http://127.0.0.1:5588/login, collez son ID client dans Paramètres → Spotify, puis déconnectez-vous et reconnectez-vous."
       },
       "twoLogins": {
         "q": "Pourquoi Spotify demande-t-il de se connecter deux fois ?",
@@ -409,7 +409,7 @@
       },
       "failed": {
         "q": "Un téléchargement a échoué. Que faire ?",
-        "a": "Cliquez sur Réessayer dans Téléchargements. Pour Deezer, vérifiez que votre ARL est toujours valide dans les Paramètres. Pour Spotify, déconnectez-vous puis reconnectez-vous. Si l'échec persiste, consultez wavekeep-debug.log dans le dossier des journaux de Wavekeep."
+        "a": "Cliquez sur Réessayer dans Téléchargements. Pour Deezer, vérifiez que votre ARL est toujours valide dans les Paramètres. Pour Spotify, déconnectez-vous puis reconnectez-vous. Si l'échec persiste, cliquez sur « Copier le journal récent » dans l'onglet Important et joignez-le à votre signalement."
       },
       "tags": {
         "q": "Comment modifier les tags ou la pochette ?",

@@ -367,7 +367,7 @@
       },
       "files": {
         "title": "Wo sind meine Dateien?",
-        "text": "Downloads landen in dem Ordner, den du in den Einstellungen gewählt hast, standardmäßig ein Ordner Wavekeep in deinem Musikordner. Tags und Cover sind eingebettet und lassen sich später mit dem Tag-Editor bearbeiten."
+        "text": "Downloads landen in dem Ordner, den du in den Einstellungen gewählt hast, standardmäßig ein Ordner Wavekeep in deinem Musikordner. Tags und Cover sind eingebettet und lassen sich später mit dem Tag-Editor bearbeiten. Wenn du Deezy benutzt hast, bleibt dein bisheriger Download-Ordner erhalten."
       },
       "log": {
         "title": "Etwas ist schiefgelaufen?",
@@ -389,7 +389,7 @@
       },
       "ban": {
         "q": "Kann mein Konto gesperrt werden?",
-        "a": "Das ist möglich, denn automatisiertes Herunterladen kann Einschränkungen auslösen. Nutze ein Zweitkonto, wenn dir das Konto wichtig ist, und halte Downloads moderat und mit der Download-Verzögerung in den Einstellungen auseinander."
+        "a": "Das ist möglich, denn automatisiertes Herunterladen kann Einschränkungen auslösen. Nutze ein Zweitkonto, wenn dir das Konto wichtig ist, und halte Downloads moderat und mit „Pause zwischen Downloads“ und „Download-Geschwindigkeitslimit“ in den Einstellungen auseinander."
       },
       "arl": {
         "q": "Wie bekomme ich meinen Deezer-ARL?",
@@ -401,7 +401,7 @@
       },
       "rateLimit": {
         "q": "Die Spotify-Suche meldet das Ratenlimit (429)",
-        "a": "Wavekeeps Standard-Spotify-Client-ID teilen sich alle librespot-Nutzer, daher kann ihr Such-Kontingent aufgebraucht sein. Trage unter Einstellungen → Spotify deine eigene Client-ID mit der Weiterleitungs-URI http://127.0.0.1:5588/login ein und verbinde dich dann neu."
+        "a": "Wavekeeps Standard-Spotify-Client-ID teilen sich alle librespot-Nutzer, daher kann ihr Such-Kontingent aufgebraucht sein. Erstelle im Spotify Developer Dashboard (developer.spotify.com) eine App mit der Weiterleitungs-URI http://127.0.0.1:5588/login, trage ihre Client-ID unter Einstellungen → Spotify ein und verbinde dich dann neu."
       },
       "twoLogins": {
         "q": "Warum fragt Spotify zweimal nach der Anmeldung?",
@@ -409,7 +409,7 @@
       },
       "failed": {
         "q": "Ein Download ist fehlgeschlagen. Was tun?",
-        "a": "Klicke in Downloads auf Wiederholen. Prüfe bei Deezer in den Einstellungen, ob dein ARL noch gültig ist. Trenne bei Spotify die Verbindung und verbinde dich neu. Schlägt es weiter fehl, sieh dir wavekeep-debug.log im Protokollordner von Wavekeep an."
+        "a": "Klicke in Downloads auf Wiederholen. Prüfe bei Deezer in den Einstellungen, ob dein ARL noch gültig ist. Trenne bei Spotify die Verbindung und verbinde dich neu. Schlägt es weiter fehl, klicke im Tab „Wichtig“ auf „Aktuelles Protokoll kopieren“ und füge es deiner Meldung bei."
       },
       "tags": {
         "q": "Wie bearbeite ich Tags oder Cover?",

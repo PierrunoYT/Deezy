@@ -367,7 +367,7 @@
       },
       "files": {
         "title": "Where are my files?",
-        "text": "Downloads go to the folder chosen in Settings, by default a Wavekeep folder inside your Music folder. Tags and cover art are embedded, and you can edit them later with the Tag Editor."
+        "text": "Downloads go to the folder chosen in Settings, by default a Wavekeep folder inside your Music folder. Tags and cover art are embedded, and you can edit them later with the Tag Editor. If you used Deezy, your existing download folder is kept."
       },
       "log": {
         "title": "Something went wrong?",
@@ -389,7 +389,7 @@
       },
       "ban": {
         "q": "Can my account be banned?",
-        "a": "It is possible, because automated downloading can trigger restrictions. Use a secondary account if the account matters to you, and keep downloads modest and spaced out with the download delay in Settings."
+        "a": "It is possible, because automated downloading can trigger restrictions. Use a secondary account if the account matters to you, and keep downloads modest and spaced out with Pause Between Downloads and Download Speed Limit in Settings."
       },
       "arl": {
         "q": "How do I get my Deezer ARL?",
@@ -401,7 +401,7 @@
       },
       "rateLimit": {
         "q": "Spotify search says the rate limit was reached (429)",
-        "a": "Wavekeep's default Spotify Client ID is shared by every librespot user, so its search quota can run out. Add your own Client ID under Settings → Spotify, use the redirect URI http://127.0.0.1:5588/login, then disconnect and connect again."
+        "a": "Wavekeep's default Spotify Client ID is shared by every librespot user, so its search quota can run out. Create an app in the Spotify Developer Dashboard (developer.spotify.com) with the redirect URI http://127.0.0.1:5588/login, paste its Client ID under Settings → Spotify, then disconnect and connect again."
       },
       "twoLogins": {
         "q": "Why does Spotify ask me to log in twice?",
@@ -409,7 +409,7 @@
       },
       "failed": {
         "q": "A download failed. What can I do?",
-        "a": "Press Retry in Downloads. For Deezer, check that your ARL is still valid in Settings. For Spotify, disconnect and connect again. If it keeps failing, look at wavekeep-debug.log in Wavekeep's logs folder."
+        "a": "Press Retry in Downloads. For Deezer, check that your ARL is still valid in Settings. For Spotify, disconnect and connect again. If it keeps failing, press Copy recent log on the Important tab and include it in your report."
       },
       "tags": {
         "q": "How do I edit tags or cover art?",
