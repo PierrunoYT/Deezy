@@ -4,42 +4,28 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
-### Added
-
-- **Custom Spotify Client ID** — Settings now accepts an optional Client ID from your own Spotify developer app, with the loopback redirect URI shown alongside it. The ID is used only for Web API requests (search, playlists, library) so they draw on your own quota; the AP session behind downloads always uses the default ID, so connecting with a custom ID opens the browser login twice. Changing the ID disconnects the existing token so the next login uses the new app. The saved setting takes precedence over `DEEZY_SPOTIFY_CLIENT_ID`.
-
-### Changed
-
-- **Spotify catalog metadata** — Track, album, artist, playlist, download, and Loved Tracks metadata now comes from the librespot AP session rather than relying entirely on the Web API. Track lists load with bounded concurrency, unavailable individual tracks are skipped, and a complete metadata failure is reported instead of appearing as an empty list.
-- **Spotify rate-limit fallback** — Track, album, and artist searches automatically retry through Spotify Pathfinder when the Web API is rate-limited, then resolve the results through AP. Fallback failures now include the underlying error. As of 2026-10-23 Spotify answers Pathfinder with `403 Client/request not allowed`, so the fallback cannot currently rescue a rate-limited default ID; a custom Client ID is the reliable fix.
-
-### Fixed
-
-- **Spotify audio was not decrypted** — Downloaded Spotify files were saved still encrypted (and with Spotify's header), so they could not be played or tagged, and every download showed a `Tag read error: failed to parse file` warning. Downloads now request the track's audio key, decrypt the stream, and drop Spotify's header. Files downloaded by earlier builds are unplayable: delete them and download again ("Skip existing files" would otherwise skip them).
-- **Spotify tags** — Tags are now sniffed from the file content instead of the temporary `.part` extension, so OGG and M4A downloads are tagged.
-- **Tag editor for Spotify files** — The Tag Editor now reads and writes OGG and M4A files, and the Downloads view offers it for them.
-- **Download action buttons** — The retry and edit-tags buttons rendered as empty circles because the generic button padding squeezed the icon out.
-- **Spotify downloads with a custom Client ID** — Downloads failed with `400 Bad Request` on track metadata once a custom Client ID was saved, because Spotify only accepts AP metadata requests from the default ID. The AP session (metadata and audio) now always uses the default ID, and the custom ID is used only for the Web API, so search uses your own quota while downloads keep working. Connecting with a custom ID opens the browser login twice. The second login waits briefly, and the success page no longer requests a favicon from the shared callback port; this prevented `Auth code param not found in URI …/favicon.ico` errors.
-- **Spotify token handling** — Concurrent Web API requests no longer refresh the same token at once, a stored token the AP rejects is refreshed once before asking for a new login, a rate limit with a non-JSON body is still reported as one, and a custom Client ID token that is missing or expired is logged instead of silently falling back to the shared default.
-- **Spotify downloads** — Each download now makes one AP metadata request instead of two, and `deezy-debug.log` restarts after 1 MB instead of growing forever.
-- **Spotify artist albums** — The artist albums command now uses the AP-then-Web-API fallback.
-- **Spotify diagnostics** — Panics, app start, every download command result (both providers), each Spotify download step, Pathfinder rejection, and Web API search result are logged to stderr and `deezy-debug.log` in the temp directory, so failures are visible without a console.
-- **Spotify rate-limit waits** — Web API 429 responses are retried at most twice and only for `Retry-After` waits of five seconds or less, avoiding long UI stalls.
-- **Spotify search and settings UI** — AP durations are converted to seconds, the sticky search header stays opaque, and long Spotify account names no longer disrupt the Settings layout.
-- **Spotify artist loading** — Artist discographies fall back to the Web API when the AP metadata request is rejected, instead of failing before any albums are shown.
-
 ---
 
-## [0.2.26] - 2026-10-23
+## [0.3.0] - 2026-10-23
 
 ### Added
 
-- **Spotify source** — Deezy can now search Spotify and download from pasted Spotify track, album, artist, or playlist links. Audio comes straight from Spotify through librespot, decrypted with the track's own key, with metadata and cover art. OGG Vorbis and FLAC are preferred, with MP3 or M4A/AAC fallback when supplied. Connect once through a browser login; the credential is normally stored in the OS keyring, separate from the ARL.
-- **Spotify quality** — Normal (96 kbps), High (160 kbps), Very high (320 kbps), or Lossless (FLAC, Premium).
+- **Spotify source** — Deezy can now search Spotify and download from pasted Spotify track, album, artist, or playlist links. The encrypted audio stream is decrypted with the track's own key and written with metadata and cover art. OGG Vorbis and FLAC are preferred, with MP3 or M4A/AAC fallback when supplied. Connect once through a browser login; the credential is normally stored in the OS keyring, separate from the ARL. Access tokens refresh safely when several requests need one at once, and a stored token that Spotify rejects is refreshed once before asking for a new login.
+- **Spotify quality** — Normal (96 kbps), High (160 kbps), Very high (320 kbps), or Lossless (FLAC, Premium). Deezy does not check the account type, so what a Free account can download depends on what Spotify serves.
+- **Spotify catalog** — Track, album, artist, playlist, download, and Loved Tracks metadata comes from the librespot AP session rather than the rate-limited Web API. Track lists load with bounded concurrency, unavailable individual tracks are skipped, a complete metadata failure is reported instead of appearing as an empty list, and artist discographies fall back to the Web API when the AP rejects the request.
+- **Custom Spotify Client ID** — Settings accepts an optional Client ID from your own Spotify developer app, with the loopback redirect URI shown alongside it. The ID is used only for Web API requests (search, playlists, library) so they draw on your own quota; the AP session behind downloads always uses the default ID, because Spotify rejects AP metadata requests from other IDs, so connecting with a custom ID opens the browser login twice. Changing the ID disconnects the existing token so the next login uses the new app. The saved setting takes precedence over `DEEZY_SPOTIFY_CLIENT_ID`.
+- **Spotify rate-limit handling** — Web API 429 responses are retried at most twice and only for `Retry-After` waits of five seconds or less, avoiding long UI stalls. Track, album, and artist searches then try Spotify Pathfinder, and failures include the underlying error. As of 2026-10-23 Spotify answers Pathfinder with `403 Client/request not allowed`, so a custom Client ID is the reliable fix for a rate-limited default ID.
+- **Tag editor for OGG and M4A** — The Tag Editor reads and writes OGG and M4A files, so Spotify downloads can be edited, and the Downloads view offers it for them.
+- **Diagnostic log** — Panics, app start, every download command result (both providers), each Spotify download step, Pathfinder rejections, and Web API search results are logged to stderr and `deezy-debug.log` in the temp directory (restarted after 1 MB), so failures are visible without a console.
 
 ### Changed
 
 - **Deezer-free settings** — Saving settings no longer requires an ARL, so the Spotify source can be used without a Deezer account.
+
+### Fixed
+
+- **Download action buttons** — The retry and edit-tags buttons rendered as empty circles because the generic button padding squeezed the icon out.
+- **Download progress bar** — The bar now spans the whole row instead of stopping where the status text begins, which made it end at a different place on every row.
 
 ---
 
