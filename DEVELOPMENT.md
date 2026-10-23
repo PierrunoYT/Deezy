@@ -103,8 +103,9 @@ later pages rather than returning a silently incomplete list.
 Spotify separates catalog and download responsibilities:
 
 - `api.rs` handles Web API search and user playlists. Track, album, and artist
-  searches fall back to `pathfinder.rs` only after a Web API rate-limit error;
-  playlist search remains on the Web API. Short 429 waits are retried at most
+  searches fall back to `pathfinder.rs` only after a Web API rate-limit error
+  (Spotify currently answers that fallback with `403 Client/request not
+  allowed`); playlist search remains on the Web API. Short 429 waits are retried at most
   twice, while `Retry-After` values over five seconds fail immediately.
 - `ap.rs` resolves track, album, artist, playlist, Loved Tracks, and download
   metadata through the librespot AP session, with a Web API fallback for artist
@@ -129,9 +130,16 @@ restart. Because both logins reuse the callback port, the success page carries
 an empty favicon and the second login waits briefly and retries on a stray
 request.
 
+The Spotify account type (`Profile.product`) is displayed but never enforced,
+and Free-account audio access through librespot has not been verified. Available
+quality depends on the formats Spotify lists for each track.
+
 `spotify::debug_log` writes to stderr and to `deezy-debug.log` in the temp
-directory, and `lib.rs` logs panics through it. Use that file to diagnose
-Spotify download and search failures, especially in builds without a console.
+directory, and `lib.rs` logs panics through it. It also records app start,
+every `download_track` command result (both providers), each Spotify download
+step, Pathfinder rejections, and the query and top results of each Web API
+search. Use that file to diagnose Spotify download and search failures,
+especially in builds without a console.
 
 ## Implementation conventions
 

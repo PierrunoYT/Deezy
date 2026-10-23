@@ -18,7 +18,8 @@ A modern desktop Deezer and Spotify downloader. Search for tracks, albums, artis
 - **Deezer Account Required** – You need a Deezer account (Free or Premium) for the Deezer source. The ARL token is tied to your account.
   - **Free accounts** are limited to MP3 128 kbps downloads
   - **Premium accounts** can download MP3 320 kbps or FLAC
-  - The **Spotify source** needs its own account (Free works; Premium unlocks 320 kbps and lossless FLAC). It uses a browser OAuth login and does not need an ARL.
+  - The **Spotify source** needs its own Spotify account and uses a browser OAuth login; it does not need an ARL. Deezy does not check the account type. Premium is recommended: it is the account type librespot is built for, and the 320 kbps and lossless FLAC options depend on what Spotify offers per track and account. Whether Spotify serves audio to Free accounts is not guaranteed and has not been verified for this build; if a download fails, the debug log (`deezy-debug.log` in the temp folder) shows the step that was refused. Quality is limited to the formats Spotify returns for each track, and the best match for the selected setting is used.
+  - A **custom Spotify Client ID** (Development-mode app) may have its own restrictions on Spotify's side, such as limited user access or a Premium requirement for the app owner; these are Spotify's rules and are not enforced or checked by Deezy.
 - **Terms of Service** – Downloading music may violate the [Deezer](https://www.deezer.com/legal/cgu) or [Spotify](https://www.spotify.com/legal/end-user-agreement/) terms of service. Use at your own risk.
 - **Account Blocking Risk** – Your account may get suspended. Deezer and Spotify can detect unusual download activity.
 - **Copyright Laws** – Respect copyright laws in your jurisdiction. Downloaded content is for personal use only and must not be redistributed.

@@ -6,18 +6,18 @@ All notable changes to Deezy are documented here.
 
 ### Added
 
-- **Custom Spotify Client ID** — Settings now accepts an optional Client ID from your own Spotify developer app, with the loopback redirect URI shown alongside it. Changing the ID disconnects the existing token so the next login uses the new app. The saved setting takes precedence over `DEEZY_SPOTIFY_CLIENT_ID`.
+- **Custom Spotify Client ID** — Settings now accepts an optional Client ID from your own Spotify developer app, with the loopback redirect URI shown alongside it. The ID is used only for Web API requests (search, playlists, library) so they draw on your own quota; the AP session behind downloads always uses the default ID, so connecting with a custom ID opens the browser login twice. Changing the ID disconnects the existing token so the next login uses the new app. The saved setting takes precedence over `DEEZY_SPOTIFY_CLIENT_ID`.
 
 ### Changed
 
 - **Spotify catalog metadata** — Track, album, artist, playlist, download, and Loved Tracks metadata now comes from the librespot AP session rather than relying entirely on the Web API. Track lists load with bounded concurrency, unavailable individual tracks are skipped, and a complete metadata failure is reported instead of appearing as an empty list.
-- **Spotify rate-limit fallback** — Track, album, and artist searches automatically retry through Spotify Pathfinder when the Web API is rate-limited, then resolve the results through AP. Fallback failures now include the underlying error.
+- **Spotify rate-limit fallback** — Track, album, and artist searches automatically retry through Spotify Pathfinder when the Web API is rate-limited, then resolve the results through AP. Fallback failures now include the underlying error. As of 2026-10-23 Spotify answers Pathfinder with `403 Client/request not allowed`, so the fallback cannot currently rescue a rate-limited default ID; a custom Client ID is the reliable fix.
 
 ### Fixed
 
 - **Spotify downloads with a custom Client ID** — Downloads failed with `400 Bad Request` on track metadata once a custom Client ID was saved, because Spotify only accepts AP metadata requests from the default ID. The AP session (metadata and audio) now always uses the default ID, and the custom ID is used only for the Web API, so search uses your own quota while downloads keep working. Connecting with a custom ID opens the browser login twice. The second login waits briefly, and the success page no longer requests a favicon from the shared callback port; this prevented `Auth code param not found in URI …/favicon.ico` errors.
 - **Spotify artist albums** — The artist albums command now uses the AP-then-Web-API fallback.
-- **Spotify diagnostics** — Panics and each Spotify download step, Pathfinder rejection, and Web API search result are logged to stderr and `deezy-debug.log` in the temp directory, so failures are visible without a console.
+- **Spotify diagnostics** — Panics, app start, every download command result (both providers), each Spotify download step, Pathfinder rejection, and Web API search result are logged to stderr and `deezy-debug.log` in the temp directory, so failures are visible without a console.
 - **Spotify rate-limit waits** — Web API 429 responses are retried at most twice and only for `Retry-After` waits of five seconds or less, avoiding long UI stalls.
 - **Spotify search and settings UI** — AP durations are converted to seconds, the sticky search header stays opaque, and long Spotify account names no longer disrupt the Settings layout.
 - **Spotify artist loading** — Artist discographies fall back to the Web API when the AP metadata request is rejected, instead of failing before any albums are shown.
