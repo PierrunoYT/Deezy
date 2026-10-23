@@ -509,9 +509,9 @@
     <div class="form-group">
       <label for="spotify-quality-select">{$_('settings.spotify.label')}</label>
       <p class="form-hint">{$_('settings.spotify.hint')}</p>
-      <div class="input-row">
+      <div class="input-row spotify-row">
         {#if $spotifyConnected}
-          <span class="form-hint">
+          <span class="form-hint spotify-account">
             {$_('settings.spotify.connectedAs', { values: { name: $spotifyUserName ?? 'Spotify' } })}
           </span>
           <button class="btn-secondary" onclick={disconnectSpotify} disabled={spotifyBusy}>
@@ -861,6 +861,20 @@
   
   .input-row input {
     flex: 1;
+  }
+
+  .spotify-row {
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .spotify-account {
+    margin-bottom: 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   
   input[type="text"],
