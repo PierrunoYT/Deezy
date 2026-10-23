@@ -28,7 +28,9 @@
         "status": {
             "searching": "Ricerca in corso...",
             "noResults": "Nessun risultato trovato.",
-            "loginRequired": "Imposta prima il tuo token ARL nelle Impostazioni."
+            "loginRequired": "Imposta prima il tuo token ARL nelle Impostazioni.",
+            "unsupportedUrl": "Tipo di link non supportato",
+            "urlError": "Errore: {error}"
         },
         "history": {
             "title": "Ricerche Recenti"
@@ -166,7 +168,8 @@
             "label": "Qualità Audio",
             "mp3_128": "MP3 128 kbps",
             "mp3_320": "MP3 320 kbps",
-            "flac": "FLAC (Senza perdita)"
+            "flac": "FLAC (Senza perdita)",
+            "freeHint": "Il tuo account Deezer Free supporta solo MP3 128 kbps."
         },
         "folderStructure": {
             "label": "Struttura Cartelle",
@@ -368,7 +371,7 @@
             },
             "log": {
                 "title": "Qualcosa è andato storto?",
-                "text": "Wavekeep tiene un registro diagnostico chiamato wavekeep-debug.log nella cartella dei registri di Wavekeep. Resta sul tuo computer e non viene mai inviato. Password, ARL e token di accesso non vi vengono mai scritti, e la tua cartella utente appare come ~. Usa i pulsanti qui sotto per copiarlo o aprirne la cartella quando segnali un problema."
+                "text": "Wavekeep tiene un registro diagnostico chiamato wavekeep-debug.log nella cartella dei registri di Wavekeep. Resta sul tuo computer e non viene mai inviato. Password, ARL e token di accesso non vi vengono mai scritti, e la tua cartella utente appare come ~. Contiene invece gli ID, gli artisti e i titoli dei brani e i percorsi dei tuoi download. Usa i pulsanti qui sotto per copiarlo o aprirne la cartella quando segnali un problema."
             }
         },
         "faq": {
@@ -402,7 +405,7 @@
             },
             "twoLogins": {
                 "q": "Perché Spotify chiede di accedere due volte?",
-                "a": "Con il tuo Client ID, la ricerca usa la tua app e i download usano quello predefinito di Spotify, quindi servono due accessi dal browser. Approvali entrambi."
+                "a": "Con il tuo Client ID, la ricerca usa la tua app e i download usano il Client ID predefinito condiviso, quindi servono due accessi dal browser. Approvali entrambi."
             },
             "failed": {
                 "q": "Un download non è riuscito. Cosa posso fare?",
@@ -417,5 +420,13 @@
                 "a": "No. Non ha analisi né telemetria e comunica solo con Deezer e Spotify. Il tuo ARL e i token Spotify sono conservati nell'archivio delle credenziali del sistema operativo, quando disponibile."
             }
         }
+    },
+    "tray": {
+        "showHide": "Mostra/Nascondi",
+        "idle": "Nessun download attivo",
+        "active": "Download in corso…",
+        "pause": "Metti in pausa i download",
+        "resume": "Riprendi i download",
+        "quit": "Esci"
     }
 }

@@ -134,11 +134,11 @@ impl Default for Settings {
 }
 
 /// Reads `WAVEKEEP_<name>`, falling back to `DEEZY_<name>` from before the
-/// app was renamed so existing setups keep working.
+/// app was renamed so existing setups keep working. Blank values count as
+/// unset.
 pub fn app_env(name: &str) -> Option<String> {
-    std::env::var(format!("WAVEKEEP_{}", name))
-        .or_else(|_| std::env::var(format!("DEEZY_{}", name)))
-        .ok()
+    let read = |var: String| std::env::var(var).ok().filter(|value| !value.trim().is_empty());
+    read(format!("WAVEKEEP_{}", name)).or_else(|| read(format!("DEEZY_{}", name)))
 }
 
 pub(crate) fn keyring_enabled() -> bool {

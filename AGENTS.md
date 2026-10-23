@@ -61,7 +61,7 @@ deezy/                          # All source lives here
       lib.rs                    # AppState definition + Tauri builder, single-instance, panic hook, window/close-to-tray
       commands.rs               # shared command helpers + module exports
       commands/                 # #[tauri::command] handlers grouped by domain
-        account.rs              # login/logout, auto_login, exit_app
+        account.rs              # Deezer login, auto_login, exit_app (there is no Deezer logout command)
         catalog.rs              # Deezer catalog/library IPC, `with_session_retry`
         diagnostics.rs          # write_log, read_recent_log, open_log_folder
         downloads.rs            # download_track / cancel_download (both providers)
@@ -71,7 +71,7 @@ deezy/                          # All source lives here
         spotify.rs              # Spotify auth, search, catalog, and library IPC
         tag_editor.rs           # Tag Editor read/write for MP3, FLAC, OGG, M4A
         themes.rs               # theme IPC (calls ../themes.rs)
-        tray.rs                 # tray IPC
+        tray.rs                 # tray IPC: download status, translated menu labels, tooltip
       deezer/
         mod.rs                  # DeezerClient struct and wiring; request logic lives in the submodules below
         auth.rs                 # login, getUserData, free-account detection
@@ -121,7 +121,7 @@ Rust `setup` runs `migration::run` (moves Deezy data and logins, see below) befo
 
 ### IPC conventions
 - All Rust commands return `Result<T, String>`. Errors bubble as rejected `invoke()` promises.
-- Multi-word Rust command parameters use camelCase with `#[allow(non_snake_case)]` (e.g. `trackId`, `albumId`).
+- Multi-word command parameters: many commands declare them in camelCase with `#[allow(non_snake_case)]` (e.g. `trackId`, `albumId`); others use snake_case (`file_path`, `theme_name`, `new_settings`) and rely on Tauri converting them. Either way the frontend passes camelCase keys.
 - The `get_settings` command **strips the ARL** before returning to the renderer — the ARL never crosses the IPC boundary to JavaScript.
 
 ### State management
@@ -133,22 +133,22 @@ Rust `setup` runs `migration::run` (moves Deezy data and logins, see below) befo
 
 ## Key Gotchas
 
-### ARL is stored in the OS credential store, not in settings.json
-`Settings::save()` writes settings to disk with `arl: ""`. On first save (or migration from an old build with ARL in the JSON), the ARL is moved to the OS keyring (`keyring` crate). `Settings::load()` then reads it back from keyring. Any code that modifies settings must preserve the ARL through this round-trip — `save_settings` merges a blank `arl` from the frontend with the stored value before saving.
+### ARL is stored in the OS credential store, not in settings.json (with a plaintext fallback)
+`Settings::save()` writes settings to disk with `arl: ""`. On first save (or migration from an old build with ARL in the JSON), the ARL is moved to the OS keyring (`keyring` crate). `Settings::load()` then reads it back from keyring. Any code that modifies settings must preserve the ARL through this round-trip — `save_settings` merges a blank `arl` from the frontend with the stored value before saving. Exception: when the keyring fails and no previous credential exists, or when `WAVEKEEP_NO_KEYRING` is set, the ARL is written to `settings.json` in plain text (owner-only permissions on Unix only), marked by `arl_saved_without_keyring`, and that copy wins on the next load. Spotify tokens never use this fallback; they always go to the keyring.
 
 ### Session auto-refresh
-For Deezer, `download_track` automatically rebuilds `DeezerClient` (re-authenticates) and retries **once** on CSRF or token errors (any error text containing "CSRF" or "token"). The Spotify path has no such retry, and library calls use `with_session_retry` in `commands/catalog.rs`. If the retry also fails, it surfaces "Session expired. Please go to Settings and log in again."
+For Deezer, `download_track` automatically rebuilds `DeezerClient` (re-authenticates) and retries **once** on CSRF or token errors (any error text containing "CSRF" or "token"). The retry is skipped for a cancelled download. The Spotify path has no such retry, and library calls use `with_session_retry` in `commands/catalog.rs`. If logging in again fails, the error is "Session expired. Please go to Settings and log in again. Error: …"; if the retried call itself fails, its own error is returned.
 
 ### Free-account quality override
 If `user.is_free_account` is true, the effective quality is silently overridden to `MP3_128` regardless of user settings — enforced in both the initial download path and the CSRF-retry path.
 
 ### App identifier and the Deezy migration
 The app is called **Wavekeep** (formerly Deezy). Its identifier `com.pierr.wavekeep` (`tauri.conf.json`, mirrored by `migration::IDENTIFIER` and checked by a test) names the app-data folder and is the credential-store service for the ARL (`arl_token`) and the Spotify tokens (`spotify_oauth`, `spotify_oauth_web`).
-- Up to 0.3.0 the identifier was `com.pierr.deezy`. `migration.rs` runs first in the `setup` hook, before any IPC command can read settings or credentials. It moves `settings.json`, `download_history.json` and `themes/` from the old folder (removing it only when empty) and moves each credential (write, read back, then delete the old one). Existing data in the new location is never overwritten, so it runs on every start and does nothing once done. A new app-data file or credential must be added to its lists, and any future identifier change needs the same kind of migration.
+- Up to 0.3.0 the identifier was `com.pierr.deezy`. `migration.rs` runs first in the `setup` hook, before any IPC command can read settings or credentials. It moves `settings.json`, `download_history.json` and `themes/` from the old folder (removing it only when empty) and moves each credential (write, read back, then delete the old one; if the new service already has one, the old entry is just deleted; a failed delete is only logged). The Spotify entries always move; the ARL entry moves only while the keyring is enabled, since otherwise the ARL lives in `settings.json`. Existing data in the new location is never overwritten, so it runs on every start and does nothing once done. A new app-data file or credential must be added to its lists, and any future identifier change needs the same kind of migration.
 - `bundle.windows.wix.upgradeCode` pins the MSI upgrade code that was derived from the old product name, so MSI installs of Wavekeep upgrade Deezy installs. Never remove or change it.
 - The `.exe` (NSIS) installer is keyed on `productName`, so it installs Wavekeep next to Deezy. If Deezy is uninstalled with "Delete the application data" before Wavekeep's first start, the data is gone before it can be moved, so release notes must tell users to start Wavekeep once first.
-- WebView storage (`localStorage`, caches) also lives under the identifier on Windows and macOS and is not migrated; the only thing the app keeps there is the startup-notice flag.
-- Environment variables are read through `settings::app_env`, which tries `WAVEKEEP_<NAME>` and then the old `DEEZY_<NAME>`.
+- WebView storage (`localStorage`, caches) also lives under the identifier and is not migrated; the only thing the app keeps there is the startup-notice flag, so the startup warning shows once more after the upgrade. Tauri puts it in `app_local_data_dir` on Windows and Linux. On Linux that is the same folder as `app_data_dir`, so the old `com.pierr.deezy` folder keeps its WebKit data and is never removed (the data itself still moves).
+- Environment variables are read through `settings::app_env`, which tries `WAVEKEEP_<NAME>` and then the old `DEEZY_<NAME>`; blank values count as unset.
 - The source folder `deezy/`, the GitHub repository `PierrunoYT/Deezy`, the logo files `static/logodeezy.*` and `deezy-mark-mono.svg`, and the `.agents/` scripts still use the old name.
 
 ### Version must be bumped in three places simultaneously
@@ -160,14 +160,14 @@ Versions follow semantic versioning (`MAJOR.MINOR.PATCH`) as of the next release
 - **Patch** (`0.3.0` → `0.3.1`): bug fixes, documentation, and internal changes only. No new user-visible feature, setting, source, or screen.
 - **Minor** (`0.3.x` → `0.4.0`): any new user-visible feature, setting, or music source, even if it ships with fixes. A release containing a feature is never a patch release.
 - **Major** (`1.0.0` and later): breaking changes, such as dropping support for existing settings or files or changing the on-disk format in a way that needs migration. While the version is `0.x`, breaking changes bump the minor number and are called out at the top of the changelog entry.
-- Do not bump the version, edit the changelog's version heading, or create a tag unless the user asks for a release. Ordinary commits add entries under `## [Unreleased]` in `CHANGELOG.md` and leave the version files alone.
+- Do not bump the version, edit the changelog's version heading, or create a tag unless the user asks for a release. Ordinary commits add entries under `## [Unreleased]` in `CHANGELOG.md` and leave the version files alone. Exception: once a release has been prepared but not yet tagged, further changes for that release go into its version section, as long as the user means them to ship in it.
 - When asked to release: choose the number from the rules above and state it with a one-line reason before changing anything. If the user names a number that breaks the rules, say so once and follow their choice.
 - The release itself follows the checklist in `DEVELOPMENT.md`: bump all three files, turn the Unreleased entries into a dated `## [X.Y.Z] - YYYY-MM-DD` section (leaving a new empty Unreleased above it), run the tests and checks, then make one commit `chore: prepare version X.Y.Z release` and an annotated tag `vX.Y.Z` with the message `Wavekeep vX.Y.Z`. Do not push the commit or tag unless the user asks.
 
 ### Settings and file access rules
 - Every settings write takes `AppState.settings_io` first, which serialises writes to `settings.json` and the keyring.
 - `update_settings` (`commands/settings.rs`) is an allow-list: a new setting needs a field in `Settings`, validation in `settings.rs`, and an explicit key there; unknown keys return an error.
-- The renderer cannot point the backend at arbitrary paths. An `output_dir` change must already be approved (`grant_folder`, via `pick_folder`, `get_settings`, or `auto_login`), and audio or cover-image paths must be granted (`grant_audio_file`, `grant_image_file`) or inside `output_dir`. A new command that takes a path should use the `require_*` helpers in `commands.rs`.
+- The renderer cannot point the backend at arbitrary paths. An `output_dir` change must already be approved (`grant_folder`, via `pick_folder`, `get_settings`, or `auto_login`), audio paths must be granted (`grant_audio_file`) or inside `output_dir`, and cover-image paths must always be granted (`grant_image_file`, via `pick_cover_image`). A new command that takes a path should use the `require_*` helpers in `commands.rs`.
 
 ### Svelte 5 runes syntax
 The project uses Svelte 5. Components use `$state(...)`, `$props()`, and `$derived(...)` — not Svelte 4 `let`/`$:` reactive declarations. Do not introduce Svelte 4 patterns.
@@ -188,7 +188,7 @@ If `write_mp3_tags` / `write_flac_tags` fails, a `tag-writing-error` event is em
 ### Spotify is a second, independent download engine
 - **Catalog uses Web API + AP + Pathfinder**: track/album/artist search starts on the Web API and falls back to Pathfinder on 429 (currently refused by Spotify, see Rate limits); playlist search and user playlists stay on the Web API. Direct track/album/artist/playlist metadata, Loved Tracks, and download metadata use the librespot AP session; artist discographies fall back to the Web API when AP metadata is rejected. AP track lists use 8 concurrent requests, artist discographies are capped at 120 albums, and total track-metadata failure is an error rather than an empty list.
 - **Audio** uses the librespot AP session (`librespot-core` / `-metadata` / `-audio`), which delivers the **encrypted** stream: `AudioFile::open` alone yields unplayable data, so `download.rs` must request the audio key, wrap the stream in `AudioDecrypt`, and skip the Spotify header before writing. Tagging uses `lofty` for OGG/FLAC/MP3/M4A because the existing Deezer `id3` / `metaflac` stack cannot cover all Spotify formats.
-- **Quality selection**: `format_order` in `spotify/download.rs` gives each `spotify_quality` setting its own order: `normal` starts at 96 kbps, `high` at 160, `very-high` (default, and any unknown value) at 320, and `lossless` at FLAC 24-bit/FLAC. Each order prefers OGG Vorbis and then MP3 at a bitrate, and falls back to the other bitrates; FLAC is only requested for `lossless`, and AAC/M4A is only the arbitrary last resort when none of those exist.
+- **Quality selection**: `format_order` in `spotify/download.rs` gives each `spotify_quality` setting its own order: `normal` starts at 96 kbps, `high` at 160, `very-high` (default, and any unknown value) at 320, and `lossless` at FLAC 24-bit/FLAC. Each order prefers OGG Vorbis and then MP3 at a bitrate, and falls back to the other bitrates; FLAC is only requested for `lossless`, and when none of the listed formats exist `select_file` takes whatever Spotify lists first (AAC, MP3 256, or even FLAC on a non-lossless setting).
 - **Rate limits**: Web API 429s retry at most twice only when `Retry-After` is at most 5 seconds; longer waits fail immediately. Pathfinder fallback failures are appended to the original rate-limit error. As of 2026-10-23 Spotify refuses Pathfinder for this client (`403 Client/request not allowed` on every operation), so the fallback currently cannot rescue a rate-limited default ID — a custom Client ID is the practical fix.
 - **Track keys are prefixed**: Spotify tracks use `spotify:<base62>` in `Track.id`, the queue, history and the cancellation map, so they can never collide with numeric Deezer IDs. `download_track` dispatches on that prefix (`spotify::is_spotify_track`); everything else flows through the unchanged queue.
 - **Auth is OAuth PKCE**, not an ARL. `librespot-oauth` opens the browser and listens on `127.0.0.1:5588/login`. Two client IDs are in play: the **AP session** (track metadata + audio) always uses librespot's keymaster default, because Spotify answers AP metadata requests made under any other client ID with `400 Bad Request`; the **Web API** (search and the user's playlist list; Loved Tracks and a playlist's tracks come from the AP) uses the custom ID when one is set (saved `spotify_client_id` setting → `WAVEKEEP_SPOTIFY_CLIENT_ID` → default), so search draws on the user's own quota instead of the one shared by every librespot install. A custom ID therefore needs a second browser login. The Settings screen logs out after the ID changes (`saveSpotifyClientId` calls `spotify_logout`); the backend only trims and saves the value. The default token is stored in the OS keyring under `com.pierr.wavekeep` / `spotify_oauth`, the custom-ID token under `spotify_oauth_web` (with its client ID; ignored if the ID changed), both separate from the ARL; persistence is best-effort. Without a stored custom token (restart before reconnecting) the Web API falls back to the default token.
@@ -217,8 +217,9 @@ Built-in themes are `light`, `dark` and `system`; they only toggle a `light` cla
 - The log is **local only**. Nothing uploads it; users copy or open it from Info & FAQ (`read_recent_log`, `open_log_folder` in `commands/diagnostics.rs`) and attach it to a report themselves. Keep it that way: no telemetry and no automatic upload.
 - Never log credentials or secrets (ARL, Spotify/OAuth tokens, client tokens), user names, e-mail addresses, or what the user searches for. Log account *type*, track IDs, statuses and error text. As a safety net every line is redacted before writing: the home folder becomes `~`, URL query strings become `?[redacted]`, and unbroken token-like runs of 100+ characters become `[redacted]`.
 - Frontend: `src/lib/logger.ts` exports `log(level, area, ...)`, which writes through the `write_log` command (areas show up as `ui-<area>`). `installErrorLogging`, called first in `+layout.svelte`, also copies `console.error`, `console.warn` and uncaught errors into the log, so a plain `console.error` is enough for UI errors.
-- Areas in use: `app`, `migration`, `settings`, `deezer`, `spotify`, `download`, `console`/`uncaught`/`ui-*` (frontend). `lib.rs` installs a panic hook that logs the panic with a backtrace.
-- Logged today: app start (version, OS), migration steps, Deezer login and automatic login (account type only), free-account quality override, media and legacy URL quality fallbacks, session re-login, every `download_track` call and result, each Spotify download step, Spotify connect/restore/disconnect (account type and default/custom Client ID only), Web API rate limits, Pathfinder rejections, settings-storage warnings, tag-writing failures, panics, and frontend errors.
+- Areas in use: `app`, `migration`, `settings`, `deezer`, `spotify`, `download`, and from the frontend `ui-console` and `ui-uncaught` (`write_log` prefixes `ui-` and keeps 12 letters, digits or `-`). `logger.log()` exists for explicit frontend lines but nothing calls it yet.
+- Limits: backend messages are cut to 4000 characters after redaction; frontend messages to 2000 characters at a word boundary, so a token is never split before redaction. "Copy recent log" returns 300 lines (at most 2000), reaching into the `.old.log` file when needed. `lib.rs` installs a panic hook that logs the panic with a backtrace.
+- Logged today: app start (version, OS), migration steps, Deezer login and automatic login (account type only), free-account quality override, media and legacy URL quality fallbacks, session re-login, every `download_track` call and result, each Spotify download step, Spotify connect/restore/disconnect (account type and default/custom Client ID only), Web API rate limits, Pathfinder rejections, settings-storage warnings, tag-writing failures, exit requests, opening the log folder, panics, and frontend errors. Lines include track IDs, artist and title (Spotify), and saved file paths with the home folder as `~`. For Deezer only the start, result, quality fallbacks and re-login are logged, not every step.
 
 ## Startup warning and Info & FAQ
 
@@ -227,6 +228,8 @@ Built-in themes are `light`, `dark` and `system`; they only toggle a `light` cla
 - All text lives under `info.*` in every locale file. The ids are listed in `notice.ts` (`WARNING_ITEMS`, `IMPORTANT_ITEMS`, `FAQ_ITEMS`); an id needs `info.items.<id>.title/.text` or `info.faq.<id>.q/.a` in all six locales (`tests/notice.test.mjs` checks all six). Keep the content consistent with the README and `FAQ.md`.
 
 ## Internationalisation
+
+Do not hard-code user-visible English. The tray menu is built in Rust, so `+layout.svelte` sends the `tray.*` texts through `set_tray_labels` whenever the translator changes; Rust keeps English defaults until then.
 
 Locale JSON files live in `src/lib/i18n/locales/` (`en`, `fr`, `de`, `es`, `it`, `pt`). The locale is initialised by `initI18n()` in `+layout.svelte` using the `locale` field from settings and kept in sync via the `currentLocale` store. Add new keys to all locale files when adding UI strings.
 
@@ -237,4 +240,4 @@ Locale JSON files live in `src/lib/i18n/locales/` (`en`, `fr`, `de`, `es`, `it`,
 1. Define the async function in the appropriate `commands/*.rs` module with `#[tauri::command]` (create and export a module from `commands.rs` only when adding a new domain).
 2. Register it in the `invoke_handler!(tauri::generate_handler![...])` call in `lib.rs`.
 3. Call it from the frontend with `invoke('command_name', { camelCaseParam: value })`.
-4. For `AppState` access, add `state: tauri::State<'_, AppState>` as a parameter (order matters: Tauri state params must come before `app: AppHandle` if both are present).
+4. For `AppState` access, add `state: tauri::State<'_, AppState>` as a parameter (by convention after the command's own arguments and before `app: AppHandle`; Tauri itself does not require an order).

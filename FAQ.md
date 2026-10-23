@@ -12,7 +12,7 @@ Your ARL is a sensitive session credential that can provide access to your Deeze
 
 - **Stored securely when available** — Wavekeep normally stores the ARL using Windows Credential Manager, macOS Keychain, or Linux Secret Service.
 - **Plaintext fallback** — If no credential is already stored and the OS credential store is unavailable, Wavekeep can store the ARL in `settings.json` so the app can still run. On Unix systems, Wavekeep restricts that file to owner-only permissions (`0600`) and refuses to load it if those permissions cannot be established. Settings displays a warning while this fallback is active.
-- **Optional keyring bypass** — Set `WAVEKEEP_NO_KEYRING=1` (`true` and `yes` are also accepted; the older `DEEZY_NO_KEYRING` also works) before starting Wavekeep to force plaintext storage. Treat `settings.json` as a password file in this mode.
+- **Optional keyring bypass** — Set `WAVEKEEP_NO_KEYRING=1` (`true` and `yes` are also accepted; the older `DEEZY_NO_KEYRING` also works) before starting Wavekeep to keep the ARL in `settings.json` instead of the credential store (Spotify logins always use the credential store). Treat `settings.json` as a password file in this mode.
 - **Automatic migration** — When the credential store becomes available again, Wavekeep moves a plaintext ARL into it and removes the ARL from `settings.json`.
 - **Safe replacement** — Wavekeep authenticates a newly entered ARL before replacing the current credential. If secure storage or settings persistence fails, it preserves or restores the previous credential rather than reporting a successful replacement.
 - **Not returned with settings** — After saving, `get_settings` returns an empty ARL field so the stored credential is not exposed to the renderer again.
@@ -38,9 +38,9 @@ The current source contains no analytics, telemetry, crash-reporting service, or
 
 ### Does Wavekeep keep a log? What is in it?
 
-Yes, a local diagnostic log named `wavekeep-debug.log` in Wavekeep's logs folder: `%LOCALAPPDATA%\com.pierr.wavekeep\logs` on Windows, `~/Library/Logs/com.pierr.wavekeep` on macOS, and `~/.local/share/com.pierr.wavekeep/logs` on Linux. The system does not clean that folder up on its own. It stays on your computer and Wavekeep never uploads it. Passwords, your ARL and login tokens are never written to it; on top of that, every line is cleaned before it is saved: your home folder appears as `~`, web addresses lose their query part (where tokens travel), and any long token-like string is replaced with `[redacted]`.
+Yes, a local diagnostic log named `wavekeep-debug.log` in Wavekeep's logs folder: `%LOCALAPPDATA%\com.pierr.wavekeep\logs` on Windows, `~/Library/Logs/com.pierr.wavekeep` on macOS, and `~/.local/share/com.pierr.wavekeep/logs` (or `$XDG_DATA_HOME/com.pierr.wavekeep/logs`) on Linux. The system does not clean that folder up on its own. It stays on your computer and Wavekeep never uploads it. Passwords, your ARL and login tokens are never written to it; on top of that, every line is cleaned before it is saved: your home folder appears as `~`, web addresses lose their query part (where tokens travel), and any long token-like string is replaced with `[redacted]`.
 
-It records what the app does so problems can be traced: app start and version, the move from Deezy, whether Deezer and Spotify logins worked (account type only), quality fallbacks, each download step and its result, Spotify rate limits, and any errors. What you search for is not logged. When it reaches 1 MB it is renamed to `wavekeep-debug.old.log` and a new one starts. You can delete both files at any time.
+It records what the app does so problems can be traced: app start and version, the move from Deezy, whether Deezer and Spotify logins worked (account type only), quality fallbacks, the start and result of every download (and each step of Spotify downloads), Spotify rate limits, and any errors. Lines include track IDs, artist and title, and the paths of saved files, with your home folder shown as `~`. What you search for is not logged. When it reaches 1 MB it is renamed to `wavekeep-debug.old.log` and a new one starts. You can delete both files at any time.
 
 ### Is it safe to use my Deezer account?
 
@@ -50,7 +50,7 @@ Using automated download software is not equivalent to normal browser use. It ma
 
 ### What local files can Wavekeep access?
 
-The tag editor can read or modify only MP3, FLAC, OGG, and M4A files and cover images selected through Wavekeep's native file pickers, plus audio files in the configured download folder. Changing the download folder also requires selecting it through the native folder picker. Theme imports and history exports use native open/save dialogs. Wavekeep separately maintains its settings, download history, and custom themes in its application-data folder.
+The tag editor can read or modify only MP3, FLAC, OGG, and M4A files and cover images selected through Wavekeep's native file pickers, plus audio files in the configured download folder. Changing the download folder also requires selecting it through the native folder picker. Theme imports and history exports use native open/save dialogs. Your recent searches (the last 20, unless search history is turned off in Settings) are stored in `settings.json`. Wavekeep separately maintains its settings, download history, and custom themes in its application-data folder.
 
 ---
 
@@ -67,7 +67,7 @@ For **Deezer**:
 
 Deezer Free accounts are automatically limited to MP3 128 kbps, regardless of the quality selected in Settings.
 
-For **Spotify**, Settings offers Normal (96 kbps), High (160 kbps), Very high (320 kbps), and Lossless (FLAC for Premium). Each setting starts at its own bitrate and falls back to the others when Spotify does not supply it. OGG Vorbis is preferred, then MP3; FLAC is only used for Lossless, and M4A/AAC only when none of those are available. Availability varies by track, account, and region.
+For **Spotify**, Settings offers Normal (96 kbps), High (160 kbps), Very high (320 kbps), and Lossless (FLAC for Premium). Each setting starts at its own bitrate and falls back to the others when Spotify does not supply it. At each bitrate OGG Vorbis is preferred over MP3. FLAC is only requested for Lossless; if a track offers none of the usual formats, Wavekeep takes whatever Spotify lists, such as AAC. Availability varies by track, account, and region.
 
 ### Why did my Deezer download fall back to a lower quality?
 
@@ -116,7 +116,7 @@ Spacing out large batches makes the activity look more like normal listening. It
 
 ### Can I paste a Deezer link to download?
 
-Yes. The **Deezer URL** field in Search accepts `deezer.com` track, album, playlist, and artist links, such as `https://www.deezer.com/track/123456`.
+Yes. The **music URL** field in Search accepts `deezer.com` track, album, playlist, and artist links, such as `https://www.deezer.com/track/123456`.
 
 Submitting a link adds its content to the download queue:
 
@@ -166,14 +166,14 @@ As a last resort, close Wavekeep and rename its application-data folder so the a
 - **macOS:** `~/Library/Application Support/com.pierr.wavekeep`
 - **Linux:** `$XDG_DATA_HOME/com.pierr.wavekeep` or `~/.local/share/com.pierr.wavekeep`
 
-Resetting this folder removes local settings, download history, and custom themes. If Wavekeep is using plaintext fallback, it also removes the ARL. ARL and Spotify tokens stored in the OS credential store are separate and may remain there.
+Resetting this folder removes local settings, download history, and custom themes. If Wavekeep is using plaintext fallback, it also removes the ARL. ARL and Spotify tokens stored in the OS credential store are separate and may remain there. On Linux the logs folder is inside this folder, so the log is reset too.
 
 ### Downloads are stalling or not starting. What do I do?
 
 - Confirm that your internet connection is working.
 - For Deezer, save a current ARL to verify authentication and try MP3 128 kbps if higher-quality media is unavailable.
 - For Spotify, disconnect and reconnect in Settings. A custom Client ID only affects search, not downloads.
-- Open **Info & FAQ** and press **Copy recent log**: the log records each download step and the exact error. See [How do I report a problem?](#how-do-i-report-a-problem)
+- Open **Info & FAQ** and press **Copy recent log**: the log records what each download did and the exact error. See [How do I report a problem?](#how-do-i-report-a-problem)
 - Pause and resume the download, or retry it from the download history after an error.
 - Fully exit Wavekeep from the tray before restarting it.
 
@@ -228,7 +228,7 @@ With the `.exe` installer, Deezy stays installed next to Wavekeep. Start Wavekee
 Every Tauri app has an internal identifier that decides where it keeps its data and how its entries in Windows Credential Manager, macOS Keychain or Linux Secret Service are named. Deezy's identifier was `com.pierr.deezy`; Wavekeep's is `com.pierr.wavekeep`. On every start, before anything is loaded, Wavekeep:
 
 - **Moves your data:** `settings.json`, `download_history.json` and the `themes` folder go from the old folder to the new one, for example from `%APPDATA%\com.pierr.deezy` to `%APPDATA%\com.pierr.wavekeep` on Windows. Anything already in the new folder is kept and never overwritten. The old folder is removed only once it is empty.
-- **Moves your logins:** each saved credential (Deezer ARL, Spotify tokens) is copied to the new name and read back to check it. Only then is the old entry deleted, so a secret is never lost and never left behind under the old name.
+- **Moves your logins:** each saved credential (Deezer ARL, Spotify tokens) is copied to the new name and read back to check it, and only then is the old entry deleted, so a secret is never lost. If Wavekeep already has a newer login, the old one is simply removed. If an old entry cannot be removed, it stays and the log says so. With `WAVEKEEP_NO_KEYRING` set, the ARL is in `settings.json` and moves with it.
 
 Once everything has moved, these steps do nothing. What happened is written to Wavekeep's log; see [Does Wavekeep keep a log?](#does-wavekeep-keep-a-log-what-is-in-it)
 
@@ -237,6 +237,8 @@ Things to know:
 - After the move, the old Deezy app starts with default settings and no saved logins.
 - On macOS, the Keychain may ask once whether Wavekeep may read the logins Deezy saved.
 - On Windows, Deezy's browser cache in `%LOCALAPPDATA%\com.pierr.deezy` is not moved. You can delete that folder.
+- On Linux, the old `~/.local/share/com.pierr.deezy` folder keeps Deezy's browser data, so it is not removed automatically. You can delete it.
+- The startup warning appears once more, because that choice was stored with the browser data.
 - The older `DEEZY_NO_KEYRING` and `DEEZY_SPOTIFY_CLIENT_ID` environment variables still work alongside the new `WAVEKEEP_` names.
 
 ### How do I update Wavekeep on Windows?

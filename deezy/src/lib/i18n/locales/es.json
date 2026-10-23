@@ -28,7 +28,9 @@
     "status": {
       "searching": "Buscando...",
       "noResults": "No se encontraron resultados.",
-      "loginRequired": "Por favor, configura tu token ARL en Configuración primero."
+      "loginRequired": "Por favor, configura tu token ARL en Configuración primero.",
+      "unsupportedUrl": "Tipo de enlace no compatible",
+      "urlError": "Error: {error}"
     },
     "history": {
       "title": "Búsquedas Recientes"
@@ -166,7 +168,8 @@
       "label": "Calidad de Audio",
       "mp3_128": "MP3 128 kbps",
       "mp3_320": "MP3 320 kbps",
-      "flac": "FLAC (Sin pérdida)"
+      "flac": "FLAC (Sin pérdida)",
+      "freeHint": "Tu cuenta gratuita de Deezer solo admite MP3 128 kbps."
     },
     "folderStructure": {
       "label": "Estructura de Carpetas",
@@ -368,7 +371,7 @@
       },
       "log": {
         "title": "¿Algo ha salido mal?",
-        "text": "Wavekeep guarda un registro de diagnóstico llamado wavekeep-debug.log en la carpeta de registros de Wavekeep. Se queda en tu ordenador y nunca se envía. Nunca se escriben en él contraseñas, tu ARL ni tokens de inicio de sesión, y tu carpeta personal aparece como ~. Usa los botones de abajo para copiarlo o abrir su carpeta cuando informes de un problema."
+        "text": "Wavekeep guarda un registro de diagnóstico llamado wavekeep-debug.log en la carpeta de registros de Wavekeep. Se queda en tu ordenador y nunca se envía. Nunca se escriben en él contraseñas, tu ARL ni tokens de inicio de sesión, y tu carpeta personal aparece como ~. Sí incluye los ID, artistas y títulos de las canciones y las rutas de tus descargas. Usa los botones de abajo para copiarlo o abrir su carpeta cuando informes de un problema."
       }
     },
     "faq": {
@@ -402,7 +405,7 @@
       },
       "twoLogins": {
         "q": "¿Por qué Spotify pide iniciar sesión dos veces?",
-        "a": "Con tu propio Client ID, la búsqueda usa tu app y las descargas usan el predeterminado de Spotify, por lo que se necesitan dos inicios de sesión en el navegador. Aprueba ambos."
+        "a": "Con tu propio Client ID, la búsqueda usa tu app y las descargas usan el Client ID predeterminado compartido, por lo que se necesitan dos inicios de sesión en el navegador. Aprueba ambos."
       },
       "failed": {
         "q": "Una descarga falló. ¿Qué hago?",
@@ -417,5 +420,13 @@
         "a": "No. No tiene analíticas ni telemetría y solo se comunica con Deezer y Spotify. Tu ARL y tus tokens de Spotify se guardan en el almacén de credenciales de tu sistema operativo cuando está disponible."
       }
     }
+  },
+  "tray": {
+    "showHide": "Mostrar/Ocultar",
+    "idle": "No hay descargas activas",
+    "active": "Descargas en curso…",
+    "pause": "Pausar descargas",
+    "resume": "Reanudar descargas",
+    "quit": "Salir"
   }
 }

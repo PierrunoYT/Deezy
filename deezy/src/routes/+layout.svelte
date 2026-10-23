@@ -24,7 +24,7 @@
     type AppSettings
   } from '$lib/stores';
   import { initI18n } from '$lib/i18n';
-  import { locale as i18nLocale } from 'svelte-i18n';
+  import { locale as i18nLocale, _ as translate } from 'svelte-i18n';
   import { trayManager } from '$lib/tray';
   import { downloadQueueManager } from '$lib/downloadQueue';
   import { recoverDownloadHistory } from '$lib/downloadHistory';
@@ -292,6 +292,7 @@
     let disposed = false;
     let unsubscribeTheme = () => {};
     let unsubscribeLocale = () => {};
+    let unsubscribeTrayLabels = () => {};
     let unsubscribeHistory = () => {};
 
     void (async () => {
@@ -314,6 +315,22 @@
       unsubscribeTheme = theme.subscribe(applyTheme);
       unsubscribeLocale = currentLocale.subscribe(newLocale => {
         i18nLocale.set(newLocale);
+      });
+      // The tray menu is built in Rust; send it the texts for each language.
+      unsubscribeTrayLabels = translate.subscribe(t => {
+        const labels = {
+          showHide: t('tray.showHide'),
+          idle: t('tray.idle'),
+          active: t('tray.active'),
+          pause: t('tray.pause'),
+          resume: t('tray.resume'),
+          quit: t('tray.quit')
+        };
+        // Until the dictionary has loaded, keys come back unchanged.
+        if (labels.quit === 'tray.quit') return;
+        void invoke('set_tray_labels', { labels }).catch(err => {
+          console.warn('Could not translate the tray menu:', err);
+        });
       });
 
       setupSystemThemeListener();
@@ -356,6 +373,7 @@
       unsubscribeHistory();
       unsubscribeTheme();
       unsubscribeLocale();
+      unsubscribeTrayLabels();
       if (mediaQuery && systemThemeChangeHandler) {
         mediaQuery.removeEventListener('change', systemThemeChangeHandler);
       }

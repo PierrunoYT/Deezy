@@ -28,7 +28,9 @@
     "status": {
       "searching": "Suche läuft...",
       "noResults": "Keine Ergebnisse gefunden.",
-      "loginRequired": "Bitte konfigurieren Sie zuerst Ihr ARL-Token in den Einstellungen."
+      "loginRequired": "Bitte konfigurieren Sie zuerst Ihr ARL-Token in den Einstellungen.",
+      "unsupportedUrl": "Nicht unterstützter Linktyp",
+      "urlError": "Fehler: {error}"
     },
     "history": {
       "title": "Letzte Suchen"
@@ -166,7 +168,8 @@
       "label": "Audioqualität",
       "mp3_128": "MP3 128 kbps",
       "mp3_320": "MP3 320 kbps",
-      "flac": "FLAC (Verlustfrei)"
+      "flac": "FLAC (Verlustfrei)",
+      "freeHint": "Dein kostenloses Deezer-Konto unterstützt nur MP3 128 kbit/s."
     },
     "folderStructure": {
       "label": "Ordnerstruktur",
@@ -368,7 +371,7 @@
       },
       "log": {
         "title": "Etwas ist schiefgelaufen?",
-        "text": "Wavekeep führt ein Diagnoseprotokoll namens wavekeep-debug.log im Protokollordner von Wavekeep. Es bleibt auf deinem Computer und wird nie hochgeladen. Passwörter, dein ARL und Anmelde-Token werden nie hineingeschrieben, und dein Benutzerordner erscheint als ~. Mit den Schaltflächen unten kannst du es kopieren oder seinen Ordner öffnen, wenn du ein Problem meldest."
+        "text": "Wavekeep führt ein Diagnoseprotokoll namens wavekeep-debug.log im Protokollordner von Wavekeep. Es bleibt auf deinem Computer und wird nie hochgeladen. Passwörter, dein ARL und Anmelde-Token werden nie hineingeschrieben, und dein Benutzerordner erscheint als ~. Es enthält aber Titel-IDs, Interpret und Titel sowie die Pfade deiner Downloads. Mit den Schaltflächen unten kannst du es kopieren oder seinen Ordner öffnen, wenn du ein Problem meldest."
       }
     },
     "faq": {
@@ -402,7 +405,7 @@
       },
       "twoLogins": {
         "q": "Warum fragt Spotify zweimal nach der Anmeldung?",
-        "a": "Mit deiner eigenen Client-ID nutzt die Suche deine App und Downloads nutzen die Standard-ID von Spotify, daher sind zwei Browser-Anmeldungen nötig. Bestätige beide."
+        "a": "Mit deiner eigenen Client-ID nutzt die Suche deine App und Downloads nutzen die gemeinsame Standard-Client-ID, daher sind zwei Browser-Anmeldungen nötig. Bestätige beide."
       },
       "failed": {
         "q": "Ein Download ist fehlgeschlagen. Was tun?",
@@ -417,5 +420,13 @@
         "a": "Nein. Es gibt keine Analyse oder Telemetrie, und Wavekeep spricht nur mit Deezer und Spotify. Dein ARL und deine Spotify-Token werden, sofern vorhanden, im Anmeldespeicher deines Betriebssystems abgelegt."
       }
     }
+  },
+  "tray": {
+    "showHide": "Anzeigen/Ausblenden",
+    "idle": "Keine aktiven Downloads",
+    "active": "Downloads laufen…",
+    "pause": "Downloads pausieren",
+    "resume": "Downloads fortsetzen",
+    "quit": "Beenden"
   }
 }

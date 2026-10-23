@@ -53,6 +53,23 @@ install_bun() {
   bun --version
 }
 
+# Tauri's dev and build hooks run `npm run dev` / `npm run build`, so Node.js
+# and npm are needed next to Bun. Vite 6 needs Node 20 or newer, which the
+# distribution packages may not provide.
+install_node() {
+  if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1 &&
+    node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 20 ? 0 : 1)'; then
+    node --version
+    npm --version
+    return
+  fi
+
+  curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs
+  node --version
+  npm --version
+}
+
 install_rust() {
   if [[ -x "$HOME/.cargo/bin/rustup" ]]; then
     "$HOME/.cargo/bin/rustup" toolchain install stable --profile minimal
@@ -101,6 +118,7 @@ install_backend_dependencies() {
 
 run_step "Installing system dependencies" install_system_dependencies
 run_step "Ensuring Bun is available" install_bun
+run_step "Ensuring Node.js and npm are available" install_node
 run_step "Ensuring Rust is available" install_rust
 run_step "Persisting toolchain paths" persist_toolchain_paths
 run_step "Installing frontend dependencies" install_frontend_dependencies

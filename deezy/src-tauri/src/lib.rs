@@ -173,6 +173,7 @@ pub fn run() {
             commands::import_theme_file,
             commands::create_example_themes,
             commands::show_in_folder,
+            commands::set_tray_labels,
             commands::write_log,
             commands::read_recent_log,
             commands::open_log_folder,

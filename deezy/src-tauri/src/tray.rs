@@ -6,10 +6,56 @@ use tauri::{
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+/// Tray menu texts. English until the frontend sends the translations for the
+/// current language (`set_tray_labels`).
+#[derive(Clone, Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrayLabels {
+    pub show_hide: String,
+    pub idle: String,
+    pub active: String,
+    pub pause: String,
+    pub resume: String,
+    pub quit: String,
+}
+
+impl Default for TrayLabels {
+    fn default() -> Self {
+        Self {
+            show_hide: "Show/Hide".to_string(),
+            idle: "No active downloads".to_string(),
+            active: "Downloads in progress…".to_string(),
+            pause: "Pause Downloads".to_string(),
+            resume: "Resume Downloads".to_string(),
+            quit: "Quit".to_string(),
+        }
+    }
+}
+
+impl TrayLabels {
+    /// Keeps menu texts short; anything blank falls back to English.
+    pub fn sanitized(self) -> Self {
+        let defaults = Self::default();
+        let clean = |value: String, fallback: String| {
+            let value: String = value.trim().chars().take(60).collect();
+            if value.is_empty() { fallback } else { value }
+        };
+        Self {
+            show_hide: clean(self.show_hide, defaults.show_hide),
+            idle: clean(self.idle, defaults.idle),
+            active: clean(self.active, defaults.active),
+            pause: clean(self.pause, defaults.pause),
+            resume: clean(self.resume, defaults.resume),
+            quit: clean(self.quit, defaults.quit),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct TrayState {
     pub downloads_active: Arc<Mutex<bool>>,
     pub downloads_paused: Arc<Mutex<bool>>,
+    pub labels: Arc<Mutex<TrayLabels>>,
 }
 
 impl TrayState {
@@ -17,17 +63,19 @@ impl TrayState {
         Self {
             downloads_active: Arc::new(Mutex::new(false)),
             downloads_paused: Arc::new(Mutex::new(false)),
+            labels: Arc::new(Mutex::new(TrayLabels::default())),
         }
     }
 }
 
 pub fn create_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    let show_hide = MenuItem::with_id(app, "show_hide", "Show/Hide", true, None::<&str>)?;
-    let downloads_status = MenuItem::with_id(app, "downloads_status", "No active downloads", false, None::<&str>)?;
+    let labels = TrayLabels::default();
+    let show_hide = MenuItem::with_id(app, "show_hide", &labels.show_hide, true, None::<&str>)?;
+    let downloads_status = MenuItem::with_id(app, "downloads_status", &labels.idle, false, None::<&str>)?;
     let separator1 = PredefinedMenuItem::separator(app)?;
-    let pause_resume = MenuItem::with_id(app, "pause_resume", "Pause Downloads", true, None::<&str>)?;
+    let pause_resume = MenuItem::with_id(app, "pause_resume", &labels.pause, true, None::<&str>)?;
     let separator2 = PredefinedMenuItem::separator(app)?;
-    let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", &labels.quit, true, None::<&str>)?;
 
     let menu = Menu::with_items(
         app,
@@ -110,24 +158,29 @@ fn get_tray_icon(app: &AppHandle) -> Result<tauri::image::Image<'static>, Box<dy
     }
 }
 
-pub fn update_tray_menu(app: &AppHandle, downloads_active: bool, downloads_paused: bool) -> Result<(), Box<dyn std::error::Error>> {
+pub fn update_tray_menu(
+    app: &AppHandle,
+    downloads_active: bool,
+    downloads_paused: bool,
+    labels: &TrayLabels,
+) -> Result<(), Box<dyn std::error::Error>> {
     if let Some(tray) = app.tray_by_id("main") {
         // Recreate menu with updated state
-        let show_hide = MenuItem::with_id(app, "show_hide", "Show/Hide", true, None::<&str>)?;
+        let show_hide = MenuItem::with_id(app, "show_hide", &labels.show_hide, true, None::<&str>)?;
         
         let status_text = if downloads_active {
-            "Downloads in progress..."
+            &labels.active
         } else {
-            "No active downloads"
+            &labels.idle
         };
         let downloads_status = MenuItem::with_id(app, "downloads_status", status_text, false, None::<&str>)?;
         
         let separator1 = PredefinedMenuItem::separator(app)?;
         
         let pause_text = if downloads_paused {
-            "Resume Downloads"
+            &labels.resume
         } else {
-            "Pause Downloads"
+            &labels.pause
         };
         let pause_resume = MenuItem::with_id(
             app,
@@ -138,7 +191,7 @@ pub fn update_tray_menu(app: &AppHandle, downloads_active: bool, downloads_pause
         )?;
         
         let separator2 = PredefinedMenuItem::separator(app)?;
-        let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+        let quit = MenuItem::with_id(app, "quit", &labels.quit, true, None::<&str>)?;
 
         let menu = Menu::with_items(
             app,

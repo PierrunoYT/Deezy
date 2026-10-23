@@ -49,12 +49,17 @@ Paths below are relative to `deezy/`.
 | `src/lib/tray.ts` | Tray event listener and status subscriptions |
 | `src/lib/components/search/` | Search and library (Loved Tracks, My Playlists) result rendering, types, and styles |
 | `src-tauri/src/lib.rs` | Managed application state, command registration, window events |
-| `src-tauri/src/commands/` | IPC handlers grouped by account, catalog, downloads, filesystem, history, settings, Spotify, tag editor, themes, and tray |
-| `src-tauri/src/deezer/` | Authentication, gateway and catalog requests, user library (Loved Tracks, profile playlists), media resolution, crypto, downloads, and models |
+| `src-tauri/src/commands/` | IPC handlers grouped by account, catalog, diagnostics (log), downloads, filesystem, history, settings, Spotify, tag editor, themes, and tray |
+| `src-tauri/src/deezer/` | Authentication, gateway and catalog requests, user library (Loved Tracks, profile playlists), media resolution, crypto, downloads, models, and the bandwidth limiter shared with Spotify |
 | `src-tauri/src/spotify/` | OAuth/AP sessions, Web API and Pathfinder search, AP catalog metadata, librespot audio streaming, and OGG/FLAC/MP3/M4A tagging |
 | `src-tauri/src/paths.rs` | Provider-neutral destination paths and safe temp-file finalization shared by both engines |
 | `src-tauri/src/settings.rs` | Validated settings, credential storage, atomic private-file writes |
 | `src-tauri/src/themes.rs` | Custom theme validation and persistence |
+| `src-tauri/src/migration.rs` | One-time move of Deezy data and credentials to the Wavekeep identifier |
+| `src-tauri/src/logging.rs` | Local diagnostic log: levels, redaction, rotation |
+| `src-tauri/src/tray.rs` | System tray construction and menu updates |
+| `src/lib/logger.ts` | Frontend logging and console/uncaught-error forwarding |
+| `src/lib/notice.ts` | Startup-warning flag and Info & FAQ item ids |
 
 `commands.rs` and `deezer/mod.rs` contain shared helpers and module exports;
 handlers and client methods are split into their respective submodules.
@@ -72,7 +77,9 @@ The backend resolves metadata and media, streams/decrypts audio into a unique
 `.wavekeep.part` file, and writes tags on that temporary file. Tagging failures emit
 warnings without failing the audio download. Final publication avoids overwriting
 existing files, choosing a numbered name on collision. Filesystems without hard
-link support use an atomic no-overwrite rename instead.
+link support fall back to a rename that never overwrites: atomic on Windows
+(`MoveFileExW` without replace), and an exists-check followed by a rename on
+macOS and Linux, which is not atomic.
 
 With skip existing files enabled (the default), the backend first builds the
 destination path and checks for a non-empty supported audio file. Deezer checks
@@ -110,8 +117,8 @@ Spotify separates catalog and download responsibilities:
 - `ap.rs` resolves track, album, artist, playlist, Loved Tracks, and download
   metadata through the librespot AP session, with a Web API fallback for artist
   discographies when AP metadata is rejected. Track metadata uses eight concurrent
-  requests while preserving result order. Artist discographies are capped at 120
-  albums. Unavailable individual tracks are skipped, but a completely failed
+  requests while preserving result order. Artist discographies from the AP are capped at 120
+  releases, silently; the Web API fallback pages up to 1,000. Unavailable individual tracks are skipped, but a completely failed
   track load returns an error.
 - `download.rs` selects the best available audio format and streams through the
   AP session. `tags.rs` writes the provider-appropriate OGG, FLAC, MP3, or M4A tags.
@@ -131,7 +138,7 @@ restart. Because both logins reuse the callback port, the success page carries
 an empty favicon and the second login waits briefly and retries on a stray
 request.
 
-The Spotify account type (`Profile.product`) is displayed but never enforced,
+The Spotify account type (`Profile.product`) is only written to the log, never shown or enforced,
 and Free-account audio access through librespot has not been verified. Available
 quality depends on the formats Spotify lists for each track.
 
@@ -189,8 +196,8 @@ that review. Test these separately when changes affect those paths.
    this repository, so Rust dependencies are not pinned in Git.
 2. Move the relevant `CHANGELOG.md` Unreleased entries into a dated version
    section. Keep source-only changes distinct from shipped installer behavior.
-3. Install locked dependencies and run the test, check, and frontend build
-   commands above.
+3. Install locked dependencies and run `npm test`, `npm run check`, `npm run build`,
+   and `cargo test --manifest-path src-tauri/Cargo.toml`.
 4. Smoke-test Deezer and Spotify login/session restoration, search and rate-limit
    fallback, catalog loading, previews where available, download/pause/resume,
    tagging, restart recovery, themes, and tray shutdown on the release platform.
@@ -202,5 +209,6 @@ that review. Test these separately when changes affect those paths.
 7. Make one release commit named `chore: prepare version X.Y.Z release` and an
    annotated tag `vX.Y.Z` with the message `Wavekeep vX.Y.Z`, then publish the
    appropriate installers and notes through the repository's release process.
-   Do not push the commit or tag before the smoke test in step 4 has passed. The
+   Push the commit and tag only when the maintainer asks, and never before the
+   smoke test in step 4 has passed. The
    app has no automatic updater.

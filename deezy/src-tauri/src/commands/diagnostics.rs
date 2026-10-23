@@ -17,7 +17,7 @@ pub async fn write_log(level: String, area: String, message: String) -> Result<(
         .take(12)
         .collect();
     let area = if area.is_empty() { "ui".to_string() } else { format!("ui-{}", area) };
-    let message: String = message.chars().take(MAX_FRONTEND_MESSAGE).collect();
+    let message = cut_at_word(&message, MAX_FRONTEND_MESSAGE);
     logging::write(logging::Level::parse(&level), &area, &message);
     Ok(())
 }
@@ -68,4 +68,29 @@ pub async fn open_log_folder() -> Result<(), String> {
     }
 
     Ok(())
+}
+
+/// Shortens `text` to at most `max` characters, ending at a whitespace so a
+/// token is never split (redaction only recognises whole tokens).
+fn cut_at_word(text: &str, max: usize) -> String {
+    if text.chars().count() <= max {
+        return text.to_string();
+    }
+    let cut: String = text.chars().take(max).collect();
+    match cut.rfind(char::is_whitespace) {
+        Some(end) => format!("{} …", &cut[..end]),
+        None => "[message too long to log]".to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::cut_at_word;
+
+    #[test]
+    fn never_splits_a_word() {
+        assert_eq!(cut_at_word("short", 10), "short");
+        assert_eq!(cut_at_word("one two three", 9), "one two …");
+        assert_eq!(cut_at_word(&"x".repeat(50), 10), "[message too long to log]");
+    }
 }

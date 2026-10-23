@@ -108,6 +108,12 @@
       }
     };
 
+    // On macOS, Cmd+H is the system "Hide" shortcut, which already hides the
+    // app; registering our own would fight with it.
+    if (navigator.platform.toUpperCase().includes('MAC')) {
+      delete shortcuts['minimize-to-tray'];
+    }
+
     Object.entries(shortcuts).forEach(([id, shortcut]) => {
       keyboardShortcuts.register(id, shortcut);
     });

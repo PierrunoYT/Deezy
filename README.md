@@ -4,7 +4,7 @@
   <img src="deezy/static/logodeezy.svg" alt="Wavekeep Logo" width="200"/>
 </p>
 
-> Wavekeep was previously called **Deezy**. Updating keeps your settings, download history, themes and saved logins; see [Upgrading from Deezy](#upgrading-from-deezy).
+> Wavekeep was previously called **Deezy**. Updating keeps your settings, download history, themes and saved logins (the startup warning shows once more); see [Upgrading from Deezy](#upgrading-from-deezy).
 
 A modern desktop Deezer and Spotify downloader. Search for tracks, albums, artists, and playlists, paste music URLs for direct download, and save audio with full metadata and cover art.
 
@@ -34,7 +34,7 @@ A modern desktop Deezer and Spotify downloader. Search for tracks, albums, artis
 ## Features
 
 - **Search** – Find tracks, albums, artists, and playlists on Deezer or Spotify with debounced search
-- **Spotify source** – Download through librespot with full metadata and cover art; OGG Vorbis is preferred, then MP3; FLAC is only used for the Lossless setting, and M4A/AAC only when none of those are available
+- **Spotify source** – Download through librespot with full metadata and cover art; at each bitrate OGG Vorbis is preferred over MP3; FLAC is only requested for the Lossless setting, and if a track has none of the usual formats, whatever Spotify offers (such as AAC) is used
 - **URL download** – Paste full `deezer.com` or `open.spotify.com` track, album, artist, or playlist URLs to add their content to the queue
 - **Audio preview** – Play 30-second Deezer previews before downloading
 - **Smart queue** – 1 to 10 simultaneous downloads (3 by default) with drag-and-drop reordering, pause/resume, and retry
@@ -43,17 +43,17 @@ A modern desktop Deezer and Spotify downloader. Search for tracks, albums, artis
 - **Skip existing files** – Tracks whose audio file is already at the destination are skipped, even after clearing history
 - **Download pacing** – Optional pause between downloads and a total speed limit, including presets that match playback speed
 - **Quality options** – Deezer MP3 128, MP3 320, or FLAC; Spotify 96/160/320 kbps or lossless FLAC, with format fallback
-- **Full metadata** – Title, artist, album, year, track and disc number, and cover art embedded; Deezer downloads also embed the album artist, which Spotify downloads do not
+- **Full metadata** – Title, artist, album, year, track and disc number, and cover art embedded; Deezer downloads also fill the album-artist tag (with the track's main artist), which Spotify downloads do not
 - **Folder structure** – Organize downloads as Flat, Artist/Track, Artist/Album/Track, Album/Track, or with a custom template
 - **Tag editor** – Edit metadata and cover art on any local MP3, FLAC, OGG, or M4A file (including Spotify downloads); files with an unreadable tag are reported and left untouched instead of being overwritten
 - **Download history** – Persistent history with CSV/JSON export and open-in-file-manager
 - **Themes** – Light, Dark, System, and fully custom JSON themes
 - **Internationalization** – English, Spanish, French, German, Portuguese, and Italian
 - **Info & FAQ** – A warning about terms of service, account risk and credentials appears at startup (with a "Don't show this again" option), and the **Info & FAQ** button in the sidebar reopens it with a short FAQ and buttons to copy or open the local diagnostic log for bug reports, in all six languages
-- **Keyboard shortcuts** – Ctrl+F, Ctrl+1/2/3, Ctrl+, (Settings), Ctrl+H, Esc (clear search / go back), Space, Shift+? and more
-- **System tray** – Minimize to tray with download status and quick controls
+- **Keyboard shortcuts** – (Cmd instead of Ctrl on macOS) Ctrl+F, Ctrl+1/2/3, Ctrl+, (Settings), Ctrl+H (minimize to tray; on macOS the system Cmd+H hides the app instead), Esc (clear search / go back), Space, Shift+? and more
+- **System tray** – Minimize to tray with download status and quick controls; closing the window hides it to the tray by default (turn off *Close to tray* in Settings to quit instead)
 - **Manual updates** – Install Windows releases from GitHub or rebuild from source on macOS and Linux
-- **Secure credentials** – ARL replacements are authenticated before storage, normally kept in the OS credential store, and redacted from `settings.json`; a clearly indicated private-file fallback is available when secure storage is unavailable
+- **Secure credentials** – ARL replacements are authenticated before storage, normally kept in the OS credential store, and redacted from `settings.json`; when secure storage is unavailable, a clearly indicated fallback keeps the ARL in plain text in `settings.json` (owner-only permissions on macOS and Linux)
 
 These docs describe the current source. Changes under [Unreleased](CHANGELOG.md#unreleased) may not yet be included in the latest installer.
 
@@ -78,7 +78,7 @@ Download the latest installer from the [Releases page](https://github.com/Pierru
 
 ### macOS & Linux
 
-No pre-built binaries are available yet. Install the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your operating system, plus [Bun](https://bun.sh/) and the stable Rust toolchain, then build from source:
+No pre-built binaries are available yet. Install the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your operating system, plus [Bun](https://bun.sh/), Node.js with npm (the Tauri build runs `npm run build`), and the stable Rust toolchain, then build from source:
 
 ```bash
 git clone https://github.com/PierrunoYT/Deezy.git
@@ -93,7 +93,7 @@ Install the output from `src-tauri/target/release/bundle/` (`.dmg` on macOS, `.d
 
 ### Amp development orbs
 
-Amp automatically runs the executable `.agents/setup` script when creating a fresh orb. It installs the Linux packages and toolchains required by Tauri, installs the locked frontend dependencies, and fetches the Rust dependencies. On resume, `.agents/resume` verifies that the toolchains and frontend dependencies are ready; Wavekeep has no background services to restart.
+Amp automatically runs the executable `.agents/setup` script when creating a fresh orb. It installs the Linux packages and toolchains required by Tauri (including Node.js 22 with npm when no Node 20+ is present, since Tauri runs `npm run dev`/`npm run build`), installs the locked frontend dependencies, and fetches the Rust dependencies. On resume, `.agents/resume` verifies that the toolchains and frontend dependencies are ready; Wavekeep has no background services to restart.
 
 ---
 
@@ -103,7 +103,7 @@ Amp automatically runs the executable `.agents/setup` script when creating a fre
 2. Open DevTools (`F12`) → **Application** (Chrome) or **Storage** (Firefox) → **Cookies** → `https://www.deezer.com`
 3. Copy the complete value of the `arl` cookie
 
-> Treat the ARL like a password. Wavekeep normally stores it in Windows Credential Manager, macOS Keychain, or Linux Secret Service and excludes it from `settings.json`. If secure storage is unavailable or cannot be read (for example, no running Secret Service on Linux), Wavekeep can use a clearly indicated private-file fallback. A replacement is authenticated before the working credential is changed. The ARL can expire or be invalidated and may need to be updated.
+> Treat the ARL like a password. Wavekeep normally stores it in Windows Credential Manager, macOS Keychain, or Linux Secret Service and excludes it from `settings.json`. If secure storage is unavailable or cannot be read (for example, no running Secret Service on Linux), Wavekeep can use a clearly indicated fallback that keeps the ARL in plain text in `settings.json` (restricted to your user on macOS and Linux; on Windows only the normal per-user folder permissions apply). A replacement is authenticated before the working credential is changed. The ARL can expire or be invalidated and may need to be updated.
 
 ---
 
@@ -128,15 +128,17 @@ Track metadata, downloads, Loved Tracks and the tracks of a playlist or album go
 7. **History** – View completed downloads, open files in Explorer/Finder, or export history
 8. **Customize** – Change theme, language, folder structure, notifications, skipping of existing files, simultaneous downloads, download pacing, Spotify quality, and Spotify Client ID in Settings (Ctrl+3)
 9. **Updates** – Download the latest Windows installer from GitHub Releases, or pull and rebuild on macOS and Linux
-10. **Tray** – Minimize to tray (Ctrl+H); left-click the icon to show or hide the window
+10. **Tray** – Minimize to tray (Ctrl+H, or the system Cmd+H on macOS); left-click the icon to show or hide the window
 
 Pausing cancels the current transfer; resuming downloads the track again from the
 beginning. Saved interrupted downloads appear as paused after restarting. Pending
 queue entries are not persisted. Clearing history preserves active and queued
 rows and does not delete downloaded files.
 
-Album, playlist, and artist loaders follow API pagination. If a later page fails,
+Deezer album, playlist, and artist loaders follow API pagination. If a later page fails,
 the operation reports an error instead of silently returning an incomplete list.
+Spotify lists can be shorter than on Spotify itself: unavailable tracks are
+skipped, and an artist discography shows at most 120 releases.
 
 ### Custom folder templates
 
@@ -157,7 +159,7 @@ metadata are sanitized, so an artist such as `AC/DC` stays in one directory.
 
 Open **Info & FAQ** in the sidebar, press **Copy recent log**, and paste it with a short description into a [GitHub issue](https://github.com/PierrunoYT/Deezy/issues) or the [Discord server](https://discord.gg/dvuWBeXSf3). **Open log folder** shows the whole file, `wavekeep-debug.log` in Wavekeep's logs folder (`%LOCALAPPDATA%\com.pierr.wavekeep\logs` on Windows, `~/Library/Logs/com.pierr.wavekeep` on macOS, and `~/.local/share/com.pierr.wavekeep/logs` on Linux). The system does not clean that folder up on its own.
 
-The log is local only. It stays on your computer and Wavekeep never uploads it. Passwords, your ARL and login tokens are never written to it; on top of that, every line is cleaned before it is saved: your home folder appears as `~`, web addresses lose their query part (where tokens travel), and any long token-like string is replaced with `[redacted]`. You can read it before sharing.
+The log is local only. It stays on your computer and Wavekeep never uploads it. Passwords, your ARL and login tokens are never written to it; on top of that, every line is cleaned before it is saved: your home folder appears as `~`, web addresses lose their query part (where tokens travel), and any long token-like string is replaced with `[redacted]`. It does contain track IDs, artist and title, and the paths of your saved files, so read it before sharing if that matters to you. **Copy recent log** copies the last 300 lines; older lines are in `wavekeep-debug.old.log` once the log passes 1 MB.
 
 ## Development
 

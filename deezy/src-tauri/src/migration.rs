@@ -40,15 +40,17 @@ pub fn run(app: &tauri::AppHandle) {
         crate::logging::info("migration", &line);
     }
 
+    // Spotify tokens always live in the credential store; the ARL only does
+    // while it is enabled (otherwise it is in settings.json, moved above).
+    let mut users = vec![
+        crate::spotify::auth::KEYRING_USER,
+        crate::spotify::auth::KEYRING_WEB_USER,
+    ];
     if crate::settings::keyring_enabled() {
-        let users = [
-            crate::settings::KEYRING_USER,
-            crate::spotify::auth::KEYRING_USER,
-            crate::spotify::auth::KEYRING_WEB_USER,
-        ];
-        for line in migrate_credentials(&Keyring, OLD_IDENTIFIER, IDENTIFIER, &users) {
-            crate::logging::info("migration", &line);
-        }
+        users.push(crate::settings::KEYRING_USER);
+    }
+    for line in migrate_credentials(&Keyring, OLD_IDENTIFIER, IDENTIFIER, &users) {
+        crate::logging::info("migration", &line);
     }
 }
 

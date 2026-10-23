@@ -526,7 +526,7 @@
         </option>
       </select>
       {#if isFreeAccount}
-        <p class="form-hint">Your Deezer Free account supports MP3 128 kbps only.</p>
+        <p class="form-hint">{$_('settings.quality.freeHint')}</p>
       {/if}
     </div>
 

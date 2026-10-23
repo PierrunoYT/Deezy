@@ -28,7 +28,9 @@
     "status": {
       "searching": "Recherche en cours...",
       "noResults": "Aucun résultat trouvé.",
-      "loginRequired": "Veuillez d'abord configurer votre jeton ARL dans les Paramètres."
+      "loginRequired": "Veuillez d'abord configurer votre jeton ARL dans les Paramètres.",
+      "unsupportedUrl": "Type de lien non pris en charge",
+      "urlError": "Erreur : {error}"
     },
     "history": {
       "title": "Recherches Récentes"
@@ -166,7 +168,8 @@
       "label": "Qualité Audio",
       "mp3_128": "MP3 128 kbps",
       "mp3_320": "MP3 320 kbps",
-      "flac": "FLAC (Sans perte)"
+      "flac": "FLAC (Sans perte)",
+      "freeHint": "Votre compte Deezer Free ne prend en charge que le MP3 128 kbit/s."
     },
     "folderStructure": {
       "label": "Structure des Dossiers",
@@ -368,7 +371,7 @@
       },
       "log": {
         "title": "Un problème ?",
-        "text": "Wavekeep tient un journal de diagnostic nommé wavekeep-debug.log dans le dossier des journaux de Wavekeep. Il reste sur votre ordinateur et n'est jamais envoyé. Les mots de passe, votre ARL et vos jetons de connexion n'y sont jamais écrits, et votre dossier personnel apparaît sous la forme ~. Utilisez les boutons ci-dessous pour le copier ou ouvrir son dossier lorsque vous signalez un problème."
+        "text": "Wavekeep tient un journal de diagnostic nommé wavekeep-debug.log dans le dossier des journaux de Wavekeep. Il reste sur votre ordinateur et n'est jamais envoyé. Les mots de passe, votre ARL et vos jetons de connexion n'y sont jamais écrits, et votre dossier personnel apparaît sous la forme ~. Il contient en revanche les identifiants, artistes et titres des morceaux et les chemins de vos téléchargements. Utilisez les boutons ci-dessous pour le copier ou ouvrir son dossier lorsque vous signalez un problème."
       }
     },
     "faq": {
@@ -402,7 +405,7 @@
       },
       "twoLogins": {
         "q": "Pourquoi Spotify demande-t-il de se connecter deux fois ?",
-        "a": "Avec votre propre ID client, la recherche utilise votre application et les téléchargements utilisent celui par défaut de Spotify ; deux connexions via le navigateur sont donc nécessaires. Validez les deux."
+        "a": "Avec votre propre ID client, la recherche utilise votre application et les téléchargements utilisent l'ID client par défaut partagé ; deux connexions via le navigateur sont donc nécessaires. Validez les deux."
       },
       "failed": {
         "q": "Un téléchargement a échoué. Que faire ?",
@@ -417,5 +420,13 @@
         "a": "Non. Il n'a ni analytique ni télémétrie et ne communique qu'avec Deezer et Spotify. Votre ARL et vos jetons Spotify sont conservés dans le coffre d'identifiants de votre système lorsqu'il est disponible."
       }
     }
+  },
+  "tray": {
+    "showHide": "Afficher/Masquer",
+    "idle": "Aucun téléchargement en cours",
+    "active": "Téléchargements en cours…",
+    "pause": "Mettre en pause les téléchargements",
+    "resume": "Reprendre les téléchargements",
+    "quit": "Quitter"
   }
 }

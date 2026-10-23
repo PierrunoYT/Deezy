@@ -28,7 +28,9 @@
     "status": {
       "searching": "Searching...",
       "noResults": "No results found.",
-      "loginRequired": "Please set your ARL token in Settings first."
+      "loginRequired": "Please set your ARL token in Settings first.",
+      "unsupportedUrl": "Unsupported link type",
+      "urlError": "Error: {error}"
     },
     "history": {
       "title": "Recent Searches"
@@ -166,7 +168,8 @@
       "label": "Audio Quality",
       "mp3_128": "MP3 128 kbps",
       "mp3_320": "MP3 320 kbps",
-      "flac": "FLAC (Lossless)"
+      "flac": "FLAC (Lossless)",
+      "freeHint": "Your Deezer Free account supports MP3 128 kbps only."
     },
     "folderStructure": {
       "label": "Folder Structure",
@@ -368,7 +371,7 @@
       },
       "log": {
         "title": "Something went wrong?",
-        "text": "Wavekeep keeps a diagnostic log named wavekeep-debug.log in Wavekeep's logs folder. It stays on your computer and is never uploaded. Passwords, your ARL and login tokens are never written to it, and your home folder appears as ~. Use the buttons below to copy it or open its folder when you report a problem."
+        "text": "Wavekeep keeps a diagnostic log named wavekeep-debug.log in Wavekeep's logs folder. It stays on your computer and is never uploaded. Passwords, your ARL and login tokens are never written to it, and your home folder appears as ~. It does include track IDs, artist and title, and the paths of your downloads. Use the buttons below to copy it or open its folder when you report a problem."
       }
     },
     "faq": {
@@ -402,7 +405,7 @@
       },
       "twoLogins": {
         "q": "Why does Spotify ask me to log in twice?",
-        "a": "With your own Client ID, search uses your app and downloads use Spotify's default one, so two browser logins are needed. Approve both."
+        "a": "With your own Client ID, search uses your app and downloads use the shared default Client ID, so two browser logins are needed. Approve both."
       },
       "failed": {
         "q": "A download failed. What can I do?",
@@ -417,5 +420,13 @@
         "a": "No. It has no analytics or telemetry and only talks to Deezer and Spotify. Your ARL and Spotify tokens are kept in your operating system's credential store when one is available."
       }
     }
+  },
+  "tray": {
+    "showHide": "Show/Hide",
+    "idle": "No active downloads",
+    "active": "Downloads in progress…",
+    "pause": "Pause Downloads",
+    "resume": "Resume Downloads",
+    "quit": "Quit"
   }
 }

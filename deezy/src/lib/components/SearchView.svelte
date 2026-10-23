@@ -647,10 +647,10 @@
           break;
           
         default:
-          urlError = 'Unsupported content type';
+          urlError = $_('search.status.unsupportedUrl');
       }
     } catch (err) {
-      urlError = `Error: ${String(err)}`;
+      urlError = $_('search.status.urlError', { values: { error: String(err) } });
     } finally {
       parsingUrl = false;
     }

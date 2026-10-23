@@ -28,7 +28,9 @@
         "status": {
             "searching": "A pesquisar...",
             "noResults": "Nenhum resultado encontrado.",
-            "loginRequired": "Configure o seu token ARL nas Definições primeiro."
+            "loginRequired": "Configure o seu token ARL nas Definições primeiro.",
+            "unsupportedUrl": "Tipo de ligação não suportado",
+            "urlError": "Erro: {error}"
         },
         "history": {
             "title": "Pesquisas Recentes"
@@ -166,7 +168,8 @@
             "label": "Qualidade de Áudio",
             "mp3_128": "MP3 128 kbps",
             "mp3_320": "MP3 320 kbps",
-            "flac": "FLAC (Sem perda)"
+            "flac": "FLAC (Sem perda)",
+            "freeHint": "A tua conta gratuita do Deezer só suporta MP3 128 kbps."
         },
         "folderStructure": {
             "label": "Estrutura de Pastas",
@@ -368,7 +371,7 @@
             },
             "log": {
                 "title": "Algo correu mal?",
-                "text": "O Wavekeep mantém um registo de diagnóstico chamado wavekeep-debug.log na pasta de registos do Wavekeep. Fica no teu computador e nunca é enviado. Palavras-passe, o teu ARL e tokens de sessão nunca são escritos nele, e a tua pasta pessoal aparece como ~. Usa os botões abaixo para o copiar ou abrir a pasta quando reportares um problema."
+                "text": "O Wavekeep mantém um registo de diagnóstico chamado wavekeep-debug.log na pasta de registos do Wavekeep. Fica no teu computador e nunca é enviado. Palavras-passe, o teu ARL e tokens de sessão nunca são escritos nele, e a tua pasta pessoal aparece como ~. Inclui, no entanto, os ID, artistas e títulos das faixas e os caminhos das tuas transferências. Usa os botões abaixo para o copiar ou abrir a pasta quando reportares um problema."
             }
         },
         "faq": {
@@ -402,7 +405,7 @@
             },
             "twoLogins": {
                 "q": "Porque pede o Spotify dois inícios de sessão?",
-                "a": "Com o teu próprio Client ID, a pesquisa usa a tua app e as transferências usam o predefinido do Spotify, por isso são precisos dois inícios de sessão no navegador. Aprova ambos."
+                "a": "Com o teu próprio Client ID, a pesquisa usa a tua app e as transferências usam o Client ID predefinido partilhado, por isso são precisos dois inícios de sessão no navegador. Aprova ambos."
             },
             "failed": {
                 "q": "Uma transferência falhou. O que posso fazer?",
@@ -417,5 +420,13 @@
                 "a": "Não. Não tem análises nem telemetria e só comunica com o Deezer e o Spotify. O teu ARL e os tokens do Spotify são guardados no cofre de credenciais do sistema operativo, quando disponível."
             }
         }
+    },
+    "tray": {
+        "showHide": "Mostrar/Ocultar",
+        "idle": "Sem transferências ativas",
+        "active": "Transferências em curso…",
+        "pause": "Pausar transferências",
+        "resume": "Retomar transferências",
+        "quit": "Sair"
     }
 }
