@@ -38,12 +38,17 @@ impl DeezerClient {
                         .get_media_url(track_token, license_token, fallback_quality, false)
                         .await
                     {
+                        crate::logging::info(
+                            "deezer",
+                            format!("{} unavailable from the media API; using {}", quality, fallback_quality),
+                        );
                         return Ok(result);
                     }
                 }
             }
         }
 
+        crate::logging::debug("deezer", "Media API gave no URL; trying the legacy download URL");
         let md5_origin = track_data["MD5_ORIGIN"]
             .as_str()
             .ok_or("Track unavailable (no MD5_ORIGIN)")?;
@@ -90,12 +95,17 @@ impl DeezerClient {
             if res.status().is_success() {
                 if let Some(len) = res.content_length() {
                     if len > 0 {
+                        crate::logging::info(
+                            "deezer",
+                            format!("{} unavailable from the legacy URL; using {}", quality, q),
+                        );
                         return Ok((url, q.to_string()));
                     }
                 }
             }
         }
 
+        crate::logging::warn("deezer", "No working download URL found in any quality");
         Err("No working download URL found".into())
     }
 

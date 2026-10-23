@@ -16,6 +16,7 @@ use url::Url;
 
 mod account;
 mod catalog;
+mod diagnostics;
 mod downloads;
 mod filesystem;
 mod history;
@@ -27,6 +28,7 @@ mod tray;
 
 pub use account::*;
 pub use catalog::*;
+pub use diagnostics::*;
 pub use downloads::*;
 pub use filesystem::*;
 pub use history::*;

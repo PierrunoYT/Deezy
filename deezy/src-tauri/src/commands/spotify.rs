@@ -36,7 +36,14 @@ pub async fn spotify_login(
 ) -> Result<SpotifyStatus, String> {
     let device_id = ensure_device_id(&state, &app).await?;
     let client_id = configured_client_id(&state).await;
-    let client = spotify::auth::login(&device_id, &client_id).await?;
+    let client = spotify::auth::login(&device_id, &client_id).await.map_err(|e| {
+        crate::logging::warn("spotify", format!("Connect failed: {}", e));
+        e
+    })?;
+    crate::logging::info(
+        "spotify",
+        format!("Connected ({}, {} Client ID)", client.profile.product, client_id_kind(&client_id)),
+    );
     let status = status(&client);
     *state.spotify.lock().await = Some(client);
     Ok(status)
@@ -45,6 +52,7 @@ pub async fn spotify_login(
 #[tauri::command]
 pub async fn spotify_logout(state: tauri::State<'_, AppState>) -> Result<SpotifyStatus, String> {
     *state.spotify.lock().await = None;
+    crate::logging::info("spotify", "Disconnected");
     spotify::auth::logout()?;
     Ok(disconnected())
 }
@@ -60,8 +68,16 @@ pub async fn spotify_status(
 
     let device_id = ensure_device_id(&state, &app).await?;
     let client_id = configured_client_id(&state).await;
-    match spotify::auth::restore(&device_id, &client_id).await? {
+    let restored = spotify::auth::restore(&device_id, &client_id).await.map_err(|e| {
+        crate::logging::warn("spotify", format!("Restoring the session failed: {}", e));
+        e
+    })?;
+    match restored {
         Some(client) => {
+            crate::logging::info(
+                "spotify",
+                format!("Session restored ({}, {} Client ID)", client.profile.product, client_id_kind(&client_id)),
+            );
             let status = status(&client);
             *state.spotify.lock().await = Some(client);
             Ok(status)
@@ -194,4 +210,13 @@ async fn ensure_device_id(state: &AppState, app: &AppHandle) -> Result<String, S
     };
     snapshot.save(app)?;
     Ok(generated)
+}
+
+/// Whether the user's own Client ID is in use, for the log (never the ID).
+fn client_id_kind(client_id: &str) -> &'static str {
+    if spotify::auth::is_default_client_id(client_id) {
+        "default"
+    } else {
+        "custom"
+    }
 }

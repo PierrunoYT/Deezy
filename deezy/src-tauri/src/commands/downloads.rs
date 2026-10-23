@@ -7,12 +7,12 @@ pub async fn download_track(
     state: tauri::State<'_, AppState>,
     app: AppHandle,
 ) -> Result<DownloadResult, String> {
-    crate::spotify::debug_log(&format!("download_track command: {}", trackId));
+    crate::logging::info("download", &format!("download_track command: {}", trackId));
     let cancel_flag = Arc::new(AtomicBool::new(false));
     {
         let mut cancellation_map = state.download_cancellations.lock().await;
         if cancellation_map.contains_key(&trackId) {
-            crate::spotify::debug_log("rejected: already downloading");
+            crate::logging::warn("download", "rejected: already downloading");
             return Err("This track is already downloading".to_string());
         }
         cancellation_map.insert(trackId.clone(), cancel_flag.clone());
@@ -20,8 +20,8 @@ pub async fn download_track(
 
     let result = execute_download_track(&trackId, &state, &app, cancel_flag).await;
     match &result {
-        Ok(r) => crate::spotify::debug_log(&format!("download_track result: {} {}", r.status, r.file_path)),
-        Err(e) => crate::spotify::debug_log(&format!("download_track error: {}", e)),
+        Ok(r) => crate::logging::info("download", &format!("download_track result: {} {}", r.status, r.file_path)),
+        Err(e) => crate::logging::error("download", &format!("download_track error: {}", e)),
     }
 
     // Always remove the registration, including authentication and refresh
@@ -92,6 +92,7 @@ async fn execute_download_track(
         && quality != "MP3_128"
     {
         effective_quality = "MP3_128".to_string();
+        crate::logging::info("deezer", format!("Free account: using MP3_128 instead of {}", quality));
     }
 
     let mut result = download::download_track(
@@ -112,6 +113,7 @@ async fn execute_download_track(
     // If we get a CSRF error, try to refresh the client and retry once
     if let Err(ref e) = result {
         if !cancel_flag.load(Ordering::Relaxed) && (e.contains("CSRF") || e.contains("token")) {
+            crate::logging::warn("deezer", format!("Session problem ({}); logging in again and retrying once", e));
             match DeezerClient::new(&arl).await {
                 Ok(new_client) => {
                     client = new_client.clone();

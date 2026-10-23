@@ -72,7 +72,8 @@ function themeSetup() {
     '../app.css': {}, svelte: { onMount() {}, onDestroy() {} },
     '@tauri-apps/api/core': { invoke: async command => command === 'get_settings' ? { custom_theme: 'custom' } : pending.promise },
     '@tauri-apps/api/event': {}, '$lib/stores': {}, '$lib/i18n': {}, 'svelte-i18n': {},
-    '$lib/tray': {}, '$lib/downloadQueue': {}, '$lib/downloadHistory': {}, '$lib/notifications': {}
+    '$lib/tray': {}, '$lib/downloadQueue': {}, '$lib/downloadHistory': {}, '$lib/notifications': {},
+    '$lib/logger': {}
   }, {
     $state: value => value, $props: () => ({}),
     document: { documentElement: {

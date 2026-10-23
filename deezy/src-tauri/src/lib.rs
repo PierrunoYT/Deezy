@@ -1,5 +1,6 @@
 mod commands;
 mod deezer;
+mod logging;
 mod migration;
 mod paths;
 mod settings;
@@ -35,14 +36,22 @@ pub struct AppState {
 pub fn run() {
     std::panic::set_hook(Box::new(|info| {
         let thread = std::thread::current();
-        spotify::debug_log(&format!(
+        logging::error("app", format!(
             "PANIC on thread '{}': {}\n{}",
             thread.name().unwrap_or("unnamed"),
             info,
             std::backtrace::Backtrace::force_capture()
         ));
     }));
-    spotify::debug_log("app starting");
+    logging::info(
+        "app",
+        format!(
+            "Wavekeep {} starting on {} {}",
+            env!("CARGO_PKG_VERSION"),
+            std::env::consts::OS,
+            std::env::consts::ARCH
+        ),
+    );
 
     tauri::Builder::default()
         // Must be registered first. A second launch would load its own copy of
@@ -74,7 +83,7 @@ pub fn run() {
 
             // Create system tray
             if let Err(e) = tray::create_tray(app.handle()) {
-                eprintln!("Failed to create system tray: {}", e);
+                logging::error("app", format!("Failed to create system tray: {}", e));
             }
 
             // Handle window close event
@@ -159,6 +168,9 @@ pub fn run() {
             commands::import_theme_file,
             commands::create_example_themes,
             commands::show_in_folder,
+            commands::write_log,
+            commands::read_recent_log,
+            commands::open_log_folder,
             commands::parse_deezer_url,
             commands::pick_audio_file,
             commands::pick_cover_image,

@@ -13,8 +13,6 @@ use std::path::Path;
 
 use tauri::Manager;
 
-use crate::spotify::debug_log;
-
 /// The app identifier. Must match `identifier` in `tauri.conf.json`; it is
 /// also the credential-store service name.
 pub const IDENTIFIER: &str = "com.pierr.wavekeep";
@@ -31,7 +29,7 @@ pub fn run(app: &tauri::AppHandle) {
     };
     // Only ever touch the sibling folder of our own data folder.
     if new_dir.file_name().and_then(|name| name.to_str()) != Some(IDENTIFIER) {
-        debug_log("migration: unexpected app-data folder, skipping");
+        crate::logging::warn("migration", "unexpected app-data folder, skipping");
         return;
     }
     let Some(old_dir) = new_dir.parent().map(|parent| parent.join(OLD_IDENTIFIER)) else {
@@ -39,7 +37,7 @@ pub fn run(app: &tauri::AppHandle) {
     };
 
     for line in migrate_data(&old_dir, &new_dir) {
-        debug_log(&format!("migration: {}", line));
+        crate::logging::info("migration", &line);
     }
 
     if crate::settings::keyring_enabled() {
@@ -49,7 +47,7 @@ pub fn run(app: &tauri::AppHandle) {
             crate::spotify::auth::KEYRING_WEB_USER,
         ];
         for line in migrate_credentials(&Keyring, OLD_IDENTIFIER, IDENTIFIER, &users) {
-            debug_log(&format!("migration: {}", line));
+            crate::logging::info("migration", &line);
         }
     }
 }

@@ -118,6 +118,10 @@ impl SpotifyClient {
             }
 
             if status.as_u16() == 429 {
+                crate::logging::warn(
+                    "spotify",
+                    format!("Web API rate limited (Retry-After {}s, attempt {})", retry_after, throttled + 1),
+                );
                 if throttled < 2 && retry_after <= MAX_RETRY_WAIT_SECS {
                     throttled += 1;
                     tokio::time::sleep(Duration::from_secs(retry_after)).await;
@@ -132,10 +136,6 @@ impl SpotifyClient {
                     status.as_u16(),
                     api_error(&body)
                 ));
-            }
-
-            if url.ends_with("/search") {
-                log_search(query, &body);
             }
 
             return Ok(body);
@@ -332,37 +332,6 @@ impl SpotifyClient {
             .await?;
 
         Ok(items.iter().filter_map(playlist_from_value).collect())
-    }
-}
-
-/// Logs what `/search` returned, to compare against the Spotify app.
-fn log_search(query: &[(&str, String)], body: &Value) {
-    let params = query
-        .iter()
-        .map(|(k, v)| format!("{}={:?}", k, v))
-        .collect::<Vec<_>>()
-        .join(" ");
-    for section in ["tracks", "albums", "artists", "playlists"] {
-        let Some(items) = body[section]["items"].as_array() else {
-            continue;
-        };
-        let names = items
-            .iter()
-            .take(8)
-            .map(|item| {
-                let name = item["name"].as_str().unwrap_or("?");
-                let by = item["artists"][0]["name"].as_str().unwrap_or("");
-                format!("{} / {}", name, by)
-            })
-            .collect::<Vec<_>>()
-            .join(" | ");
-        super::debug_log(&format!(
-            "web search [{}] total={} returned={} top: {}",
-            params,
-            body[section]["total"],
-            items.len(),
-            names
-        ));
     }
 }
 

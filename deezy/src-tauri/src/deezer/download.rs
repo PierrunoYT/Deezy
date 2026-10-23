@@ -299,7 +299,7 @@ pub async fn download_track(
     if let Err(e) = tag_result {
         // Tag writing failed — the audio file itself is intact and usable,
         // so we emit a warning event rather than failing the whole download.
-        eprintln!("Warning: failed to write tags: {}", e);
+        crate::logging::warn("deezer", format!("Tags not written: {}", e));
         let _ = app.emit("tag-writing-error", serde_json::json!({
             "track_id": track_id,
             "title": full_title,

@@ -211,7 +211,7 @@ pub async fn load_tracks(
         match result {
             Ok(track) => tracks.push(track),
             Err(error) => {
-                eprintln!("Warning: skipped a Spotify track: {}", error);
+                crate::logging::warn("spotify", format!("Skipped a track: {}", error));
                 first_error.get_or_insert(error);
             }
         }

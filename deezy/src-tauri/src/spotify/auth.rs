@@ -162,7 +162,7 @@ pub async fn login(device_id: &str, web_client_id: &str) -> Result<Arc<SpotifyCl
                 Ok(token) => break token,
                 // A stray browser request (favicon, prefetch) hit the callback.
                 Err(e) if attempts < 3 && e.to_string().contains("Auth code param not found") => {
-                    super::debug_log(&format!(
+                    crate::logging::warn("spotify", &format!(
                         "web login: stray callback request, retrying ({})",
                         e
                     ));
@@ -230,7 +230,7 @@ pub async fn restore(
     let session = match open_session(device_id, &token.access_token).await {
         Ok(session) => session,
         Err(first_error) => {
-            super::debug_log(&format!(
+            crate::logging::warn("spotify", &format!(
                 "stored token rejected, trying a refresh: {}",
                 first_error
             ));
@@ -258,11 +258,11 @@ async fn restore_web(web_client_id: &str) -> Option<WebAuth> {
         return None;
     }
     let Some(stored) = load_web_token().ok().flatten() else {
-        super::debug_log("no stored credential for the custom Client ID; reconnect to use it");
+        crate::logging::warn("spotify", "no stored credential for the custom Client ID; reconnect to use it");
         return None;
     };
     if stored.client_id != web_client_id {
-        super::debug_log("stored credential belongs to another Client ID; reconnect to use the new one");
+        crate::logging::warn("spotify", "stored credential belongs to another Client ID; reconnect to use the new one");
         return None;
     }
 
@@ -278,7 +278,7 @@ async fn restore_web(web_client_id: &str) -> Option<WebAuth> {
         token = match oauth.refresh_token_async(&token.refresh_token).await {
             Ok(fresh) => fresh,
             Err(e) => {
-                super::debug_log(&format!("custom Client ID token refresh failed: {}", e));
+                crate::logging::warn("spotify", &format!("custom Client ID token refresh failed: {}", e));
                 return None;
             }
         };
@@ -294,6 +294,10 @@ async fn restore_web(web_client_id: &str) -> Option<WebAuth> {
 pub fn logout() -> Result<(), String> {
     let _ = clear_web_token();
     clear_token()
+}
+
+pub fn is_default_client_id(client_id: &str) -> bool {
+    client_id == DEFAULT_CLIENT_ID
 }
 
 /// Resolves the client ID to use: an explicit setting, the environment
@@ -388,7 +392,7 @@ fn finish_connect(
     // Persistence is best-effort: without a keyring the session still works
     // for this run, and the next start asks for a browser login again.
     if let Err(error) = save_token(&stored) {
-        eprintln!("Warning: could not persist the Spotify credential: {}", error);
+        crate::logging::warn("spotify", format!("Could not persist the Spotify credential: {}", error));
     }
 
     Ok(Arc::new(SpotifyClient {

@@ -18,6 +18,7 @@ export const IMPORTANT_ITEMS = [...WARNING_ITEMS, 'accounts', 'files', 'log'] as
 
 /** FAQ entries; text lives under `info.faq.<id>.q` / `.a`. */
 export const FAQ_ITEMS = [
+  'deezy',
   'legal',
   'ban',
   'arl',
@@ -25,6 +26,7 @@ export const FAQ_ITEMS = [
   'rateLimit',
   'twoLogins',
   'failed',
+  'report',
   'tags',
   'privacy'
 ] as const;

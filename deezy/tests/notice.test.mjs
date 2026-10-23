@@ -48,14 +48,16 @@ test('missing or throwing storage never breaks the app', () => {
   assert.doesNotThrow(() => throwing.api.dismissStartupNotice(true));
 });
 
-test('every listed item has an English text', async () => {
+test('every listed item has a text in every language', async () => {
   const { readFileSync } = await import('node:fs');
-  const en = JSON.parse(readFileSync(new URL('../src/lib/i18n/locales/en.json', import.meta.url), 'utf8'));
   const { api } = setup();
-  for (const id of api.IMPORTANT_ITEMS) {
-    assert.ok(en.info.items[id]?.title && en.info.items[id]?.text, `info.items.${id}`);
-  }
-  for (const id of api.FAQ_ITEMS) {
-    assert.ok(en.info.faq[id]?.q && en.info.faq[id]?.a, `info.faq.${id}`);
+  for (const lang of ['en', 'fr', 'de', 'es', 'it', 'pt']) {
+    const locale = JSON.parse(readFileSync(new URL(`../src/lib/i18n/locales/${lang}.json`, import.meta.url), 'utf8'));
+    for (const id of api.IMPORTANT_ITEMS) {
+      assert.ok(locale.info.items[id]?.title && locale.info.items[id]?.text, `${lang}: info.items.${id}`);
+    }
+    for (const id of api.FAQ_ITEMS) {
+      assert.ok(locale.info.faq[id]?.q && locale.info.faq[id]?.a, `${lang}: info.faq.${id}`);
+    }
   }
 });

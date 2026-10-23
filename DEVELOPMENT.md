@@ -121,7 +121,7 @@ audio) always logs in with librespot's shared default Client ID, because Spotify
 rejects AP metadata requests made under any other ID with a 400. The Web API
 (search, playlists, library) uses the Client ID resolved from the saved
 `spotify_client_id` setting, then `WAVEKEEP_SPOTIFY_CLIENT_ID` (or the older
-`WAVEKEEP_SPOTIFY_CLIENT_ID`), then the default;
+`DEEZY_SPOTIFY_CLIENT_ID`), then the default;
 with a custom ID this means a second browser login. Tokens are bound to the
 Client ID that issued them, so changing the setting while connected logs out
 both. The default token uses the `com.pierr.wavekeep` / `spotify_oauth`
@@ -135,12 +135,14 @@ The Spotify account type (`Profile.product`) is displayed but never enforced,
 and Free-account audio access through librespot has not been verified. Available
 quality depends on the formats Spotify lists for each track.
 
-`spotify::debug_log` writes to stderr and to `wavekeep-debug.log` in the temp
-directory, and `lib.rs` logs panics through it. It also records app start,
-every `download_track` command result (both providers), each Spotify download
-step, Pathfinder rejections, and the query and top results of each Web API
-search. Use that file to diagnose Spotify download and search failures,
-especially in builds without a console.
+Logging goes through `src-tauri/src/logging.rs` (`logging::info("area", ...)`
+and friends) and, from the UI, `src/lib/logger.ts`, which also forwards
+`console.error`, `console.warn` and uncaught errors. Lines are written to
+`wavekeep-debug.log` in the temp directory, rotated at 1 MB. The log is local
+only: users copy or open it from Info & FAQ for bug reports, and nothing
+uploads it. Never log credentials, tokens, user names or search queries; each line is also
+redacted (home folder as `~`, URL query strings and long token-like strings
+removed). See "Logging (local only)" in `AGENTS.md`.
 
 ## Implementation conventions
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { invoke } from '@tauri-apps/api/core';
   import { _ } from 'svelte-i18n';
   import { IMPORTANT_ITEMS, FAQ_ITEMS } from '$lib/notice';
 
@@ -13,13 +14,36 @@
 
   let tab = $state<Tab>('important');
   let modalRef = $state<HTMLDivElement | undefined>(undefined);
+  let logStatus = $state<'' | 'copied' | 'failed'>('');
 
   $effect(() => {
     if (show) {
       tab = 'important';
+      logStatus = '';
       setTimeout(() => modalRef?.focus(), 0);
     }
   });
+
+  /** Copies the recent, already-redacted log lines for a bug report. */
+  async function copyRecentLog(): Promise<void> {
+    try {
+      const text = await invoke<string>('read_recent_log');
+      await navigator.clipboard.writeText(text);
+      logStatus = 'copied';
+    } catch (err) {
+      console.warn('Could not copy the log:', err);
+      logStatus = 'failed';
+    }
+  }
+
+  async function openLogFolder(): Promise<void> {
+    try {
+      await invoke('open_log_folder');
+    } catch (err) {
+      console.warn('Could not open the log folder:', err);
+      logStatus = 'failed';
+    }
+  }
 
   function handleBackdropClick(e: MouseEvent): void {
     if (e.target === e.currentTarget) {
@@ -85,6 +109,13 @@
               </section>
             {/each}
           </div>
+          <div class="log-actions">
+            <button type="button" class="log-btn" onclick={copyRecentLog}>{$_('info.logActions.copy')}</button>
+            <button type="button" class="log-btn" onclick={openLogFolder}>{$_('info.logActions.open')}</button>
+          </div>
+          {#if logStatus}
+            <p class="log-status" class:failed={logStatus === 'failed'} role="status">{$_(`info.logActions.${logStatus}`)}</p>
+          {/if}
         {:else}
           <div class="faq-list">
             {#each FAQ_ITEMS as id (id)}
@@ -236,6 +267,39 @@
     font-size: 13px;
     line-height: 1.55;
     color: var(--text-secondary);
+  }
+
+  .log-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .log-btn {
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .log-btn:hover {
+    background: var(--bg-elevated);
+  }
+
+  .log-status {
+    margin: 10px 0 0;
+    font-size: 13px;
+    color: var(--success);
+  }
+
+  .log-status.failed {
+    color: var(--error);
   }
 
   .faq-item {

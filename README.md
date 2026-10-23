@@ -49,7 +49,7 @@ A modern desktop Deezer and Spotify downloader. Search for tracks, albums, artis
 - **Download history** – Persistent history with CSV/JSON export and open-in-file-manager
 - **Themes** – Light, Dark, System, and fully custom JSON themes
 - **Internationalization** – English, Spanish, French, German, Portuguese, and Italian
-- **Info & FAQ** – A warning about terms of service, account risk and credentials appears at startup (with a "Don't show this again" option), and the **Info & FAQ** button in the sidebar reopens it with a short FAQ, in all six languages
+- **Info & FAQ** – A warning about terms of service, account risk and credentials appears at startup (with a "Don't show this again" option), and the **Info & FAQ** button in the sidebar reopens it with a short FAQ and buttons to copy or open the local diagnostic log for bug reports, in all six languages
 - **Keyboard shortcuts** – Ctrl+F, Ctrl+1/2/3, Ctrl+, (Settings), Ctrl+H, Esc (clear search / go back), Space, Shift+? and more
 - **System tray** – Minimize to tray with download status and quick controls
 - **Manual updates** – Install Windows releases from GitHub or rebuild from source on macOS and Linux
@@ -152,6 +152,12 @@ Supported placeholders are `{artist}`, `{album}`, `{title}`, `{track_number}`
 metadata are sanitized, so an artist such as `AC/DC` stays in one directory.
 
 ---
+
+## Reporting a problem
+
+Open **Info & FAQ** in the sidebar, press **Copy recent log**, and paste it with a short description into a [GitHub issue](https://github.com/PierrunoYT/Deezy/issues) or the [Discord server](https://discord.gg/dvuWBeXSf3). **Open log folder** shows the whole file, `wavekeep-debug.log` in your temporary folder.
+
+The log is local only. It stays on your computer and Wavekeep never uploads it. Passwords, your ARL and login tokens are never written to it; on top of that, every line is cleaned before it is saved: your home folder appears as `~`, web addresses lose their query part (where tokens travel), and any long token-like string is replaced with `[redacted]`. You can read it before sharing.
 
 ## Development
 

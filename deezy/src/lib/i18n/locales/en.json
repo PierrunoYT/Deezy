@@ -321,6 +321,12 @@
     "downloadFailedBody": "Failed to download {title}."
   },
   "info": {
+    "logActions": {
+      "copy": "Copy recent log",
+      "open": "Open log folder",
+      "copied": "Copied the most recent log lines. Paste them into your report.",
+      "failed": "Could not access the log. It is wavekeep-debug.log in your temporary folder."
+    },
     "button": "Info & FAQ",
     "title": "Important information",
     "close": "Close",
@@ -362,10 +368,18 @@
       },
       "log": {
         "title": "Something went wrong?",
-        "text": "Wavekeep writes a diagnostic log named wavekeep-debug.log to your temporary folder. When you report a problem, include its last lines and remove any personal paths first."
+        "text": "Wavekeep keeps a diagnostic log named wavekeep-debug.log in your temporary folder. It stays on your computer and is never uploaded. Passwords, your ARL and login tokens are never written to it, and your home folder appears as ~. Use the buttons below to copy it or open its folder when you report a problem."
       }
     },
     "faq": {
+      "report": {
+        "q": "How do I report a problem?",
+        "a": "Open Info & FAQ, press Copy recent log, and paste it with a short description into a GitHub issue or the Discord server. The log stays on your computer until you share it yourself, and it never contains your password, ARL or login tokens."
+      },
+      "deezy": {
+        "q": "I used Deezy. Will I lose anything?",
+        "a": "No. Wavekeep is the new name of Deezy. The first time it starts, it moves your settings, download history, themes, and saved Deezer and Spotify logins over from Deezy. If you installed it with the .exe installer, start Wavekeep once before you uninstall Deezy."
+      },
       "legal": {
         "q": "Is it legal to use Wavekeep?",
         "a": "That depends on your country and on what you do with the files. Wavekeep cannot check this for you. Treat downloads as personal copies, and respect the services' terms and local copyright law."

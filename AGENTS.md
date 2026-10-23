@@ -48,6 +48,8 @@ deezy/                          # All source lives here
       audioPlayer.ts            # AudioPlayerManager singleton (preview playback)
       downloadQueue.ts          # DownloadQueueManager singleton (queue + concurrency)
       keyboardShortcuts.ts      # global shortcut registry
+      logger.ts                 # frontend logging + console/uncaught error forwarding
+      notice.ts                 # startup-warning flag and Info & FAQ item ids
       notifications.ts          # system notification helpers
       rateLimiter.ts            # throttle between download invocations
       stores.ts                 # all Svelte writable stores + shared types
@@ -61,6 +63,7 @@ deezy/                          # All source lives here
       commands/                 # #[tauri::command] handlers grouped by domain
         account.rs              # login/logout, auto_login, exit_app
         catalog.rs              # Deezer catalog/library IPC, `with_session_retry`
+        diagnostics.rs          # write_log, read_recent_log, open_log_folder
         downloads.rs            # download_track / cancel_download (both providers)
         filesystem.rs           # music URL parsing and other filesystem IPC
         history.rs              # download history IPC
@@ -90,6 +93,7 @@ deezy/                          # All source lives here
         tags.rs                 # OGG/FLAC/MP3/M4A tagging via lofty
       paths.rs                  # provider-neutral paths + temp-file finalization
       migration.rs              # one-time move of Deezy data and logins to the Wavekeep identifier
+      logging.rs                # local diagnostic log (levels, redaction, rotation)
       settings.rs               # Settings struct, load/save, keyring integration
       themes.rs                 # custom theme CRUD
       tray.rs                   # system tray construction and menu updates
@@ -103,7 +107,7 @@ deezy/                          # All source lives here
 ## Architecture & Data Flow
 
 ### Startup sequence
-`+layout.svelte` mounts → loads download history → loads settings (calls `get_settings`) → initialises i18n → applies theme → calls `auto_login` (reads ARL from OS keyring via Rust) → sets `loggedIn` store → shows the app shell (2.2 s minimum splash). Spotify restoration runs independently through `spotify_status` and does not block the splash.
+Rust `setup` runs `migration::run` (moves Deezy data and logins, see below) before any IPC is served → `+layout.svelte` mounts → loads download history → loads settings (calls `get_settings`) → initialises i18n → applies theme → calls `auto_login` (reads ARL from OS keyring via Rust) → sets `loggedIn` store → shows the app shell (2.2 s minimum splash) → `+page.svelte` mounts and shows the startup warning unless it was dismissed (see "Startup warning and Info & FAQ"). Spotify restoration runs independently through `spotify_status` and does not block the splash.
 
 ### Download pipeline
 1. Frontend calls `downloadQueueManager.addToQueue(track)` — queued if `max_concurrent_downloads` (1–10, default 3, mirrored in the `maxConcurrentDownloads` store) are already active. Starts are spaced at least `download_delay_seconds` apart (mirrored in the `downloadDelaySeconds` store); skipped tracks don't count.
@@ -192,7 +196,7 @@ If `write_mp3_tags` / `write_flac_tags` fails, a `tag-writing-error` event is em
 - **Token refresh and restore**: refreshes are serialised through `refresh_gate` (a request that waited re-uses the token the winner just fetched, since Spotify may rotate refresh tokens). `restore` retries once with a refreshed token when the AP rejects the stored one, and clears it (forcing a fresh login) only if that refresh also fails. A download makes one AP metadata request (`ap::track_with_files`) for both catalog metadata and file IDs.
 - **Account type is not checked**: `Profile.product` is read from the AP session (`free` when unknown) and shown in the UI, but nothing in the download path gates on it. Whether Spotify serves audio to Free accounts through librespot is unverified for this build; quality is whatever formats the track's AP metadata lists (e.g. OGG 96/160/320 and AAC, no FLAC for many tracks), chosen by `select_file`. Custom-ID Development-mode apps may carry Spotify-side restrictions (user allow-list, owner Premium) that Wavekeep neither checks nor reports.
 - **Callback port reuse**: the two logins reuse port 5588, so the "connected" page declares an empty icon (no `/favicon.ico` request), the second login waits 2 s, and it retries on `Auth code param not found` (3 attempts in total) (a stray browser request mistaken for the auth response).
-- **Diagnostics**: `spotify::debug_log` prints to stderr and appends to `wavekeep-debug.log` in the temp dir; `lib.rs` installs a panic hook that logs through it. It records app start, every `download_track` command entry/result/error (both providers), each Spotify download step, second-login retries, Pathfinder rejections (with the response body), and the query plus top results of every Web API `/search` — read it when a download or search misbehaves, since release builds have no console.
+- **Diagnostics**: Spotify download steps, retries, rate limits and Pathfinder rejections are logged; see "Logging (local only)".
 - **Settings are Deezer-independent**: `save_settings` no longer requires an ARL, and the Spotify source is usable with no Deezer login. `spotify_status` restores the client on startup.
 - **Build pin**: `librespot-core 0.8.0`'s build script resolves `vergen-gitcl 1.0.8` + `vergen 9.1.0`, which pulls two incompatible `vergen-lib` versions and fails to compile. `[build-dependencies] vergen = "=9.0.6"` in `Cargo.toml` keeps it on `vergen-lib 0.1.6`. Do not relax that pin without testing a clean `Cargo.lock`.
 
@@ -207,11 +211,20 @@ Built-in themes are `light`, `dark` and `system`; they only toggle a `light` cla
 
 ---
 
+## Logging (local only)
+
+- `src-tauri/src/logging.rs` is the only logger: `logging::{debug, info, warn, error}(area, message)`. Lines go to stderr and to `wavekeep-debug.log` in the system temp folder (under `cargo test` only to stderr, so tests never touch the user's log), formatted `2026-10-23T20:44:32Z INFO  deezer    message`; past 1 MB the file rotates to `wavekeep-debug.old.log`. Do not add `eprintln!` or `println!`.
+- The log is **local only**. Nothing uploads it; users copy or open it from Info & FAQ (`read_recent_log`, `open_log_folder` in `commands/diagnostics.rs`) and attach it to a report themselves. Keep it that way: no telemetry and no automatic upload.
+- Never log credentials or secrets (ARL, Spotify/OAuth tokens, client tokens), user names, e-mail addresses, or what the user searches for. Log account *type*, track IDs, statuses and error text. As a safety net every line is redacted before writing: the home folder becomes `~`, URL query strings become `?[redacted]`, and unbroken token-like runs of 100+ characters become `[redacted]`.
+- Frontend: `src/lib/logger.ts` exports `log(level, area, ...)`, which writes through the `write_log` command (areas show up as `ui-<area>`). `installErrorLogging`, called first in `+layout.svelte`, also copies `console.error`, `console.warn` and uncaught errors into the log, so a plain `console.error` is enough for UI errors.
+- Areas in use: `app`, `migration`, `settings`, `deezer`, `spotify`, `download`, `console`/`uncaught`/`ui-*` (frontend). `lib.rs` installs a panic hook that logs the panic with a backtrace.
+- Logged today: app start (version, OS), migration steps, Deezer login and automatic login (account type only), free-account quality override, media and legacy URL quality fallbacks, session re-login, every `download_track` call and result, each Spotify download step, Spotify connect/restore/disconnect (account type and default/custom Client ID only), Web API rate limits, Pathfinder rejections, settings-storage warnings, tag-writing failures, panics, and frontend errors.
+
 ## Startup warning and Info & FAQ
 
 - `StartupWarning.svelte` is shown by `+page.svelte` when it mounts (that is, after the splash screen) unless the user ticked "Don't show this again". That choice is stored in the webview's `localStorage` under `wavekeep.startupNotice` as the dismissed `NOTICE_VERSION` (`src/lib/notice.ts`); storage may be missing or throw, in which case the warning simply shows every launch. Raise `NOTICE_VERSION` when the warning's meaning changes so it shows again.
 - `InfoModal.svelte` (sidebar "Info & FAQ" button) has an "Important" tab and a FAQ made of `<details>` items.
-- All text lives under `info.*` in every locale file. The ids are listed in `notice.ts` (`WARNING_ITEMS`, `IMPORTANT_ITEMS`, `FAQ_ITEMS`); an id needs `info.items.<id>.title/.text` or `info.faq.<id>.q/.a` in all six locales (`tests/notice.test.mjs` checks English). Keep the content consistent with the README and `FAQ.md`.
+- All text lives under `info.*` in every locale file. The ids are listed in `notice.ts` (`WARNING_ITEMS`, `IMPORTANT_ITEMS`, `FAQ_ITEMS`); an id needs `info.items.<id>.title/.text` or `info.faq.<id>.q/.a` in all six locales (`tests/notice.test.mjs` checks all six). Keep the content consistent with the README and `FAQ.md`.
 
 ## Internationalisation
 

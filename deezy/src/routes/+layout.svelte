@@ -29,6 +29,7 @@
   import { downloadQueueManager } from '$lib/downloadQueue';
   import { recoverDownloadHistory } from '$lib/downloadHistory';
   import { notificationManager } from '$lib/notifications';
+  import { installErrorLogging } from '$lib/logger';
 
   let { children } = $props();
   
@@ -286,6 +287,8 @@
   }
 
   onMount(() => {
+    // First, so errors during startup reach the local log too.
+    const uninstallErrorLogging = installErrorLogging(window);
     let disposed = false;
     let unsubscribeTheme = () => {};
     let unsubscribeLocale = () => {};
@@ -344,6 +347,7 @@
 
     return () => {
       disposed = true;
+      uninstallErrorLogging();
       themeGeneration++;
       trayManager.destroy();
       unlistenProgress?.();

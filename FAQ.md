@@ -12,7 +12,7 @@ Your ARL is a sensitive session credential that can provide access to your Deeze
 
 - **Stored securely when available** — Wavekeep normally stores the ARL using Windows Credential Manager, macOS Keychain, or Linux Secret Service.
 - **Plaintext fallback** — If no credential is already stored and the OS credential store is unavailable, Wavekeep can store the ARL in `settings.json` so the app can still run. On Unix systems, Wavekeep restricts that file to owner-only permissions (`0600`) and refuses to load it if those permissions cannot be established. Settings displays a warning while this fallback is active.
-- **Optional keyring bypass** — Set `WAVEKEEP_NO_KEYRING=1` (the older `WAVEKEEP_NO_KEYRING` also works) (`true` and `yes` are also accepted) before starting Wavekeep to force plaintext storage. Treat `settings.json` as a password file in this mode.
+- **Optional keyring bypass** — Set `WAVEKEEP_NO_KEYRING=1` (`true` and `yes` are also accepted; the older `DEEZY_NO_KEYRING` also works) before starting Wavekeep to force plaintext storage. Treat `settings.json` as a password file in this mode.
 - **Automatic migration** — When the credential store becomes available again, Wavekeep moves a plaintext ARL into it and removes the ARL from `settings.json`.
 - **Safe replacement** — Wavekeep authenticates a newly entered ARL before replacing the current credential. If secure storage or settings persistence fails, it preserves or restores the previous credential rather than reporting a successful replacement.
 - **Not returned with settings** — After saving, `get_settings` returns an empty ARL field so the stored credential is not exposed to the renderer again.
@@ -28,13 +28,19 @@ Your ARL is a sensitive session credential that can provide access to your Deeze
 
 ### How does Wavekeep handle my Spotify login?
 
-Spotify uses browser OAuth rather than an ARL or your Spotify password. The access and refresh tokens are normally stored in the OS credential store under `com.pierr.wavekeep` / `spotify_oauth`, separately from the Deezer ARL. If credential persistence is unavailable, the current session can still work, but you will need to log in again after restarting.
+Spotify uses browser OAuth rather than an ARL or your Spotify password. The access and refresh tokens are normally stored in the OS credential store under `com.pierr.wavekeep` / `spotify_oauth`, and the token for your own Client ID, if you set one, under `spotify_oauth_web`, separately from the Deezer ARL. If credential persistence is unavailable, the current session can still work, but you will need to log in again after restarting.
 
 Use **Disconnect** in Settings to remove the stored Spotify token. Changing the optional Spotify Client ID also disconnects the current session because tokens are tied to the Client ID that issued them.
 
 ### Does Wavekeep collect analytics or telemetry?
 
 The current source contains no analytics, telemetry, crash-reporting service, or Wavekeep-operated backend. Wavekeep still communicates with Deezer or Spotify and their content-delivery endpoints to authenticate, search, preview where available, and download content.
+
+### Does Wavekeep keep a log? What is in it?
+
+Yes, a local diagnostic log named `wavekeep-debug.log` in your temporary folder (`%TEMP%` on Windows). It stays on your computer and Wavekeep never uploads it. Passwords, your ARL and login tokens are never written to it; on top of that, every line is cleaned before it is saved: your home folder appears as `~`, web addresses lose their query part (where tokens travel), and any long token-like string is replaced with `[redacted]`.
+
+It records what the app does so problems can be traced: app start and version, the move from Deezy, whether Deezer and Spotify logins worked (account type only), quality fallbacks, each download step and its result, Spotify rate limits, and any errors. What you search for is not logged. When it reaches 1 MB it is renamed to `wavekeep-debug.old.log` and a new one starts. You can delete both files at any time.
 
 ### Is it safe to use my Deezer account?
 
@@ -44,7 +50,7 @@ Using automated download software is not equivalent to normal browser use. It ma
 
 ### What local files can Wavekeep access?
 
-The tag editor can read or modify only MP3/FLAC files and cover images selected through Wavekeep's native file pickers, plus audio files in the configured download folder. Changing the download folder also requires selecting it through the native folder picker. Theme imports and history exports use native open/save dialogs. Wavekeep separately maintains its settings, download history, and custom themes in its application-data folder.
+The tag editor can read or modify only MP3, FLAC, OGG, and M4A files and cover images selected through Wavekeep's native file pickers, plus audio files in the configured download folder. Changing the download folder also requires selecting it through the native folder picker. Theme imports and history exports use native open/save dialogs. Wavekeep separately maintains its settings, download history, and custom themes in its application-data folder.
 
 ---
 
@@ -61,7 +67,7 @@ For **Deezer**:
 
 Deezer Free accounts are automatically limited to MP3 128 kbps, regardless of the quality selected in Settings.
 
-For **Spotify**, Settings offers Normal (96 kbps), High (160 kbps), Very high (320 kbps), and Lossless (FLAC for Premium). OGG Vorbis and FLAC are preferred, but Wavekeep can save MP3 or M4A/AAC when those are the formats Spotify supplies. Availability varies by track, account, and region.
+For **Spotify**, Settings offers Normal (96 kbps), High (160 kbps), Very high (320 kbps), and Lossless (FLAC for Premium). Each setting starts at its own bitrate and falls back to the others when Spotify does not supply it. OGG Vorbis is preferred, then MP3; FLAC is only used for Lossless, and M4A/AAC only when none of those are available. Availability varies by track, account, and region.
 
 ### Why did my Deezer download fall back to a lower quality?
 
@@ -148,7 +154,7 @@ The default Client ID is shared by every librespot install, so its Web API searc
 
 You can also use your own Spotify developer app to avoid the shared Web API quota. Add `http://127.0.0.1:5588/login` as its redirect URI in the Spotify Developer Dashboard, paste the Client ID into **Settings → Spotify Client ID**, and reconnect. The field saves when it loses focus; changing it while connected removes the old token. Connecting then opens the browser login twice: once for downloads, which always use the default ID because Spotify rejects track metadata requests from other IDs, and once for your app, which is used for search and your playlists. Approve both.
 
-`WAVEKEEP_SPOTIFY_CLIENT_ID` (or the older `WAVEKEEP_SPOTIFY_CLIENT_ID`) remains available as an environment override when the saved field is blank.
+`WAVEKEEP_SPOTIFY_CLIENT_ID` (or the older `DEEZY_SPOTIFY_CLIENT_ID`) remains available as an environment override when the saved field is blank.
 
 ### The app shows a blank/black screen on startup. What do I do?
 
@@ -166,7 +172,8 @@ Resetting this folder removes local settings, download history, and custom theme
 
 - Confirm that your internet connection is working.
 - For Deezer, save a current ARL to verify authentication and try MP3 128 kbps if higher-quality media is unavailable.
-- For Spotify, disconnect and reconnect in Settings; if you use a custom Client ID, clear it and retry with the default.
+- For Spotify, disconnect and reconnect in Settings. A custom Client ID only affects search, not downloads.
+- Open **Info & FAQ** and press **Copy recent log**: the log records each download step and the exact error. See [How do I report a problem?](#how-do-i-report-a-problem)
 - Pause and resume the download, or retry it from the download history after an error.
 - Fully exit Wavekeep from the tray before restarting it.
 
@@ -189,6 +196,12 @@ Wavekeep follows each Deezer API page to load the complete track list. A failed 
 ### How are unusual artist or track names handled in custom folders?
 
 Only separators written in the folder template create directories. Slashes in metadata, such as `AC/DC`, are replaced with underscores; placeholder-like text inside metadata stays literal. Invalid filename characters and Windows device names are sanitized. See the [template examples](README.md#custom-folder-templates).
+
+### How do I report a problem?
+
+Open **Info & FAQ** in the sidebar, press **Copy recent log**, and paste it with a short description of what you did into a [GitHub issue](https://github.com/PierrunoYT/Deezy/issues) or the [Discord server](https://discord.gg/dvuWBeXSf3). **Open log folder** shows the whole file if you need more than the recent lines.
+
+The log only leaves your computer when you share it yourself. Passwords, your ARL and login tokens are never written to it; on top of that, every line is cleaned before it is saved: your home folder appears as `~`, web addresses lose their query part (where tokens travel), and any long token-like string is replaced with `[redacted]`. You can read it before sharing.
 
 ### Album covers or audio previews do not load.
 
@@ -237,7 +250,7 @@ Installing a newer version over the existing installation should preserve settin
 Prebuilt macOS and Linux packages are not currently published. If you built Wavekeep from source, update the repository and rebuild it:
 
 ```bash
-cd Wavekeep
+cd Deezy
 git pull
 cd deezy
 bun install --frozen-lockfile

@@ -321,6 +321,12 @@
     "downloadFailedBody": "Échec du téléchargement de {title}."
   },
   "info": {
+    "logActions": {
+      "copy": "Copier le journal récent",
+      "open": "Ouvrir le dossier du journal",
+      "copied": "Dernières lignes du journal copiées. Collez-les dans votre signalement.",
+      "failed": "Impossible d'accéder au journal. Il s'agit de wavekeep-debug.log dans votre dossier temporaire."
+    },
     "button": "Infos et FAQ",
     "title": "Informations importantes",
     "close": "Fermer",
@@ -362,10 +368,18 @@
       },
       "log": {
         "title": "Un problème ?",
-        "text": "Wavekeep écrit un journal de diagnostic nommé wavekeep-debug.log dans votre dossier temporaire. Pour signaler un problème, joignez ses dernières lignes en retirant d'abord les chemins personnels."
+        "text": "Wavekeep tient un journal de diagnostic nommé wavekeep-debug.log dans votre dossier temporaire. Il reste sur votre ordinateur et n'est jamais envoyé. Les mots de passe, votre ARL et vos jetons de connexion n'y sont jamais écrits, et votre dossier personnel apparaît sous la forme ~. Utilisez les boutons ci-dessous pour le copier ou ouvrir son dossier lorsque vous signalez un problème."
       }
     },
     "faq": {
+      "report": {
+        "q": "Comment signaler un problème ?",
+        "a": "Ouvrez Infos et FAQ, cliquez sur Copier le journal récent et collez-le avec une courte description dans un ticket GitHub ou sur le serveur Discord. Le journal reste sur votre ordinateur tant que vous ne le partagez pas vous-même, et il ne contient jamais votre mot de passe, votre ARL ni vos jetons de connexion."
+      },
+      "deezy": {
+        "q": "J'utilisais Deezy. Vais-je perdre quelque chose ?",
+        "a": "Non. Wavekeep est le nouveau nom de Deezy. Au premier démarrage, il reprend depuis Deezy vos paramètres, votre historique, vos thèmes et vos connexions Deezer et Spotify enregistrées. Si vous l'avez installé avec l'installateur .exe, lancez Wavekeep une fois avant de désinstaller Deezy."
+      },
       "legal": {
         "q": "Est-ce légal d'utiliser Wavekeep ?",
         "a": "Cela dépend de votre pays et de ce que vous faites des fichiers. Wavekeep ne peut pas le vérifier pour vous. Considérez les téléchargements comme des copies personnelles et respectez les conditions des services et le droit d'auteur local."

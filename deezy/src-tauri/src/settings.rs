@@ -343,9 +343,9 @@ fn parse_private_settings(contents: PrivateFileContents) -> Result<Settings, Str
                 error
             ));
         }
-        eprintln!(
-            "Warning: could not restrict permissions on ARL-free settings.json: {}",
-            error
+        crate::logging::warn(
+            "settings",
+            format!("Could not restrict permissions on ARL-free settings.json: {}", error),
         );
     }
     Ok(settings)
@@ -436,7 +436,7 @@ pub(crate) fn write_private(path: &Path, data: &[u8]) -> Result<(), String> {
             // on disk; a failed directory sync only weakens crash durability.
             #[cfg(unix)]
             if let Err(e) = std::fs::File::open(parent).and_then(|directory| directory.sync_all()) {
-                eprintln!("Warning: could not sync settings directory: {}", e);
+                crate::logging::warn("settings", format!("Could not sync settings directory: {}", e));
             }
             Ok(())
         })();
@@ -599,7 +599,7 @@ impl Settings {
             let (previous_arl, previous_known) = match load_arl_from_keyring() {
                 Ok(arl) => (arl, true),
                 Err(e) => {
-                    eprintln!("Warning: could not read previous credential: {}", e);
+                    crate::logging::warn("settings", format!("Could not read the previous credential: {}", e));
                     (None, false)
                 }
             };
@@ -631,9 +631,9 @@ impl Settings {
                             e
                         ));
                     }
-                    eprintln!(
-                        "Warning: secure credential storage unavailable ({}). Storing ARL in settings.json",
-                        e
+                    crate::logging::warn(
+                        "settings",
+                        format!("Secure credential storage unavailable ({}); storing the ARL in settings.json", e),
                     );
                     let data = serde_json::to_string_pretty(&on_disk).map_err(|e| e.to_string())?;
                     write_private(&path, data.as_bytes())?;

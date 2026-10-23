@@ -321,6 +321,12 @@
     "downloadFailedBody": "Error al descargar {title}."
   },
   "info": {
+    "logActions": {
+      "copy": "Copiar registro reciente",
+      "open": "Abrir carpeta del registro",
+      "copied": "Se copiaron las últimas líneas del registro. Pégalas en tu informe.",
+      "failed": "No se pudo acceder al registro. Es wavekeep-debug.log en tu carpeta temporal."
+    },
     "button": "Info y FAQ",
     "title": "Información importante",
     "close": "Cerrar",
@@ -362,10 +368,18 @@
       },
       "log": {
         "title": "¿Algo ha salido mal?",
-        "text": "Wavekeep escribe un registro de diagnóstico llamado wavekeep-debug.log en tu carpeta temporal. Al informar de un problema, incluye sus últimas líneas y elimina antes las rutas personales."
+        "text": "Wavekeep guarda un registro de diagnóstico llamado wavekeep-debug.log en tu carpeta temporal. Se queda en tu ordenador y nunca se envía. Nunca se escriben en él contraseñas, tu ARL ni tokens de inicio de sesión, y tu carpeta personal aparece como ~. Usa los botones de abajo para copiarlo o abrir su carpeta cuando informes de un problema."
       }
     },
     "faq": {
+      "report": {
+        "q": "¿Cómo informo de un problema?",
+        "a": "Abre Info y FAQ, pulsa Copiar registro reciente y pégalo con una breve descripción en un issue de GitHub o en el servidor de Discord. El registro se queda en tu ordenador hasta que tú lo compartas, y nunca contiene tu contraseña, tu ARL ni tokens de inicio de sesión."
+      },
+      "deezy": {
+        "q": "Usaba Deezy. ¿Perderé algo?",
+        "a": "No. Wavekeep es el nuevo nombre de Deezy. La primera vez que se inicia, trae desde Deezy tu configuración, tu historial, tus temas y tus inicios de sesión guardados de Deezer y Spotify. Si lo instalaste con el instalador .exe, abre Wavekeep una vez antes de desinstalar Deezy."
+      },
       "legal": {
         "q": "¿Es legal usar Wavekeep?",
         "a": "Depende de tu país y de lo que hagas con los archivos. Wavekeep no puede comprobarlo por ti. Trata las descargas como copias personales y respeta las condiciones de los servicios y la ley de derechos de autor local."

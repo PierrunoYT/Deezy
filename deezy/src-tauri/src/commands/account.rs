@@ -7,6 +7,10 @@ pub async fn exit_app(
 ) -> Result<(), String> {
     {
         let cancellations = state.download_cancellations.lock().await;
+        crate::logging::info(
+            "app",
+            format!("Exit requested; cancelling {} active download(s)", cancellations.len()),
+        );
         for flag in cancellations.values() {
             flag.store(true, Ordering::Relaxed);
         }
@@ -28,7 +32,11 @@ pub async fn login(
     state: tauri::State<'_, AppState>,
     app: AppHandle,
 ) -> Result<Value, String> {
-    let client = DeezerClient::new(&arl).await?;
+    let client = DeezerClient::new(&arl).await.map_err(|e| {
+        crate::logging::warn("deezer", format!("Login failed: {}", e));
+        e
+    })?;
+    crate::logging::info("deezer", format!("Logged in ({})", account_kind(&client)));
     let user = serde_json::to_value(&client.user).map_err(|e| e.to_string())?;
 
     let _settings_io = state.settings_io.lock().await;
@@ -55,10 +63,15 @@ pub async fn auto_login(
     let _ = grant_folder(&state, &settings.output_dir).await;
     drop(settings_io);
     if settings.arl.trim().is_empty() {
+        crate::logging::info("deezer", "No saved ARL; not logging in");
         return Ok(None);
     }
 
-    let client = DeezerClient::new(&settings.arl).await?;
+    let client = DeezerClient::new(&settings.arl).await.map_err(|e| {
+        crate::logging::warn("deezer", format!("Automatic login failed: {}", e));
+        e
+    })?;
+    crate::logging::info("deezer", format!("Automatic login succeeded ({})", account_kind(&client)));
     let user = serde_json::to_value(&client.user).map_err(|e| e.to_string())?;
 
     let _settings_io = state.settings_io.lock().await;
@@ -68,4 +81,13 @@ pub async fn auto_login(
     *state.client.lock().await = Some(client);
 
     Ok(Some(user))
+}
+
+/// The account type for the log; never the user name or any credential.
+fn account_kind(client: &DeezerClient) -> &'static str {
+    match client.user.as_ref().map(|user| user.is_free_account) {
+        Some(true) => "free account",
+        Some(false) => "paid account",
+        None => "account type unknown",
+    }
 }

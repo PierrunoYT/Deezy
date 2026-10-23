@@ -9,7 +9,7 @@ use tauri::Emitter;
 use tokio::io::AsyncWriteExt;
 
 use super::auth::SpotifyClient;
-use super::{bare_track_id, debug_log, tags};
+use super::{bare_track_id, tags};
 use crate::deezer::bandwidth::BandwidthLimiter;
 use crate::deezer::models::{DownloadProgress, DownloadResult};
 use crate::paths::{
@@ -43,30 +43,30 @@ pub async fn download_track(
     cancel_flag: Arc<AtomicBool>,
 ) -> Result<DownloadResult, String> {
     let id = bare_track_id(track_key);
-    debug_log(&format!("download start: {}", track_key));
+    crate::logging::info("spotify", &format!("download start: {}", track_key));
     // One AP request gives both the catalog metadata and the file IDs; the AP
     // session also holds the AES key librespot uses to decrypt the stream.
     let (track, ap_track) = super::ap::track_with_files(&client.session, id)
         .await
         .map_err(|e| {
-            debug_log(&format!("track metadata failed: {}", e));
+            crate::logging::warn("spotify", &format!("track metadata failed: {}", e));
             e
         })?;
-    debug_log(&format!("track metadata ok: {} - {}", track.artist, track.title));
+    crate::logging::debug("spotify", &format!("track metadata ok: {} - {}", track.artist, track.title));
 
     emit_progress(app, track_key, &track.title, 0.0, "resolving");
 
-    debug_log(&format!(
+    crate::logging::debug("spotify", &format!(
         "available formats: {:?}",
         ap_track.files.iter().map(|(f, _)| *f).collect::<Vec<_>>()
     ));
 
     let (file_id, ext, actual_quality) =
         select_file(&ap_track.files, quality).map_err(|e| {
-            debug_log(&format!("select_file failed: {}", e));
+            crate::logging::warn("spotify", &format!("select_file failed: {}", e));
             e
         })?;
-    debug_log(&format!("selected {} ({}) for quality '{}'", actual_quality, ext, quality));
+    crate::logging::debug("spotify", &format!("selected {} ({}) for quality '{}'", actual_quality, ext, quality));
 
     let path_meta = TrackPathMeta {
         artist: track.artist.clone(),
@@ -129,18 +129,18 @@ pub async fn download_track(
         .request(spotify_id, file_id)
         .await
         .map_err(|e| {
-            debug_log(&format!("audio key request failed: {:?}", e));
+            crate::logging::warn("spotify", &format!("audio key request failed: {:?}", e));
             format!("Spotify audio key failed: {}", e)
         })?;
-    debug_log("audio key received");
+    crate::logging::debug("spotify", "audio key received");
 
     let (temp_path, mut file) = create_temp_download_file(&download_path, track_key).await?;
-    debug_log(&format!("opening audio file, temp: {}", temp_path.display()));
+    crate::logging::debug("spotify", &format!("opening audio file, temp: {}", temp_path.display()));
 
     let encrypted = match AudioFile::open(&client.session, file_id, FETCH_RATE).await {
         Ok(audio) => audio,
         Err(e) => {
-            debug_log(&format!("AudioFile::open failed: {:?}", e));
+            crate::logging::warn("spotify", &format!("AudioFile::open failed: {:?}", e));
             drop(file);
             cleanup_temp_file_async(&temp_path).await;
             return Err(format!("Spotify audio fetch failed: {}", e));
@@ -151,7 +151,7 @@ pub async fn download_track(
         .get_stream_loader_controller()
         .map(|controller| controller.len() as u64)
         .unwrap_or(0);
-    debug_log(&format!("audio opened, total size: {} bytes", total_size));
+    crate::logging::debug("spotify", &format!("audio opened, total size: {} bytes", total_size));
     let mut audio = AudioDecrypt::new(Some(audio_key), encrypted);
 
     let mut buffer = vec![0u8; READ_CHUNK];
@@ -162,13 +162,13 @@ pub async fn download_track(
     // to find where the real audio starts, then write from there.
     let mut head = vec![0u8; SPOTIFY_HEADER_LEN + 4];
     if let Err(e) = tokio::task::block_in_place(|| audio.read_exact(&mut head)) {
-        debug_log(&format!("stream header read failed: {:?}", e));
+        crate::logging::warn("spotify", &format!("stream header read failed: {:?}", e));
         drop(file);
         cleanup_temp_file_async(&temp_path).await;
         return Err(format!("Spotify stream read failed: {}", e));
     }
     let start = audio_start(&head, ext);
-    debug_log(&format!(
+    crate::logging::debug("spotify", &format!(
         "decrypted head: {:02x?}, audio starts at byte {}",
         &head[..8],
         start
@@ -193,7 +193,7 @@ pub async fn download_track(
             Ok(0) => break,
             Ok(read) => read,
             Err(e) => {
-                debug_log(&format!("stream read failed after {} bytes: {:?}", downloaded, e));
+                crate::logging::warn("spotify", &format!("stream read failed after {} bytes: {:?}", downloaded, e));
                 drop(file);
                 cleanup_temp_file_async(&temp_path).await;
                 return Err(format!("Spotify stream read failed: {}", e));
@@ -235,7 +235,7 @@ pub async fn download_track(
         return Err("Spotify returned no audio".to_string());
     }
 
-    debug_log(&format!("stream complete: {} bytes, tagging", downloaded));
+    crate::logging::info("spotify", &format!("stream complete: {} bytes, tagging", downloaded));
     emit_progress(app, track_key, &track.title, 92.0, "tagging");
 
     let cover = fetch_cover(client, &track.cover_medium).await;
@@ -250,7 +250,7 @@ pub async fn download_track(
 
     if let Err(e) = tag_result {
         // Tagging is non-fatal, exactly like the Deezer engine.
-        eprintln!("Warning: failed to write Spotify tags: {}", e);
+        crate::logging::warn("spotify", format!("Tags not written: {}", e));
         let _ = app.emit(
             "tag-writing-error",
             serde_json::json!({
@@ -293,7 +293,7 @@ pub async fn download_track(
         }
     };
 
-    debug_log(&format!("download complete: {}", download_path.display()));
+    crate::logging::info("spotify", &format!("download complete: {}", download_path.display()));
     emit_progress(app, track_key, &track.title, 100.0, "complete");
 
     Ok(DownloadResult {

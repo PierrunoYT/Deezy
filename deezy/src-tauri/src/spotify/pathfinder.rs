@@ -86,7 +86,7 @@ async fn search_uris(
             match query_once(client, name, hash, query, limit).await {
                 Ok(body) => return Ok(parse_uris(&body, section, kind, limit as usize)),
                 Err(error) => {
-                    eprintln!("Pathfinder {} ({}…): {}", name, &hash[..8], error);
+                    crate::logging::warn("spotify", format!("Pathfinder {} ({}…): {}", name, &hash[..8], error));
                     last_error = error;
                 }
             }
@@ -162,7 +162,7 @@ async fn query_once(
     if !status.is_success() || value.get("errors").is_some() {
         let detail = value["errors"][0]["message"].as_str().unwrap_or("no details");
         let snippet: String = text.chars().take(300).collect();
-        super::debug_log(&format!(
+        crate::logging::warn("spotify", &format!(
             "pathfinder {} HTTP {}: body={} client_token_error={:?}",
             operation,
             status.as_u16(),
