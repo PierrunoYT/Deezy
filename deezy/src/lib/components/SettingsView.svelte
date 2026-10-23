@@ -3,6 +3,8 @@
   import { onMount } from 'svelte';
   import {
     loggedIn,
+    spotifyConnected,
+    spotifyUserName,
     userInfo,
     theme,
     notificationsEnabled,
@@ -15,6 +17,7 @@
     type AppSettings,
     type FolderStructure,
     type QualityOption,
+    type SpotifyQuality,
     type UserInfo,
     type Theme,
     type ArlStorageStatus
@@ -47,6 +50,8 @@
   let speedLimitKbps = $state(0);
   let concurrentDownloads = $state($maxConcurrentDownloads);
   let selectedLocale = $state('en');
+  let spotifyQuality = $state<SpotifyQuality>('very-high');
+  let spotifyBusy = $state(false);
   let showArl = $state(false);
   let saving = $state(false);
   let statusMsg = $state('');
@@ -56,7 +61,7 @@
   let arlStorage = $state<ArlStorageStatus | null>(null);
   let arlStoredInPlainFile = $derived(arlStorage?.storage === 'plain_file');
 
-  const VALID_QUALITIES = ['MP3_128', 'MP3_320', 'FLAC'] as const;
+  const VALID_QUALITIES: readonly string[] = ['MP3_128', 'MP3_320', 'FLAC'];
   const DELAY_PRESETS = [0, 2, 5, 10, 30, 60];
   // Kilobits per second. 1411 and 320 match FLAC and MP3 320 playback speed.
   const SPEED_LIMIT_PRESETS = [0, 10000, 5000, 2000, 1411, 320];
@@ -119,6 +124,7 @@
         downloadDelay = settings.download_delay_seconds ?? 0;
         speedLimitKbps = settings.download_speed_limit_kbps ?? 0;
         concurrentDownloads = settings.max_concurrent_downloads ?? concurrentDownloads;
+        spotifyQuality = settings.spotify_quality ?? 'very-high';
       } catch {
         // First run
       }
@@ -219,6 +225,11 @@
       }
 
       if (!user) {
+        // A Spotify-only setup is valid; there is simply no Deezer session.
+        if ($spotifyConnected) {
+          showStatus($_('settings.status.saved'), 'success');
+          return;
+        }
         showStatus($_('settings.status.arlRequired'), 'error');
         return;
       }
@@ -251,6 +262,49 @@
     } catch (err) {
       console.error(`Failed to save ${key} setting:`, err);
       throw err;
+    }
+  }
+
+  async function connectSpotify(): Promise<void> {
+    spotifyBusy = true;
+    try {
+      const status = await invoke<{ connected: boolean; name: string | null }>('spotify_login');
+      spotifyConnected.set(status.connected);
+      spotifyUserName.set(status.name ?? null);
+      showStatus($_('settings.spotify.connectedStatus'), 'success');
+    } catch (err) {
+      showStatus(
+        $_('settings.spotify.connectFailed', { values: { error: String(err) } }),
+        'error'
+      );
+    } finally {
+      spotifyBusy = false;
+    }
+  }
+
+  async function disconnectSpotify(): Promise<void> {
+    spotifyBusy = true;
+    try {
+      await invoke('spotify_logout');
+      spotifyConnected.set(false);
+      spotifyUserName.set(null);
+      showStatus($_('settings.spotify.disconnectedStatus'), 'info');
+    } catch (err) {
+      showStatus(
+        $_('settings.spotify.disconnectFailed', { values: { error: String(err) } }),
+        'error'
+      );
+    } finally {
+      spotifyBusy = false;
+    }
+  }
+
+  async function changeSpotifyQuality(value: SpotifyQuality): Promise<void> {
+    spotifyQuality = value;
+    try {
+      await updateSetting('spotify_quality', value);
+    } catch (err) {
+      console.error('Failed to save Spotify quality:', err);
     }
   }
 
@@ -451,6 +505,35 @@
       {#if isFreeAccount}
         <p class="form-hint">Your Deezer Free account supports MP3 128 kbps only.</p>
       {/if}
+    </div>
+
+    <div class="form-group">
+      <label for="spotify-quality-select">{$_('settings.spotify.label')}</label>
+      <p class="form-hint">{$_('settings.spotify.hint')}</p>
+      <div class="input-row">
+        {#if $spotifyConnected}
+          <span class="form-hint">
+            {$_('settings.spotify.connectedAs', { values: { name: $spotifyUserName ?? 'Spotify' } })}
+          </span>
+          <button class="btn-secondary" onclick={disconnectSpotify} disabled={spotifyBusy}>
+            {$_('settings.spotify.disconnect')}
+          </button>
+        {:else}
+          <button class="btn-secondary" onclick={connectSpotify} disabled={spotifyBusy}>
+            {spotifyBusy ? $_('settings.spotify.waiting') : $_('settings.spotify.connect')}
+          </button>
+        {/if}
+      </div>
+      <select
+        id="spotify-quality-select"
+        value={spotifyQuality}
+        onchange={(e) => changeSpotifyQuality(e.currentTarget.value as SpotifyQuality)}
+      >
+        <option value="normal">{$_('settings.spotify.quality.normal')}</option>
+        <option value="high">{$_('settings.spotify.quality.high')}</option>
+        <option value="very-high">{$_('settings.spotify.quality.veryHigh')}</option>
+        <option value="lossless">{$_('settings.spotify.quality.lossless')}</option>
+      </select>
     </div>
     
     <div class="form-group">

@@ -1,6 +1,6 @@
 [package]
 name = "deezy"
-version = "0.2.25"
+version = "0.2.26"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -11,6 +11,10 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
+# librespot-core's build script pulls vergen-gitcl 1.0.8, which resolves
+# vergen 9.1.0 alongside vergen-lib 0.1.6 and fails to compile. Pin vergen to
+# the last release that depends only on vergen-lib 0.1.x.
+vergen = "=9.0.6"
 
 [dependencies]
 tauri = { version = "2", features = ["tray-icon"] }
@@ -36,6 +40,11 @@ regex = "1"
 lazy_static = "1.4"
 url = "2"
 base64 = "0.22"
+librespot-core = "0.8"
+librespot-metadata = "0.8"
+librespot-audio = "0.8"
+librespot-oauth = "0.8"
+lofty = "0.25"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

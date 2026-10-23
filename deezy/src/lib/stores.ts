@@ -2,7 +2,15 @@ import { writable, type Writable } from 'svelte/store';
 
 export type DownloadStatus = 'downloading' | 'complete' | 'error' | 'paused' | 'resolving' | 'tagging';
 export type Theme = 'light' | 'dark' | 'system' | 'custom';
-export type QualityOption = 'MP3_128' | 'MP3_320' | 'FLAC';
+export type QualityOption =
+  | 'MP3_128'
+  | 'MP3_320'
+  | 'FLAC'
+  | 'SPOTIFY_96'
+  | 'SPOTIFY_160'
+  | 'SPOTIFY_320'
+  | 'SPOTIFY_AAC';
+export type SpotifyQuality = 'normal' | 'high' | 'very-high' | 'lossless';
 export type FolderStructure = 'flat' | 'artist_track' | 'artist_album_track' | 'album_track' | 'custom';
 
 export interface AppSettings {
@@ -22,6 +30,9 @@ export interface AppSettings {
   download_delay_seconds: number;
   download_speed_limit_kbps: number;
   max_concurrent_downloads: number;
+  spotify_enabled: boolean;
+  spotify_quality: SpotifyQuality;
+  spotify_device_id?: string;
 }
 
 export interface ArlStorageStatus {
@@ -46,15 +57,17 @@ export interface UserInfo {
 }
 
 export interface Track {
-  id: number;
+  /** Deezer IDs are numeric; Spotify IDs are `spotify:<base62>`. */
+  id: number | string;
   title: string;
   artist: string;
-  artist_id: number;
+  artist_id: number | string;
   album: string;
   duration: number;
   cover_small: string;
   cover_medium: string;
   preview?: string;
+  provider?: 'deezer' | 'spotify';
 }
 
 export interface DownloadItem {
@@ -99,6 +112,8 @@ export const DEFAULT_THEME: Theme = 'dark';
 export const DEFAULT_LOCALE = 'en';
 
 export const loggedIn: Writable<boolean> = writable(false);
+export const spotifyConnected: Writable<boolean> = writable(false);
+export const spotifyUserName: Writable<string | null> = writable(null);
 export const userInfo: Writable<UserInfo | null> = writable(null);
 export const downloads: Writable<Map<string, string>> = writable(new Map());
 export const activeDownloads: Writable<number> = writable(0);

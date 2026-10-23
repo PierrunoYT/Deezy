@@ -6,6 +6,19 @@ All notable changes to Deezy are documented here.
 
 ---
 
+## [0.2.26] - 2026-10-23
+
+### Added
+
+- **Spotify source** — Deezy can now search Spotify and download from pasted Spotify track, album, artist, or playlist links. Audio comes straight from Spotify through librespot (OGG Vorbis, or FLAC on Premium), decrypted with the track's own key, with the same metadata and cover art as Deezer downloads. Connect once through a browser login; the credential stays in the OS keyring, separate from the ARL.
+- **Spotify quality** — Normal (96 kbps), High (160 kbps), Very high (320 kbps), or Lossless (FLAC, Premium).
+
+### Changed
+
+- **Deezer-free settings** — Saving settings no longer requires an ARL, so the Spotify source can be used without a Deezer account.
+
+---
+
 ## [0.2.25] - 2026-10-23
 
 ### Added

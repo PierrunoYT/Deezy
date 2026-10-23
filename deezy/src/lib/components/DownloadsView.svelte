@@ -92,6 +92,13 @@
 
   function formatQualityLabel(value?: string): string {
     if (!value) return '';
+    const spotifyLabels: Record<string, string> = {
+      SPOTIFY_96: 'Spotify 96 kbps',
+      SPOTIFY_160: 'Spotify 160 kbps',
+      SPOTIFY_320: 'Spotify 320 kbps',
+      SPOTIFY_AAC: 'Spotify AAC'
+    };
+    if (spotifyLabels[value]) return spotifyLabels[value];
     return value.replace('MP3_', 'MP3 ').replace('_', ' ');
   }
 

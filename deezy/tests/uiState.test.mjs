@@ -12,7 +12,7 @@ function searchSetup() {
     svelte: { onMount() {} }, '$lib/keyboardShortcuts': {}, '$lib/audioPlayer': {},
     'svelte-i18n': {}, './search/SearchResults.svelte': {}, './search/SearchView.css': {},
     './search/types': loadModule('../src/lib/components/search/types.ts', {})
-  }, { $state: value => value, $effect() {}, $_: key => key }, `
+  }, { $state: value => value, $derived: value => value, $effect() {}, $_: key => key }, `
     export { openArtist, closeArtist, openPlaylist, closePlaylist, switchSearchType };
     export const login = () => { isLoggedIn = true; };
     export const inspect = () => ({ selectedArtist, artistAlbums, loadingDiscography, selectedPlaylist, playlistTracks, loadingPlaylist, results, playlistResults, searching, errorMsg });

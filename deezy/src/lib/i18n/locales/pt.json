@@ -74,6 +74,12 @@
         "artistCard": {
             "albums": "{count, plural, =1 {1 álbum} other {# álbuns}}",
             "fans": "{count, number} fãs"
+        },
+        "source": {
+            "label": "Fonte de música",
+            "deezer": "Deezer",
+            "spotify": "Spotify",
+            "spotifyRequired": "Conecte a sua conta Spotify nas Definições para pesquisar no Spotify."
         }
     },
     "downloads": {
@@ -212,7 +218,8 @@
             "qualityInvalid": "Definição de qualidade inválida.",
             "customFolderTemplateRequired": "Modelo de pasta personalizado é obrigatório.",
             "historyCleared": "Histórico de pesquisa limpo com sucesso!",
-            "clearHistoryFailed": "Falha ao limpar o histórico de pesquisa: {error}"
+            "clearHistoryFailed": "Falha ao limpar o histórico de pesquisa: {error}",
+            "saved": "Definições guardadas."
         },
         "skipExisting": {
             "label": "Ignorar ficheiros existentes",
@@ -239,6 +246,24 @@
             "kbps": "{value} kbit/s",
             "flacPlayback": "{value} kbit/s (velocidade de reprodução FLAC)",
             "mp3Playback": "{value} kbit/s (velocidade de reprodução MP3 320)"
+        },
+        "spotify": {
+            "label": "Spotify",
+            "hint": "Descarrega o áudio original do Spotify. Inicia sessão uma vez no navegador; a credencial fica neste computador.",
+            "connect": "Ligar Spotify",
+            "waiting": "À espera do navegador…",
+            "disconnect": "Desligar",
+            "connectedAs": "Ligado como {name}",
+            "connectedStatus": "Spotify ligado.",
+            "disconnectedStatus": "Spotify desligado.",
+            "connectFailed": "Falha ao ligar ao Spotify: {error}",
+            "disconnectFailed": "Não foi possível desligar o Spotify: {error}",
+            "quality": {
+                "normal": "Normal (96 kbps)",
+                "high": "Alta (160 kbps)",
+                "veryHigh": "Muito alta (320 kbps)",
+                "lossless": "Sem perdas (FLAC, Premium)"
+            }
         }
     },
     "user": {

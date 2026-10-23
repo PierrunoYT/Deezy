@@ -51,6 +51,8 @@ Paths below are relative to `deezy/`.
 | `src-tauri/src/lib.rs` | Managed application state, command registration, window events |
 | `src-tauri/src/commands/` | IPC handlers grouped by account, catalog, downloads, filesystem, history, settings, tags, themes, and tray |
 | `src-tauri/src/deezer/` | Authentication, gateway and catalog requests, user library (Loved Tracks, profile playlists), media resolution, crypto, downloads, and models |
+| `src-tauri/src/spotify/` | OAuth login and session, Spotify Web API catalog, librespot audio streaming, and OGG/FLAC tagging |
+| `src-tauri/src/paths.rs` | Provider-neutral destination paths and safe temp-file finalization shared by both engines |
 | `src-tauri/src/settings.rs` | Validated settings, credential storage, atomic private-file writes |
 | `src-tauri/src/themes.rs` | Custom theme validation and persistence |
 

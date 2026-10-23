@@ -74,6 +74,12 @@
     "artistCard": {
       "albums": "{count, plural, =1 {1 Album} other {# Alben}}",
       "fans": "{count, number} Fans"
+    },
+    "source": {
+      "label": "Musikquelle",
+      "deezer": "Deezer",
+      "spotify": "Spotify",
+      "spotifyRequired": "Verbinde dein Spotify-Konto in den Einstellungen, um Spotify zu durchsuchen."
     }
   },
   "downloads": {
@@ -212,7 +218,8 @@
       "qualityInvalid": "Ungültige Qualitätseinstellung.",
       "customFolderTemplateRequired": "Benutzerdefinierte Ordnervorlage ist erforderlich.",
       "historyCleared": "Suchverlauf erfolgreich gelöscht!",
-      "clearHistoryFailed": "Suchverlauf konnte nicht gelöscht werden: {error}"
+      "clearHistoryFailed": "Suchverlauf konnte nicht gelöscht werden: {error}",
+      "saved": "Einstellungen gespeichert."
     },
     "skipExisting": {
       "label": "Vorhandene Dateien überspringen",
@@ -239,6 +246,24 @@
       "kbps": "{value} kbit/s",
       "flacPlayback": "{value} kbit/s (FLAC-Wiedergabegeschwindigkeit)",
       "mp3Playback": "{value} kbit/s (MP3-320-Wiedergabegeschwindigkeit)"
+    },
+    "spotify": {
+      "label": "Spotify",
+      "hint": "Lädt das Original-Audio von Spotify. Einmal im Browser anmelden; die Anmeldedaten bleiben auf diesem Computer.",
+      "connect": "Spotify verbinden",
+      "waiting": "Warte auf Browser…",
+      "disconnect": "Trennen",
+      "connectedAs": "Verbunden als {name}",
+      "connectedStatus": "Spotify verbunden.",
+      "disconnectedStatus": "Spotify getrennt.",
+      "connectFailed": "Spotify-Verbindung fehlgeschlagen: {error}",
+      "disconnectFailed": "Spotify konnte nicht getrennt werden: {error}",
+      "quality": {
+        "normal": "Normal (96 kbit/s)",
+        "high": "Hoch (160 kbit/s)",
+        "veryHigh": "Sehr hoch (320 kbit/s)",
+        "lossless": "Verlustfrei (FLAC, Premium)"
+      }
     }
   },
   "user": {

@@ -52,10 +52,8 @@ pub async fn save_settings(
     // intentionally redacted full-settings payload from the renderer.
     merged.search_history = settings.search_history.clone();
 
-    if merged.arl.trim().is_empty() {
-        return Err("ARL token is required".to_string());
-    }
-
+    // An ARL is no longer mandatory: Spotify is an independent source, so the
+    // settings must be saveable before (or without) a Deezer login.
     drop(settings);
     let settings_to_save = merged.clone();
     run_blocking(move || settings_to_save.save(&app)).await?;
@@ -95,6 +93,8 @@ pub async fn update_settings(
             "download_delay_seconds" => settings.download_delay_seconds = serde_json::from_value(value).map_err(|e| e.to_string())?,
             "download_speed_limit_kbps" => settings.download_speed_limit_kbps = serde_json::from_value(value).map_err(|e| e.to_string())?,
             "max_concurrent_downloads" => settings.max_concurrent_downloads = serde_json::from_value(value).map_err(|e| e.to_string())?,
+            "spotify_enabled" => settings.spotify_enabled = serde_json::from_value(value).map_err(|e| e.to_string())?,
+            "spotify_quality" => settings.spotify_quality = serde_json::from_value(value).map_err(|e| e.to_string())?,
             "locale" => settings.locale = serde_json::from_value(value).map_err(|e| e.to_string())?,
             _ => return Err(format!("Setting '{}' cannot be updated individually", key)),
         }

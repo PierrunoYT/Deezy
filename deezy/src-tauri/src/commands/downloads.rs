@@ -37,6 +37,10 @@ async fn execute_download_track(
     app: &AppHandle,
     cancel_flag: Arc<AtomicBool>,
 ) -> Result<DownloadResult, String> {
+    if crate::spotify::is_spotify_track(track_id) {
+        return execute_spotify_download(track_id, state, app, cancel_flag).await;
+    }
+
     // Get or recreate the client
     let (mut client, output_dir, quality, folder_structure, custom_folder_template, arl, skip_existing, speed_limit_kbps) = {
         let lock = state.client.lock().await;
@@ -140,6 +144,48 @@ async fn execute_download_track(
     }
 
     result
+}
+
+async fn execute_spotify_download(
+    track_id: &str,
+    state: &AppState,
+    app: &AppHandle,
+    cancel_flag: Arc<AtomicBool>,
+) -> Result<DownloadResult, String> {
+    let (client, output_dir, quality, folder_structure, custom_folder_template, skip_existing, speed_limit_kbps) = {
+        let client = state
+            .spotify
+            .lock()
+            .await
+            .as_ref()
+            .cloned()
+            .ok_or("Not connected to Spotify. Open Settings and connect your account.")?;
+        let settings = state.settings.lock().await;
+        (
+            client,
+            settings.output_dir.clone(),
+            settings.spotify_quality.clone(),
+            settings.folder_structure.clone(),
+            settings.custom_folder_template.clone(),
+            settings.skip_existing_files,
+            settings.download_speed_limit_kbps,
+        )
+    };
+
+    crate::spotify::download::download_track(
+        &client,
+        track_id,
+        &output_dir,
+        &quality,
+        &folder_structure,
+        &custom_folder_template,
+        skip_existing,
+        &state.bandwidth,
+        speed_limit_kbps,
+        app,
+        cancel_flag,
+    )
+    .await
 }
 
 pub(super) async fn install_client_if_current(state: &AppState, refreshed_arl: &str, client: DeezerClient) {

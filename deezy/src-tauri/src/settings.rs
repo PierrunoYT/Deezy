@@ -58,6 +58,15 @@ pub struct Settings {
     /// How many tracks may download at the same time.
     #[serde(default = "default_max_concurrent_downloads")]
     pub max_concurrent_downloads: u32,
+    /// Spotify is a second download source; this turns it on in the UI.
+    #[serde(default = "default_true")]
+    pub spotify_enabled: bool,
+    /// `normal`, `high`, `very-high` or `lossless`.
+    #[serde(default = "default_spotify_quality")]
+    pub spotify_quality: String,
+    /// Stable device id shown on the Spotify account; generated once.
+    #[serde(default)]
+    pub spotify_device_id: String,
     /// Set on disk only when the plaintext ARL was saved with the keyring
     /// disabled (`DEEZY_NO_KEYRING`). Such a credential is newer than whatever
     /// the keyring holds; other plaintext may be stale and loses to the keyring.
@@ -71,6 +80,10 @@ fn default_true() -> bool {
 
 fn default_max_concurrent_downloads() -> u32 {
     3
+}
+
+fn default_spotify_quality() -> String {
+    "very-high".to_string()
 }
 
 fn default_locale() -> String {
@@ -108,6 +121,9 @@ impl Default for Settings {
             download_delay_seconds: 0,
             download_speed_limit_kbps: 0,
             max_concurrent_downloads: default_max_concurrent_downloads(),
+            spotify_enabled: true,
+            spotify_quality: default_spotify_quality(),
+            spotify_device_id: String::new(),
             arl_saved_without_keyring: false,
         }
     }
@@ -460,6 +476,14 @@ impl Settings {
         let valid_qualities = ["MP3_128", "MP3_320", "FLAC"];
         if !valid_qualities.contains(&self.quality.as_str()) {
             return Err(format!("Invalid quality '{}'. Must be one of: MP3_128, MP3_320, FLAC", self.quality));
+        }
+
+        let valid_spotify_qualities = ["normal", "high", "very-high", "lossless"];
+        if !valid_spotify_qualities.contains(&self.spotify_quality.as_str()) {
+            return Err(format!(
+                "Invalid Spotify quality '{}'. Must be one of: normal, high, very-high, lossless",
+                self.spotify_quality
+            ));
         }
 
         if self.folder_structure == FolderStructure::Custom && self.custom_folder_template.trim().is_empty() {

@@ -5,6 +5,8 @@
   import { listen, type UnlistenFn } from '@tauri-apps/api/event';
   import {
     loggedIn,
+    spotifyConnected,
+    spotifyUserName,
     userInfo,
     downloads,
     downloadHistory,
@@ -164,6 +166,15 @@
       } catch (err) {
         console.error('Auto-login failed:', err);
       }
+
+      // Spotify is independent of the Deezer session, so this must not block
+      // the splash screen or fail app startup.
+      void invoke<{ connected: boolean; name: string | null }>('spotify_status')
+        .then(status => {
+          spotifyConnected.set(status.connected);
+          spotifyUserName.set(status.name ?? null);
+        })
+        .catch(err => console.error('Spotify status failed:', err));
     } catch (err) {
       console.error('Failed to load settings:', err);
       notificationsEnabled.set(false);

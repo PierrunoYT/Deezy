@@ -74,6 +74,12 @@
     "artistCard": {
       "albums": "{count, plural, =1 {1 album} other {# albums}}",
       "fans": "{count, number} fans"
+    },
+    "source": {
+      "label": "Source musicale",
+      "deezer": "Deezer",
+      "spotify": "Spotify",
+      "spotifyRequired": "Connectez votre compte Spotify dans les Réglages pour rechercher sur Spotify."
     }
   },
   "downloads": {
@@ -212,7 +218,8 @@
       "qualityInvalid": "Paramètre de qualité invalide.",
       "customFolderTemplateRequired": "Le modèle de dossier personnalisé est requis.",
       "historyCleared": "Historique de recherche effacé avec succès !",
-      "clearHistoryFailed": "Impossible d'effacer l'historique de recherche : {error}"
+      "clearHistoryFailed": "Impossible d'effacer l'historique de recherche : {error}",
+      "saved": "Réglages enregistrés."
     },
     "skipExisting": {
       "label": "Ignorer les fichiers existants",
@@ -239,6 +246,24 @@
       "kbps": "{value} kbit/s",
       "flacPlayback": "{value} kbit/s (vitesse de lecture FLAC)",
       "mp3Playback": "{value} kbit/s (vitesse de lecture MP3 320)"
+    },
+    "spotify": {
+      "label": "Spotify",
+      "hint": "Télécharge l'audio original de Spotify. Connexion unique dans le navigateur ; l'identifiant reste sur cet ordinateur.",
+      "connect": "Connecter Spotify",
+      "waiting": "En attente du navigateur…",
+      "disconnect": "Déconnecter",
+      "connectedAs": "Connecté en tant que {name}",
+      "connectedStatus": "Spotify connecté.",
+      "disconnectedStatus": "Spotify déconnecté.",
+      "connectFailed": "Échec de la connexion Spotify : {error}",
+      "disconnectFailed": "Impossible de déconnecter Spotify : {error}",
+      "quality": {
+        "normal": "Normale (96 kbps)",
+        "high": "Élevée (160 kbps)",
+        "veryHigh": "Très élevée (320 kbps)",
+        "lossless": "Sans perte (FLAC, Premium)"
+      }
     }
   },
   "user": {

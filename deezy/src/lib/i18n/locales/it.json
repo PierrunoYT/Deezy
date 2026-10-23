@@ -74,6 +74,12 @@
         "artistCard": {
             "albums": "{count, plural, =1 {1 album} other {# album}}",
             "fans": "{count, number} fan"
+        },
+        "source": {
+            "label": "Sorgente musicale",
+            "deezer": "Deezer",
+            "spotify": "Spotify",
+            "spotifyRequired": "Collega il tuo account Spotify nelle Impostazioni per cercare su Spotify."
         }
     },
     "downloads": {
@@ -212,7 +218,8 @@
             "qualityInvalid": "Impostazione qualità non valida.",
             "customFolderTemplateRequired": "Il modello cartella personalizzato è obbligatorio.",
             "historyCleared": "Cronologia ricerche cancellata con successo!",
-            "clearHistoryFailed": "Impossibile cancellare la cronologia ricerche: {error}"
+            "clearHistoryFailed": "Impossibile cancellare la cronologia ricerche: {error}",
+            "saved": "Impostazioni salvate."
         },
         "skipExisting": {
             "label": "Salta file esistenti",
@@ -239,6 +246,24 @@
             "kbps": "{value} kbit/s",
             "flacPlayback": "{value} kbit/s (velocità di riproduzione FLAC)",
             "mp3Playback": "{value} kbit/s (velocità di riproduzione MP3 320)"
+        },
+        "spotify": {
+            "label": "Spotify",
+            "hint": "Scarica l'audio originale di Spotify. Accedi una volta nel browser; la credenziale resta su questo computer.",
+            "connect": "Collega Spotify",
+            "waiting": "In attesa del browser…",
+            "disconnect": "Scollega",
+            "connectedAs": "Connesso come {name}",
+            "connectedStatus": "Spotify collegato.",
+            "disconnectedStatus": "Spotify scollegato.",
+            "connectFailed": "Connessione a Spotify non riuscita: {error}",
+            "disconnectFailed": "Impossibile scollegare Spotify: {error}",
+            "quality": {
+                "normal": "Normale (96 kbps)",
+                "high": "Alta (160 kbps)",
+                "veryHigh": "Molto alta (320 kbps)",
+                "lossless": "Senza perdita (FLAC, Premium)"
+            }
         }
     },
     "user": {

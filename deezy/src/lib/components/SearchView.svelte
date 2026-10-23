@@ -1,6 +1,6 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
-  import { loggedIn, downloads, searchHistory, audioPlayer, type Track } from '$lib/stores';
+  import { loggedIn, spotifyConnected, downloads, searchHistory, audioPlayer, type Track } from '$lib/stores';
   import { downloadQueueManager } from '$lib/downloadQueue';
   import { searchRateLimiter } from '$lib/rateLimiter';
   import { onMount } from 'svelte';
@@ -12,8 +12,10 @@
     isLibraryType,
     type AlbumResult,
     type ArtistResult,
+    type CatalogId,
     type LibraryType,
     type PlaylistResult,
+    type Provider,
     type SearchType,
     type SelectedArtist,
     type SelectedPlaylist
@@ -29,9 +31,11 @@
   let searching = $state<boolean>(false);
   let errorMsg = $state<string>('');
   let isLoggedIn = $state<boolean>(false);
+  let spotifyAvailable = $state<boolean>(false);
+  let source = $state<Provider>('deezer');
   let downloadStates = $state<Map<string, string>>(new Map());
-  let downloadingAlbums = $state<Set<number>>(new Set());
-  let downloadingPlaylists = $state<Set<number>>(new Set());
+  let downloadingAlbums = $state<Set<CatalogId>>(new Set());
+  let downloadingPlaylists = $state<Set<CatalogId>>(new Set());
   let downloadingLovedTracks = $state<boolean>(false);
   let showSearchHistory = $state<boolean>(false);
   let history = $state<string[]>([]);
@@ -73,6 +77,7 @@
   $effect(() => {
     try {
       const unsubscribe1 = loggedIn.subscribe(val => isLoggedIn = val);
+      const unsubscribeSpotify = spotifyConnected.subscribe(val => spotifyAvailable = val);
       const unsubscribe2 = downloads.subscribe(val => downloadStates = val);
       const unsubscribe3 = searchHistory.subscribe(val => history = val);
       const unsubscribe4 = audioPlayer.subscribe(state => {
@@ -81,6 +86,7 @@
       });
       return () => {
         unsubscribe1();
+        unsubscribeSpotify();
         unsubscribe2();
         unsubscribe3();
         unsubscribe4();
@@ -89,6 +95,11 @@
       console.error('Error subscribing to stores:', err);
     }
   });
+
+  /** Whether the selected source can run a search right now. */
+  function canSearch(): boolean {
+    return source === 'spotify' ? spotifyAvailable : isLoggedIn;
+  }
 
   onMount(() => {
     loadSearchHistory();
@@ -236,9 +247,37 @@
     }
   }
 
+  /** Switches between the Deezer and Spotify catalogs. */
+  function switchSource(next: Provider): void {
+    if (next === source) return;
+    if (next === 'spotify' && !spotifyAvailable) {
+      errorMsg = $_('search.source.spotifyRequired');
+      return;
+    }
+
+    clearTimeout(searchTimeout);
+    closeAlbum();
+    closeArtist();
+    closePlaylist();
+    activeSearchToken += 1;
+    searching = false;
+    source = next;
+    resetResults();
+    errorMsg = '';
+    showSearchHistory = false;
+
+    if (isLibraryType(searchType)) {
+      loadLibrary(searchType);
+    } else if (searchQuery.trim().length >= 2) {
+      doSearch();
+    }
+  }
+
   async function loadLibrary(type: LibraryType): Promise<void> {
-    if (!isLoggedIn) {
-      errorMsg = $_('search.status.loginRequired');
+    if (!canSearch()) {
+      errorMsg = source === 'spotify'
+        ? $_('search.source.spotifyRequired')
+        : $_('search.status.loginRequired');
       return;
     }
 
@@ -250,12 +289,16 @@
     try {
       let count: number;
       if (type === 'loved') {
-        const data = await invoke<Track[]>('get_loved_tracks');
+        const data = await invoke<Track[]>(
+          source === 'spotify' ? 'get_spotify_loved_tracks' : 'get_loved_tracks'
+        );
         if (requestToken !== activeSearchToken) return;
         results = data;
         count = data.length;
       } else {
-        const data = await invoke<PlaylistResult[]>('get_user_playlists');
+        const data = await invoke<PlaylistResult[]>(
+          source === 'spotify' ? 'get_spotify_user_playlists' : 'get_user_playlists'
+        );
         if (requestToken !== activeSearchToken) return;
         playlistResults = data;
         count = data.length;
@@ -284,16 +327,25 @@
   
   async function doSearch(): Promise<void> {
     clearTimeout(searchTimeout);
-    if (!isLoggedIn) {
-      errorMsg = $_('search.status.loginRequired');
+    if (!canSearch()) {
+      errorMsg = source === 'spotify'
+        ? $_('search.source.spotifyRequired')
+        : $_('search.status.loginRequired');
       return;
     }
 
     const query = searchQuery.trim();
     const requestedType = searchType;
+    const requestedSource = source;
     if (!query || isLibraryType(requestedType)) return;
 
     const requestToken = ++activeSearchToken;
+    const isStale = () =>
+      requestToken !== activeSearchToken ||
+      query !== searchQuery.trim() ||
+      requestedType !== searchType ||
+      requestedSource !== source;
+
     searching = true;
     errorMsg = '';
     resetResults();
@@ -301,40 +353,36 @@
 
     try {
       await searchRateLimiter.throttle();
-      if (requestToken !== activeSearchToken || query !== searchQuery.trim() || requestedType !== searchType) {
+      if (isStale()) {
         return;
       }
 
+      const command = requestedSource === 'spotify'
+        ? `search_spotify_${requestedType}`
+        : `search_${requestedType}`;
+
       const searchHandlers = {
         tracks: async () => {
-          const data = await invoke<Track[]>('search_tracks', { query });
-          if (requestToken !== activeSearchToken || query !== searchQuery.trim() || requestedType !== searchType) {
-            return null;
-          }
+          const data = await invoke<Track[]>(command, { query });
+          if (isStale()) return null;
           results = data;
           return data.length;
         },
         albums: async () => {
-          const data = await invoke<AlbumResult[]>('search_albums', { query });
-          if (requestToken !== activeSearchToken || query !== searchQuery.trim() || requestedType !== searchType) {
-            return null;
-          }
+          const data = await invoke<AlbumResult[]>(command, { query });
+          if (isStale()) return null;
           albumResults = data;
           return data.length;
         },
         artists: async () => {
-          const data = await invoke<ArtistResult[]>('search_artists', { query });
-          if (requestToken !== activeSearchToken || query !== searchQuery.trim() || requestedType !== searchType) {
-            return null;
-          }
+          const data = await invoke<ArtistResult[]>(command, { query });
+          if (isStale()) return null;
           artistResults = data;
           return data.length;
         },
         playlists: async () => {
-          const data = await invoke<PlaylistResult[]>('search_playlists', { query });
-          if (requestToken !== activeSearchToken || query !== searchQuery.trim() || requestedType !== searchType) {
-            return null;
-          }
+          const data = await invoke<PlaylistResult[]>(command, { query });
+          if (isStale()) return null;
           playlistResults = data;
           return data.length;
         }
@@ -351,7 +399,7 @@
         await addToSearchHistory(query);
       }
     } catch (err) {
-      if (requestToken !== activeSearchToken || query !== searchQuery.trim() || requestedType !== searchType) {
+      if (isStale()) {
         return;
       }
       errorMsg = String(err);
@@ -362,7 +410,7 @@
     }
   }
 
-  async function openArtist(id: number, name: string, picture: string): Promise<void> {
+  async function openArtist(id: CatalogId, name: string, picture: string): Promise<void> {
     closeAlbum();
     const token = ++activeArtistToken;
     selectedArtist = { id, name, picture };
@@ -371,7 +419,8 @@
     loadingDiscography = true;
 
     try {
-      const data = await invoke<AlbumResult[]>('get_artist_albums', { artistId: String(id) });
+      const command = source === 'spotify' ? 'get_spotify_artist_albums' : 'get_artist_albums';
+      const data = await invoke<AlbumResult[]>(command, { artistId: String(id) });
       if (token !== activeArtistToken) return;
       artistAlbums = data;
       if (artistAlbums.length === 0) {
@@ -400,7 +449,8 @@
     loadingAlbum = true;
 
     try {
-      const data = await invoke<Track[]>('get_album_tracks', { albumId: String(album.id) });
+      const command = album.provider === 'spotify' ? 'get_spotify_album_tracks' : 'get_album_tracks';
+      const data = await invoke<Track[]>(command, { albumId: String(album.id) });
       if (token !== activeAlbumToken) return;
       albumTracks = data;
       if (albumTracks.length === 0) {
@@ -427,14 +477,16 @@
       id: playlist.id, 
       title: playlist.title, 
       cover: playlist.cover_medium, 
-      creator: playlist.creator 
+      creator: playlist.creator,
+      provider: playlist.provider
     };
     playlistTracks = [];
     playlistError = '';
     loadingPlaylist = true;
 
     try {
-      const data = await invoke<Track[]>('get_playlist_tracks', { playlistId: String(playlist.id) });
+      const command = playlist.provider === 'spotify' ? 'get_spotify_playlist_tracks' : 'get_playlist_tracks';
+      const data = await invoke<Track[]>(command, { playlistId: String(playlist.id) });
       if (token !== activePlaylistToken) return;
       playlistTracks = data;
       if (playlistTracks.length === 0) {
@@ -463,7 +515,8 @@
     try {
       let tracks = playlistTracks;
       if (tracks.length === 0) {
-        tracks = await invoke<Track[]>('get_playlist_tracks', { playlistId: String(playlist.id) });
+        const command = playlist.provider === 'spotify' ? 'get_spotify_playlist_tracks' : 'get_playlist_tracks';
+        tracks = await invoke<Track[]>(command, { playlistId: String(playlist.id) });
       }
       for (const track of tracks) {
         await downloadQueueManager.addToQueue(track);
@@ -483,7 +536,8 @@
     const searchToken = activeSearchToken;
 
     try {
-      const tracks = await invoke<Track[]>('get_playlist_tracks', { playlistId: String(playlist.id) });
+      const command = playlist.provider === 'spotify' ? 'get_spotify_playlist_tracks' : 'get_playlist_tracks';
+      const tracks = await invoke<Track[]>(command, { playlistId: String(playlist.id) });
       for (const track of tracks) {
         await downloadQueueManager.addToQueue(track);
       }
@@ -511,7 +565,10 @@
       // Reuse the track list already loaded for the open album.
       const tracks = selectedAlbum?.id === album.id && albumTracks.length > 0
         ? albumTracks
-        : await invoke<Track[]>('get_album_tracks', { albumId: String(album.id) });
+        : await invoke<Track[]>(
+            album.provider === 'spotify' ? 'get_spotify_album_tracks' : 'get_album_tracks',
+            { albumId: String(album.id) }
+          );
       for (const track of tracks) {
         await downloadQueueManager.addToQueue(track);
       }
@@ -524,7 +581,7 @@
   }
 
   async function handleUrlInput(): Promise<void> {
-    if (!isLoggedIn) {
+    if (!isLoggedIn && !spotifyAvailable) {
       urlError = $_('search.status.loginRequired');
       return;
     }
@@ -539,17 +596,21 @@
     urlError = '';
 
     try {
-      const parsed = await invoke<{ type: string; id: string }>('parse_deezer_url', { url });
+      const parsed = await invoke<{ provider: Provider; type: string; id: string }>('parse_deezer_url', { url });
+      const isSpotify = parsed.provider === 'spotify';
       
       switch (parsed.type) {
         case 'track':
-          const track = await invoke<Track>('get_track_by_id', { trackId: parsed.id });
+          const track = await invoke<Track>(isSpotify ? 'get_spotify_track' : 'get_track_by_id', { trackId: parsed.id });
           await downloadTrack(track);
           urlInput = '';
           break;
           
         case 'album':
-          const albumTracks = await invoke<Track[]>('get_album_tracks', { albumId: parsed.id });
+          const albumTracks = await invoke<Track[]>(
+            isSpotify ? 'get_spotify_album_tracks' : 'get_album_tracks',
+            { albumId: parsed.id }
+          );
           for (const track of albumTracks) {
             await downloadQueueManager.addToQueue(track);
           }
@@ -557,7 +618,10 @@
           break;
           
         case 'playlist':
-          const playlistTracks = await invoke<Track[]>('get_playlist_tracks', { playlistId: parsed.id });
+          const playlistTracks = await invoke<Track[]>(
+            isSpotify ? 'get_spotify_playlist_tracks' : 'get_playlist_tracks',
+            { playlistId: parsed.id }
+          );
           for (const track of playlistTracks) {
             await downloadQueueManager.addToQueue(track);
           }
@@ -566,9 +630,15 @@
           
         case 'artist':
           // For artists, we'll get their albums and download all tracks
-          const artistAlbums = await invoke<AlbumResult[]>('get_artist_albums', { artistId: parsed.id });
+          const artistAlbums = await invoke<AlbumResult[]>(
+            isSpotify ? 'get_spotify_artist_albums' : 'get_artist_albums',
+            { artistId: parsed.id }
+          );
           for (const album of artistAlbums) {
-            const tracks = await invoke<Track[]>('get_album_tracks', { albumId: String(album.id) });
+            const tracks = await invoke<Track[]>(
+              isSpotify ? 'get_spotify_album_tracks' : 'get_album_tracks',
+              { albumId: String(album.id) }
+            );
             for (const track of tracks) {
               await downloadQueueManager.addToQueue(track);
             }
@@ -677,6 +747,18 @@
         </div>
       </div>
     {:else}
+      <div class="source-switch" role="group" aria-label={$_('search.source.label')}>
+        <button
+          class="source-btn"
+          class:active={source === 'deezer'}
+          onclick={() => switchSource('deezer')}
+        >{$_('search.source.deezer')}</button>
+        <button
+          class="source-btn"
+          class:active={source === 'spotify'}
+          onclick={() => switchSource('spotify')}
+        >{$_('search.source.spotify')}</button>
+      </div>
       <div class="search-tabs">
         <button class="tab-btn" class:active={searchType === 'tracks'} onclick={() => switchSearchType('tracks')}>{$_('search.tabs.tracks')}</button>
         <button class="tab-btn" class:active={searchType === 'albums'} onclick={() => switchSearchType('albums')}>{$_('search.tabs.albums')}</button>
@@ -741,7 +823,7 @@
             type="url" 
             bind:value={urlInput}
             onkeydown={(e) => e.key === 'Enter' && handleUrlInput()}
-            placeholder="Paste Deezer track, album, playlist, or artist URL..."
+            placeholder="Paste a Deezer or Spotify track, album, playlist, or artist URL..."
             disabled={parsingUrl}
             class:url-error={urlError}
           />

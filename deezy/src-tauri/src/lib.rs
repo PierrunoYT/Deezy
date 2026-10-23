@@ -1,6 +1,8 @@
 mod commands;
 mod deezer;
+mod paths;
 mod settings;
+mod spotify;
 mod themes;
 mod tray;
 
@@ -20,6 +22,7 @@ pub struct FileGrants {
 
 pub struct AppState {
     pub client: Arc<Mutex<Option<deezer::DeezerClient>>>,
+    pub spotify: Arc<Mutex<Option<Arc<spotify::SpotifyClient>>>>,
     pub settings: Arc<Mutex<settings::Settings>>,
     pub settings_io: Arc<Mutex<()>>,
     pub tray_state: tray::TrayState,
@@ -45,6 +48,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .manage(AppState {
             client: Arc::new(Mutex::new(None)),
+            spotify: Arc::new(Mutex::new(None)),
             settings: Arc::new(Mutex::new(settings::Settings::default())),
             settings_io: Arc::new(Mutex::new(())),
             tray_state: tray::TrayState::new(),
@@ -103,6 +107,19 @@ pub fn run() {
             commands::get_playlist_tracks,
             commands::get_loved_tracks,
             commands::get_user_playlists,
+            commands::spotify_login,
+            commands::spotify_logout,
+            commands::spotify_status,
+            commands::search_spotify_tracks,
+            commands::search_spotify_albums,
+            commands::search_spotify_artists,
+            commands::search_spotify_playlists,
+            commands::get_spotify_track,
+            commands::get_spotify_album_tracks,
+            commands::get_spotify_artist_albums,
+            commands::get_spotify_playlist_tracks,
+            commands::get_spotify_loved_tracks,
+            commands::get_spotify_user_playlists,
             commands::download_track,
             commands::cancel_download,
             commands::get_settings,

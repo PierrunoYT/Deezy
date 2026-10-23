@@ -18,6 +18,38 @@
     margin-bottom: 12px;
   }
 
+  .source-switch {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--bg-darkest);
+  }
+
+  .source-btn {
+    padding: 5px 18px;
+    border: 0;
+    border-radius: 15px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .source-btn.active {
+    background: var(--accent);
+    color: var(--bg-darkest);
+  }
+
+  .source-btn:not(.active):hover {
+    color: var(--text-primary);
+  }
+
   .tab-divider {
     width: 1px;
     margin: 4px 6px;

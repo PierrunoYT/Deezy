@@ -15,9 +15,10 @@ A modern desktop Deezer downloader. Search for tracks, albums, artists, and play
 
 **This tool is for educational and personal use only.** By using Deezy, you acknowledge and agree to the following:
 
-- **Deezer Account Required** – You need a Deezer account (Free or Premium). The ARL token is tied to your account.
+- **Deezer Account Required** – You need a Deezer account (Free or Premium) for the Deezer source. The ARL token is tied to your account.
   - **Free accounts** are limited to MP3 128 kbps downloads
   - **Premium accounts** can download MP3 320 kbps or FLAC
+  - The **Spotify source** needs its own account (Free works; Premium unlocks 320 kbps and lossless FLAC). It uses a browser OAuth login and does not need an ARL.
 - **Terms of Service** – Downloading music from Deezer may violate their [Terms of Service](https://www.deezer.com/legal/cgu). Use at your own risk.
 - **Account Blocking Risk** – Your account may get suspended. Deezer can detect unusual download activity.
 - **Copyright Laws** – Respect copyright laws in your jurisdiction. Downloaded content is for personal use only and must not be redistributed.
@@ -30,7 +31,8 @@ A modern desktop Deezer downloader. Search for tracks, albums, artists, and play
 ## Features
 
 - **Search** – Find tracks, albums, artists, and playlists with debounced search
-- **URL download** – Paste full `deezer.com` track, album, artist, or playlist URLs to add their content to the queue
+- **Spotify source** – Search Spotify and paste Spotify track, album, artist, or playlist links; downloads the original OGG/FLAC through librespot with full metadata and cover art
+- **URL download** – Paste full `deezer.com` or `open.spotify.com` track, album, artist, or playlist URLs to add their content to the queue
 - **Audio preview** – Play 30-second previews before downloading
 - **Smart queue** – 1 to 10 simultaneous downloads (3 by default) with drag-and-drop reordering, pause/resume, and retry
 - **Your library** – Open your Loved Tracks and your own playlists, including private ones, next to the search tabs

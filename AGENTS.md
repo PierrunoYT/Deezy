@@ -63,6 +63,13 @@ deezy/                          # All source lives here
         library.rs              # user library (Loved Tracks, profile playlists, private playlist tracks) via GW
         crypto.rs               # Blowfish/AES key derivation and URL encryption
         models.rs               # shared Rust structs (Serialize/Deserialize)
+      spotify/                  # second download source, native librespot
+        mod.rs                  # SpotifyClient re-exports + `spotify:` key helpers
+        auth.rs                 # OAuth PKCE login, token refresh, keyring, AP session
+        api.rs                  # Spotify Web API catalog (search/album/playlist/artist)
+        download.rs             # librespot AP stream -> .deezy.part -> tags
+        tags.rs                 # OGG/FLAC/MP3/MP4 tagging via lofty
+      paths.rs                  # provider-neutral paths + temp-file finalization
       settings.rs               # Settings struct, load/save, keyring integration
       themes.rs                 # custom theme CRUD
       tray.rs                   # system tray construction and menu updates
@@ -125,11 +132,18 @@ When `folder_structure` is `Custom`, the template (default: `{artist}/{release_d
 If `write_mp3_tags` / `write_flac_tags` fails, a `tag-writing-error` event is emitted but the download is still marked complete — the audio file is intact and already renamed from `.deezy.part`.
 
 ### CSP restricts image and media origins
-`tauri.conf.json` CSP allows images only from `*.dzcdn.net` and `api.deezer.com`; media only from `*.dzcdn.net`. Adding new external image or media sources requires updating the CSP.
+`tauri.conf.json` CSP allows images only from `*.dzcdn.net`, `api.deezer.com`, `*.scdn.co` and `*.spotifycdn.com`; media from `*.dzcdn.net` and `*.scdn.co`. Adding new external image or media sources requires updating the CSP.
 
 ### Deezer uses two separate API surfaces
 - **Private GW API** (`https://www.deezer.com/ajax/gw-light.php`) — used for auth (`deezer.getUserData`), track data (`song.getData`), and the user library (`deezer.pageProfile` for playlists, `playlist.getSongs` for Loved Tracks via `USER.LOVEDTRACKS_ID` and private playlists). `get_playlist_tracks` tries the public API first and falls back to `playlist.getSongs`, since the public API refuses private playlists. Requires the ARL cookie and a CSRF token (`checkForm`).
 - **Legacy public API** (`https://api.deezer.com`) — used for search, album/artist/playlist metadata. No auth required for search results.
+
+### Spotify is a second, independent download engine
+- **Catalog** goes through the Spotify Web API (`api.spotify.com/v1`); **audio** goes through a librespot AP session (`librespot-core` / `-metadata` / `-audio`), which decrypts the AES-CTR stream for us. Tagging uses `lofty` because Spotify delivers OGG Vorbis and the existing `id3` / `metaflac` stack cannot write it.
+- **Track keys are prefixed**: Spotify tracks use `spotify:<base62>` in `Track.id`, the queue, history and the cancellation map, so they can never collide with numeric Deezer IDs. `download_track` dispatches on that prefix (`spotify::is_spotify_track`); everything else flows through the unchanged queue.
+- **Auth is OAuth PKCE**, not an ARL. `librespot-oauth` opens the browser and listens on `127.0.0.1:5588/login`; the default client ID is librespot's keymaster ID. Override with the `DEEZY_SPOTIFY_CLIENT_ID` env var. The resulting token (access + refresh) is stored in the OS keyring under `com.pierr.deezy` / `spotify_oauth`, separate from the ARL.
+- **Settings are Deezer-independent**: `save_settings` no longer requires an ARL, and the Spotify source is usable with no Deezer login. `spotify_status` restores the client on startup.
+- **Build pin**: `librespot-core 0.8.0`'s build script resolves `vergen-gitcl 1.0.8` + `vergen 9.1.0`, which pulls two incompatible `vergen-lib` versions and fails to compile. `[build-dependencies] vergen = "=9.0.6"` in `Cargo.toml` keeps it on `vergen-lib 0.1.6`. Do not relax that pin without testing a clean `Cargo.lock`.
 
 ### Download URL generation (legacy fallback)
 When the media API (`media.deezer.com/v1/get_url`) is unavailable, the URL is constructed by AES-128-ECB encrypting a payload derived from `MD5_ORIGIN`, quality code, `SNG_ID`, and `MEDIA_VERSION`. The padding must align to a 16-byte boundary dynamically — a fixed width of 80 is insufficient for long track IDs.

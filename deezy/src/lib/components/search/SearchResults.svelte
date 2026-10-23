@@ -2,14 +2,14 @@
   import { _ } from 'svelte-i18n';
   import { formatDuration, formatFans } from '$lib/i18n/formatters';
   import type { Track } from '$lib/stores';
-  import { isLibraryType, type AlbumResult, type ArtistResult, type PlaylistResult, type SearchType, type SelectedArtist, type SelectedPlaylist } from './types';
+  import { isLibraryType, type AlbumResult, type ArtistResult, type CatalogId, type PlaylistResult, type SearchType, type SelectedArtist, type SelectedPlaylist } from './types';
 
   interface Props {
     selectedArtist: SelectedArtist | null;
     artistAlbums: AlbumResult[];
     loadingDiscography: boolean;
     discographyError: string;
-    downloadingAlbums: Set<number>;
+    downloadingAlbums: Set<CatalogId>;
     downloadAlbum: (album: AlbumResult) => Promise<void>;
     selectedAlbum: AlbumResult | null;
     albumTracks: Track[];
@@ -17,14 +17,14 @@
     albumError: string;
     openAlbum: (album: AlbumResult) => Promise<void>;
     selectedPlaylist: SelectedPlaylist | null;
-    downloadingPlaylists: Set<number>;
+    downloadingPlaylists: Set<CatalogId>;
     downloadPlaylist: (playlist: SelectedPlaylist) => Promise<void>;
     loadingPlaylist: boolean;
     playlistError: string;
     playlistTracks: Track[];
     isTrackPlaying: (track: Track) => boolean;
     playTrack: (track: Track) => void;
-    openArtist: (id: number, name: string, picture: string) => Promise<void>;
+    openArtist: (id: CatalogId, name: string, picture: string) => Promise<void>;
     downloadTrack: (track: Track) => Promise<void>;
     downloadStates: Map<string, string>;
     searching: boolean;
