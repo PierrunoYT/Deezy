@@ -1,8 +1,13 @@
 //! Local diagnostic log.
 //!
-//! Lines are appended to `wavekeep-debug.log` in the system temp folder. The
-//! file never leaves the computer: nothing in the app uploads it. Users open or
-//! copy it from Info & FAQ to attach it to a bug report themselves.
+//! Lines are appended to `wavekeep-debug.log` in the app's log folder
+//! (`app_log_dir`, e.g. `%LOCALAPPDATA%\com.pierr.wavekeep\logs` on Windows),
+//! which the system never cleans up on its own. The file never leaves the
+//! computer: nothing in the app uploads it. Users open or copy it from
+//! Info & FAQ to attach it to a bug report themselves.
+//!
+//! The folder is only known once Tauri is set up, so lines logged before
+//! `init` (the start line, an early panic) wait in memory and are written then.
 //!
 //! Every message is redacted before it is written: the home folder becomes `~`,
 //! URL query strings (which can carry session or download tokens) are dropped,
@@ -11,8 +16,8 @@
 
 use std::fs;
 use std::io::Write;
-use std::path::PathBuf;
-use std::sync::Mutex;
+use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
 
 const FILE_NAME: &str = "wavekeep-debug.log";
 const OLD_FILE_NAME: &str = "wavekeep-debug.old.log";
@@ -24,7 +29,12 @@ const MIN_SECRET_LEN: usize = 100;
 /// Longest single message kept; anything longer is cut.
 const MAX_MESSAGE_CHARS: usize = 4000;
 
-static WRITE_LOCK: Mutex<()> = Mutex::new(());
+/// Most lines kept in memory before `init`.
+const MAX_PENDING_LINES: usize = 500;
+
+static LOG_DIR: OnceLock<PathBuf> = OnceLock::new();
+/// Serialises writes and holds the lines logged before `init`.
+static PENDING: Mutex<Vec<String>> = Mutex::new(Vec::new());
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Level {
@@ -71,13 +81,24 @@ pub fn error(area: &str, message: impl AsRef<str>) {
     write(Level::Error, area, message.as_ref());
 }
 
-/// Where the log lives.
-pub fn log_path() -> PathBuf {
-    std::env::temp_dir().join(FILE_NAME)
+/// Sets the log folder and writes the lines logged so far. Called first in
+/// the setup hook; later calls are ignored.
+pub fn init(dir: PathBuf) {
+    let mut pending = PENDING.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _ = fs::create_dir_all(&dir);
+    if LOG_DIR.set(dir).is_err() {
+        return;
+    }
+    if let Some(path) = log_path() {
+        append_lines(&path, &pending);
+    }
+    pending.clear();
+    pending.shrink_to_fit();
 }
 
-fn old_log_path() -> PathBuf {
-    std::env::temp_dir().join(OLD_FILE_NAME)
+/// Where the log lives, once `init` has run.
+pub fn log_path() -> Option<PathBuf> {
+    LOG_DIR.get().map(|dir| dir.join(FILE_NAME))
 }
 
 pub fn write(level: Level, area: &str, message: &str) {
@@ -88,24 +109,40 @@ pub fn write(level: Level, area: &str, message: &str) {
         return;
     }
 
-    let _guard = WRITE_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-    let path = log_path();
-    if fs::metadata(&path).is_ok_and(|meta| meta.len() > MAX_BYTES) {
-        let _ = fs::remove_file(old_log_path());
-        let _ = fs::rename(&path, old_log_path());
+    let mut pending = PENDING.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    match log_path() {
+        Some(path) => append_lines(&path, std::slice::from_ref(&line)),
+        None if pending.len() < MAX_PENDING_LINES => pending.push(line),
+        None => {}
     }
-    if let Ok(mut file) = fs::OpenOptions::new().create(true).append(true).open(&path) {
-        let _ = file.write_all(line.as_bytes());
+}
+
+/// Appends whole lines, rotating the file to `OLD_FILE_NAME` once it is
+/// larger than `MAX_BYTES`.
+fn append_lines(path: &Path, lines: &[String]) {
+    if lines.is_empty() {
+        return;
+    }
+    let old = path.with_file_name(OLD_FILE_NAME);
+    if fs::metadata(path).is_ok_and(|meta| meta.len() > MAX_BYTES) {
+        let _ = fs::remove_file(&old);
+        let _ = fs::rename(path, &old);
+    }
+    if let Ok(mut file) = fs::OpenOptions::new().create(true).append(true).open(path) {
+        let _ = file.write_all(lines.concat().as_bytes());
     }
 }
 
 /// The last `max_lines` lines, reaching into the rotated file when the current
 /// one is short. Used for "Copy recent log".
 pub fn tail(max_lines: usize) -> String {
-    let _guard = WRITE_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-    let current = fs::read_to_string(log_path()).unwrap_or_default();
+    let _guard = PENDING.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let Some(path) = log_path() else {
+        return String::new();
+    };
+    let current = fs::read_to_string(&path).unwrap_or_default();
     let old = if current.lines().count() < max_lines {
-        fs::read_to_string(old_log_path()).unwrap_or_default()
+        fs::read_to_string(path.with_file_name(OLD_FILE_NAME)).unwrap_or_default()
     } else {
         String::new()
     };
@@ -254,6 +291,24 @@ mod tests {
             "request failed for (https://media.deezer.com/v1/get_url?[redacted]): timeout; see http://a.b/c"
         );
         assert_eq!(strip_url_queries("no urls here?"), "no urls here?");
+    }
+
+    #[test]
+    fn appends_and_rotates_past_the_size_limit() {
+        let dir = std::env::temp_dir().join(format!("wavekeep-log-test-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join(FILE_NAME);
+        fs::write(&path, "x".repeat(MAX_BYTES as usize + 1)).unwrap();
+
+        append_lines(&path, &["one
+".to_string(), "two
+".to_string()]);
+
+        assert_eq!(fs::read_to_string(&path).unwrap(), "one
+two
+");
+        assert_eq!(fs::metadata(dir.join(OLD_FILE_NAME)).unwrap().len(), MAX_BYTES + 1);
+        let _ = fs::remove_dir_all(dir);
     }
 
     #[test]

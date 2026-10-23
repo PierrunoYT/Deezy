@@ -33,7 +33,7 @@ pub async fn read_recent_log(lines: Option<usize>) -> Result<String, String> {
 /// platform supports it.
 #[tauri::command]
 pub async fn open_log_folder() -> Result<(), String> {
-    let path = logging::log_path();
+    let path = logging::log_path().ok_or("The log folder is not ready yet")?;
     if !path.exists() {
         // Creates the file, so there is always something to show.
         logging::info("app", "Log folder opened");

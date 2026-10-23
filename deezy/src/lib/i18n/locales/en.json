@@ -325,7 +325,7 @@
       "copy": "Copy recent log",
       "open": "Open log folder",
       "copied": "Copied the most recent log lines. Paste them into your report.",
-      "failed": "Could not access the log. It is wavekeep-debug.log in your temporary folder."
+      "failed": "Could not access the log. It is wavekeep-debug.log in Wavekeep's logs folder."
     },
     "button": "Info & FAQ",
     "title": "Important information",
@@ -368,7 +368,7 @@
       },
       "log": {
         "title": "Something went wrong?",
-        "text": "Wavekeep keeps a diagnostic log named wavekeep-debug.log in your temporary folder. It stays on your computer and is never uploaded. Passwords, your ARL and login tokens are never written to it, and your home folder appears as ~. Use the buttons below to copy it or open its folder when you report a problem."
+        "text": "Wavekeep keeps a diagnostic log named wavekeep-debug.log in Wavekeep's logs folder. It stays on your computer and is never uploaded. Passwords, your ARL and login tokens are never written to it, and your home folder appears as ~. Use the buttons below to copy it or open its folder when you report a problem."
       }
     },
     "faq": {
@@ -406,7 +406,7 @@
       },
       "failed": {
         "q": "A download failed. What can I do?",
-        "a": "Press Retry in Downloads. For Deezer, check that your ARL is still valid in Settings. For Spotify, disconnect and connect again. If it keeps failing, look at wavekeep-debug.log in your temporary folder."
+        "a": "Press Retry in Downloads. For Deezer, check that your ARL is still valid in Settings. For Spotify, disconnect and connect again. If it keeps failing, look at wavekeep-debug.log in Wavekeep's logs folder."
       },
       "tags": {
         "q": "How do I edit tags or cover art?",

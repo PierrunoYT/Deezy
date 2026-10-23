@@ -38,7 +38,7 @@ The current source contains no analytics, telemetry, crash-reporting service, or
 
 ### Does Wavekeep keep a log? What is in it?
 
-Yes, a local diagnostic log named `wavekeep-debug.log` in your temporary folder (`%TEMP%` on Windows). It stays on your computer and Wavekeep never uploads it. Passwords, your ARL and login tokens are never written to it; on top of that, every line is cleaned before it is saved: your home folder appears as `~`, web addresses lose their query part (where tokens travel), and any long token-like string is replaced with `[redacted]`.
+Yes, a local diagnostic log named `wavekeep-debug.log` in Wavekeep's logs folder: `%LOCALAPPDATA%\com.pierr.wavekeep\logs` on Windows, `~/Library/Logs/com.pierr.wavekeep` on macOS, and `~/.local/share/com.pierr.wavekeep/logs` on Linux. The system does not clean that folder up on its own. It stays on your computer and Wavekeep never uploads it. Passwords, your ARL and login tokens are never written to it; on top of that, every line is cleaned before it is saved: your home folder appears as `~`, web addresses lose their query part (where tokens travel), and any long token-like string is replaced with `[redacted]`.
 
 It records what the app does so problems can be traced: app start and version, the move from Deezy, whether Deezer and Spotify logins worked (account type only), quality fallbacks, each download step and its result, Spotify rate limits, and any errors. What you search for is not logged. When it reaches 1 MB it is renamed to `wavekeep-debug.old.log` and a new one starts. You can delete both files at any time.
 
@@ -230,7 +230,7 @@ Every Tauri app has an internal identifier that decides where it keeps its data 
 - **Moves your data:** `settings.json`, `download_history.json` and the `themes` folder go from the old folder to the new one, for example from `%APPDATA%\com.pierr.deezy` to `%APPDATA%\com.pierr.wavekeep` on Windows. Anything already in the new folder is kept and never overwritten. The old folder is removed only once it is empty.
 - **Moves your logins:** each saved credential (Deezer ARL, Spotify tokens) is copied to the new name and read back to check it. Only then is the old entry deleted, so a secret is never lost and never left behind under the old name.
 
-Once everything has moved, these steps do nothing. What happened is written to `wavekeep-debug.log` in your temporary folder.
+Once everything has moved, these steps do nothing. What happened is written to Wavekeep's log; see [Does Wavekeep keep a log?](#does-wavekeep-keep-a-log-what-is-in-it)
 
 Things to know:
 

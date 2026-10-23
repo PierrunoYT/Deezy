@@ -325,7 +325,7 @@
       "copy": "Aktuelles Protokoll kopieren",
       "open": "Protokollordner öffnen",
       "copied": "Die letzten Protokollzeilen wurden kopiert. Füge sie in deine Meldung ein.",
-      "failed": "Kein Zugriff auf das Protokoll. Es liegt als wavekeep-debug.log in deinem temporären Ordner."
+      "failed": "Kein Zugriff auf das Protokoll. Es liegt als wavekeep-debug.log im Protokollordner von Wavekeep."
     },
     "button": "Info & FAQ",
     "title": "Wichtige Informationen",
@@ -368,7 +368,7 @@
       },
       "log": {
         "title": "Etwas ist schiefgelaufen?",
-        "text": "Wavekeep führt ein Diagnoseprotokoll namens wavekeep-debug.log in deinem temporären Ordner. Es bleibt auf deinem Computer und wird nie hochgeladen. Passwörter, dein ARL und Anmelde-Token werden nie hineingeschrieben, und dein Benutzerordner erscheint als ~. Mit den Schaltflächen unten kannst du es kopieren oder seinen Ordner öffnen, wenn du ein Problem meldest."
+        "text": "Wavekeep führt ein Diagnoseprotokoll namens wavekeep-debug.log im Protokollordner von Wavekeep. Es bleibt auf deinem Computer und wird nie hochgeladen. Passwörter, dein ARL und Anmelde-Token werden nie hineingeschrieben, und dein Benutzerordner erscheint als ~. Mit den Schaltflächen unten kannst du es kopieren oder seinen Ordner öffnen, wenn du ein Problem meldest."
       }
     },
     "faq": {
@@ -406,7 +406,7 @@
       },
       "failed": {
         "q": "Ein Download ist fehlgeschlagen. Was tun?",
-        "a": "Klicke in Downloads auf Wiederholen. Prüfe bei Deezer in den Einstellungen, ob dein ARL noch gültig ist. Trenne bei Spotify die Verbindung und verbinde dich neu. Schlägt es weiter fehl, sieh dir wavekeep-debug.log im temporären Ordner an."
+        "a": "Klicke in Downloads auf Wiederholen. Prüfe bei Deezer in den Einstellungen, ob dein ARL noch gültig ist. Trenne bei Spotify die Verbindung und verbinde dich neu. Schlägt es weiter fehl, sieh dir wavekeep-debug.log im Protokollordner von Wavekeep an."
       },
       "tags": {
         "q": "Wie bearbeite ich Tags oder Cover?",

@@ -325,7 +325,7 @@
       "copy": "Copier le journal récent",
       "open": "Ouvrir le dossier du journal",
       "copied": "Dernières lignes du journal copiées. Collez-les dans votre signalement.",
-      "failed": "Impossible d'accéder au journal. Il s'agit de wavekeep-debug.log dans votre dossier temporaire."
+      "failed": "Impossible d'accéder au journal. Il s'agit de wavekeep-debug.log dans le dossier des journaux de Wavekeep."
     },
     "button": "Infos et FAQ",
     "title": "Informations importantes",
@@ -368,7 +368,7 @@
       },
       "log": {
         "title": "Un problème ?",
-        "text": "Wavekeep tient un journal de diagnostic nommé wavekeep-debug.log dans votre dossier temporaire. Il reste sur votre ordinateur et n'est jamais envoyé. Les mots de passe, votre ARL et vos jetons de connexion n'y sont jamais écrits, et votre dossier personnel apparaît sous la forme ~. Utilisez les boutons ci-dessous pour le copier ou ouvrir son dossier lorsque vous signalez un problème."
+        "text": "Wavekeep tient un journal de diagnostic nommé wavekeep-debug.log dans le dossier des journaux de Wavekeep. Il reste sur votre ordinateur et n'est jamais envoyé. Les mots de passe, votre ARL et vos jetons de connexion n'y sont jamais écrits, et votre dossier personnel apparaît sous la forme ~. Utilisez les boutons ci-dessous pour le copier ou ouvrir son dossier lorsque vous signalez un problème."
       }
     },
     "faq": {
@@ -406,7 +406,7 @@
       },
       "failed": {
         "q": "Un téléchargement a échoué. Que faire ?",
-        "a": "Cliquez sur Réessayer dans Téléchargements. Pour Deezer, vérifiez que votre ARL est toujours valide dans les Paramètres. Pour Spotify, déconnectez-vous puis reconnectez-vous. Si l'échec persiste, consultez wavekeep-debug.log dans votre dossier temporaire."
+        "a": "Cliquez sur Réessayer dans Téléchargements. Pour Deezer, vérifiez que votre ARL est toujours valide dans les Paramètres. Pour Spotify, déconnectez-vous puis reconnectez-vous. Si l'échec persiste, consultez wavekeep-debug.log dans le dossier des journaux de Wavekeep."
       },
       "tags": {
         "q": "Comment modifier les tags ou la pochette ?",

@@ -325,7 +325,7 @@
             "copy": "Copiar registo recente",
             "open": "Abrir pasta do registo",
             "copied": "As últimas linhas do registo foram copiadas. Cola-as no teu relatório.",
-            "failed": "Não foi possível aceder ao registo. É o wavekeep-debug.log na tua pasta temporária."
+            "failed": "Não foi possível aceder ao registo. É o wavekeep-debug.log na pasta de registos do Wavekeep."
         },
         "button": "Info e FAQ",
         "title": "Informações importantes",
@@ -368,7 +368,7 @@
             },
             "log": {
                 "title": "Algo correu mal?",
-                "text": "O Wavekeep mantém um registo de diagnóstico chamado wavekeep-debug.log na tua pasta temporária. Fica no teu computador e nunca é enviado. Palavras-passe, o teu ARL e tokens de sessão nunca são escritos nele, e a tua pasta pessoal aparece como ~. Usa os botões abaixo para o copiar ou abrir a pasta quando reportares um problema."
+                "text": "O Wavekeep mantém um registo de diagnóstico chamado wavekeep-debug.log na pasta de registos do Wavekeep. Fica no teu computador e nunca é enviado. Palavras-passe, o teu ARL e tokens de sessão nunca são escritos nele, e a tua pasta pessoal aparece como ~. Usa os botões abaixo para o copiar ou abrir a pasta quando reportares um problema."
             }
         },
         "faq": {
@@ -406,7 +406,7 @@
             },
             "failed": {
                 "q": "Uma transferência falhou. O que posso fazer?",
-                "a": "Carrega em Tentar novamente em Transferências. No Deezer, verifica se o teu ARL continua válido nas Definições. No Spotify, desliga e volta a ligar. Se continuar a falhar, consulta o wavekeep-debug.log na tua pasta temporária."
+                "a": "Carrega em Tentar novamente em Transferências. No Deezer, verifica se o teu ARL continua válido nas Definições. No Spotify, desliga e volta a ligar. Se continuar a falhar, consulta o wavekeep-debug.log na pasta de registos do Wavekeep."
             },
             "tags": {
                 "q": "Como edito etiquetas ou capas?",

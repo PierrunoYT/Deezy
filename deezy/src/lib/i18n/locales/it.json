@@ -325,7 +325,7 @@
             "copy": "Copia registro recente",
             "open": "Apri cartella del registro",
             "copied": "Ultime righe del registro copiate. Incollale nella tua segnalazione.",
-            "failed": "Impossibile accedere al registro. È wavekeep-debug.log nella cartella temporanea."
+            "failed": "Impossibile accedere al registro. È wavekeep-debug.log nella cartella dei registri di Wavekeep."
         },
         "button": "Info e FAQ",
         "title": "Informazioni importanti",
@@ -368,7 +368,7 @@
             },
             "log": {
                 "title": "Qualcosa è andato storto?",
-                "text": "Wavekeep tiene un registro diagnostico chiamato wavekeep-debug.log nella tua cartella temporanea. Resta sul tuo computer e non viene mai inviato. Password, ARL e token di accesso non vi vengono mai scritti, e la tua cartella utente appare come ~. Usa i pulsanti qui sotto per copiarlo o aprirne la cartella quando segnali un problema."
+                "text": "Wavekeep tiene un registro diagnostico chiamato wavekeep-debug.log nella cartella dei registri di Wavekeep. Resta sul tuo computer e non viene mai inviato. Password, ARL e token di accesso non vi vengono mai scritti, e la tua cartella utente appare come ~. Usa i pulsanti qui sotto per copiarlo o aprirne la cartella quando segnali un problema."
             }
         },
         "faq": {
@@ -406,7 +406,7 @@
             },
             "failed": {
                 "q": "Un download non è riuscito. Cosa posso fare?",
-                "a": "Premi Riprova in Download. Per Deezer, controlla che il tuo ARL sia ancora valido nelle Impostazioni. Per Spotify, disconnetti e riconnetti. Se continua a fallire, controlla wavekeep-debug.log nella cartella temporanea."
+                "a": "Premi Riprova in Download. Per Deezer, controlla che il tuo ARL sia ancora valido nelle Impostazioni. Per Spotify, disconnetti e riconnetti. Se continua a fallire, controlla wavekeep-debug.log nella cartella dei registri di Wavekeep."
             },
             "tags": {
                 "q": "Come modifico tag o copertina?",

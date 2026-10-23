@@ -325,7 +325,7 @@
       "copy": "Copiar registro reciente",
       "open": "Abrir carpeta del registro",
       "copied": "Se copiaron las últimas líneas del registro. Pégalas en tu informe.",
-      "failed": "No se pudo acceder al registro. Es wavekeep-debug.log en tu carpeta temporal."
+      "failed": "No se pudo acceder al registro. Es wavekeep-debug.log en la carpeta de registros de Wavekeep."
     },
     "button": "Info y FAQ",
     "title": "Información importante",
@@ -368,7 +368,7 @@
       },
       "log": {
         "title": "¿Algo ha salido mal?",
-        "text": "Wavekeep guarda un registro de diagnóstico llamado wavekeep-debug.log en tu carpeta temporal. Se queda en tu ordenador y nunca se envía. Nunca se escriben en él contraseñas, tu ARL ni tokens de inicio de sesión, y tu carpeta personal aparece como ~. Usa los botones de abajo para copiarlo o abrir su carpeta cuando informes de un problema."
+        "text": "Wavekeep guarda un registro de diagnóstico llamado wavekeep-debug.log en la carpeta de registros de Wavekeep. Se queda en tu ordenador y nunca se envía. Nunca se escriben en él contraseñas, tu ARL ni tokens de inicio de sesión, y tu carpeta personal aparece como ~. Usa los botones de abajo para copiarlo o abrir su carpeta cuando informes de un problema."
       }
     },
     "faq": {
@@ -406,7 +406,7 @@
       },
       "failed": {
         "q": "Una descarga falló. ¿Qué hago?",
-        "a": "Pulsa Reintentar en Descargas. En Deezer, comprueba que tu ARL siga siendo válido en Configuración. En Spotify, desconecta y vuelve a conectar. Si sigue fallando, revisa wavekeep-debug.log en tu carpeta temporal."
+        "a": "Pulsa Reintentar en Descargas. En Deezer, comprueba que tu ARL siga siendo válido en Configuración. En Spotify, desconecta y vuelve a conectar. Si sigue fallando, revisa wavekeep-debug.log en la carpeta de registros de Wavekeep."
       },
       "tags": {
         "q": "¿Cómo edito etiquetas o carátulas?",

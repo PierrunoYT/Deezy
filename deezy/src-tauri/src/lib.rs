@@ -78,6 +78,11 @@ pub fn run() {
             bandwidth: Arc::new(deezer::bandwidth::BandwidthLimiter::new()),
         })
         .setup(|app| {
+            // The log folder is known from here on; earlier lines are flushed.
+            if let Ok(dir) = app.path().app_log_dir() {
+                logging::init(dir);
+            }
+
             // Before anything reads settings or credentials.
             migration::run(app.handle());
 
