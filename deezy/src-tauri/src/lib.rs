@@ -32,6 +32,17 @@ pub struct AppState {
 }
 
 pub fn run() {
+    std::panic::set_hook(Box::new(|info| {
+        let thread = std::thread::current();
+        spotify::debug_log(&format!(
+            "PANIC on thread '{}': {}\n{}",
+            thread.name().unwrap_or("unnamed"),
+            info,
+            std::backtrace::Backtrace::force_capture()
+        ));
+    }));
+    spotify::debug_log("app starting");
+
     tauri::Builder::default()
         // Must be registered first. A second launch would load its own copy of
         // settings and overwrite newer changes made by this one, so it focuses

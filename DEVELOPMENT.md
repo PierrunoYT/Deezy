@@ -107,19 +107,31 @@ Spotify separates catalog and download responsibilities:
   playlist search remains on the Web API. Short 429 waits are retried at most
   twice, while `Retry-After` values over five seconds fail immediately.
 - `ap.rs` resolves track, album, artist, playlist, Loved Tracks, and download
-  metadata through the librespot AP session. Track metadata uses eight concurrent
+  metadata through the librespot AP session, with a Web API fallback for artist
+  discographies when AP metadata is rejected. Track metadata uses eight concurrent
   requests while preserving result order. Artist discographies are capped at 120
   albums. Unavailable individual tracks are skipped, but a completely failed
   track load returns an error.
 - `download.rs` selects the best available audio format and streams through the
   AP session. `tags.rs` writes the provider-appropriate OGG, FLAC, MP3, or M4A tags.
 
-OAuth uses `http://127.0.0.1:5588/login`. Client ID resolution prefers the saved
-`spotify_client_id` setting, then `DEEZY_SPOTIFY_CLIENT_ID`, then librespot's
-shared default. Tokens are bound to the Client ID that issued them, so changing
-the setting while connected logs out the old session. Spotify tokens use the
-separate `com.pierr.deezy` / `spotify_oauth` credential-store entry; persistence
-is best-effort and a keyring failure requires a fresh login after restart.
+OAuth uses `http://127.0.0.1:5588/login`. The AP session (track metadata and
+audio) always logs in with librespot's shared default Client ID, because Spotify
+rejects AP metadata requests made under any other ID with a 400. The Web API
+(search, playlists, library) uses the Client ID resolved from the saved
+`spotify_client_id` setting, then `DEEZY_SPOTIFY_CLIENT_ID`, then the default;
+with a custom ID this means a second browser login. Tokens are bound to the
+Client ID that issued them, so changing the setting while connected logs out
+both. The default token uses the `com.pierr.deezy` / `spotify_oauth`
+credential-store entry and the custom-ID token uses `spotify_oauth_web`;
+persistence is best-effort and a keyring failure requires a fresh login after
+restart. Because both logins reuse the callback port, the success page carries
+an empty favicon and the second login waits briefly and retries on a stray
+request.
+
+`spotify::debug_log` writes to stderr and to `deezy-debug.log` in the temp
+directory, and `lib.rs` logs panics through it. Use that file to diagnose
+Spotify download and search failures, especially in builds without a console.
 
 ## Implementation conventions
 

@@ -10,13 +10,19 @@ use tokio::sync::RwLock;
 
 const KEYRING_SERVICE: &str = "com.pierr.deezy";
 const KEYRING_USER: &str = "spotify_oauth";
+const KEYRING_WEB_USER: &str = "spotify_oauth_web";
 
 /// librespot's own keymaster client. Its registered redirect is the loopback
-/// URI below, so no Spotify developer app is required.
+/// URI below, so no Spotify developer app is required. The AP session (track
+/// metadata and audio) always uses it: Spotify rejects AP metadata requests
+/// made under any other client ID with a 400.
 const DEFAULT_CLIENT_ID: &str = "65b708073fc0480ea92a077233ca87bd";
 const REDIRECT_URI: &str = "http://127.0.0.1:5588/login";
 
-const LOGIN_DONE_HTML: &str = "<html><body style='font-family:sans-serif;padding:2em'>\
+// The empty icon stops the browser asking the (about to be reused) callback
+// port for /favicon.ico, which a following login would mistake for its answer.
+const LOGIN_DONE_HTML: &str = "<html><head><link rel='icon' href='data:,'></head>\
+<body style='font-family:sans-serif;padding:2em'>\
 <h2>Deezy is connected to Spotify</h2><p>You can close this tab.</p></body></html>";
 
 const SCOPES: &[&str] = &[
@@ -46,69 +52,139 @@ struct StoredToken {
     profile: Profile,
 }
 
+/// Web API credential bound to the user's own client ID. Search draws on that
+/// app's quota instead of the one shared by every librespot install.
+struct WebAuth {
+    oauth: OAuthClient,
+    client_id: String,
+    token: RwLock<OAuthToken>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct StoredWebToken {
+    client_id: String,
+    access_token: String,
+    refresh_token: String,
+    expires_at_unix: u64,
+}
+
 pub struct SpotifyClient {
     pub session: Session,
     pub oauth: OAuthClient,
     pub http: reqwest::Client,
     token: RwLock<OAuthToken>,
+    web: Option<WebAuth>,
     pub profile: Profile,
 }
 
 impl SpotifyClient {
     /// Returns a valid bearer token, refreshing it shortly before expiry.
     pub async fn access_token(&self) -> Result<String, String> {
+        let lock = match &self.web {
+            Some(web) => &web.token,
+            None => &self.token,
+        };
         let still_valid = {
-            let token = self.token.read().await;
+            let token = lock.read().await;
             token.expires_at > Instant::now() + Duration::from_secs(30)
         };
         if still_valid {
-            return Ok(self.token.read().await.access_token.clone());
+            return Ok(lock.read().await.access_token.clone());
         }
         self.refresh_token().await
     }
 
     /// Forces a refresh, e.g. after the Web API answered 401.
     pub async fn refresh_token(&self) -> Result<String, String> {
-        let refresh_token = self.token.read().await.refresh_token.clone();
-        let fresh = self
-            .oauth
+        let (oauth, lock) = match &self.web {
+            Some(web) => (&web.oauth, &web.token),
+            None => (&self.oauth, &self.token),
+        };
+        let refresh_token = lock.read().await.refresh_token.clone();
+        let fresh = oauth
             .refresh_token_async(&refresh_token)
             .await
             .map_err(|e| format!("Spotify token refresh failed: {}", e))?;
 
         let access_token = fresh.access_token.clone();
-        let stored = StoredToken {
-            access_token: fresh.access_token.clone(),
-            refresh_token: fresh.refresh_token.clone(),
-            expires_at_unix: instant_to_unix(fresh.expires_at),
-            profile: self.profile.clone(),
-        };
-        *self.token.write().await = fresh;
         // Persistence is best-effort: a missing keyring must not break playback.
-        let _ = save_token(&stored);
+        let _ = match &self.web {
+            Some(web) => save_web_token(&StoredWebToken {
+                client_id: web.client_id.clone(),
+                access_token: fresh.access_token.clone(),
+                refresh_token: fresh.refresh_token.clone(),
+                expires_at_unix: instant_to_unix(fresh.expires_at),
+            }),
+            None => save_token(&StoredToken {
+                access_token: fresh.access_token.clone(),
+                refresh_token: fresh.refresh_token.clone(),
+                expires_at_unix: instant_to_unix(fresh.expires_at),
+                profile: self.profile.clone(),
+            }),
+        };
+        *lock.write().await = fresh;
         Ok(access_token)
     }
 }
 
-pub async fn login(device_id: &str, client_id: &str) -> Result<Arc<SpotifyClient>, String> {
-    let oauth = build_oauth(client_id)?;
+/// `web_client_id` is the user's own client ID (or the default). When it is
+/// not the default, a second login is made for it and used for the Web API.
+pub async fn login(device_id: &str, web_client_id: &str) -> Result<Arc<SpotifyClient>, String> {
+    let oauth = build_oauth(DEFAULT_CLIENT_ID)?;
     let token = oauth
         .get_access_token_async()
         .await
         .map_err(|e| format!("Spotify login failed: {}", e))?;
-    connect(oauth, token, device_id, client_id).await
+
+    let web = if web_client_id == DEFAULT_CLIENT_ID {
+        None
+    } else {
+        let web_oauth = build_oauth(web_client_id)?;
+        // Let the first tab finish loading before the port is reused.
+        tokio::time::sleep(Duration::from_secs(2)).await;
+        let mut attempts = 0;
+        let web_token = loop {
+            attempts += 1;
+            match web_oauth.get_access_token_async().await {
+                Ok(token) => break token,
+                // A stray browser request (favicon, prefetch) hit the callback.
+                Err(e) if attempts < 3 && e.to_string().contains("Auth code param not found") => {
+                    super::debug_log(&format!(
+                        "web login: stray callback request, retrying ({})",
+                        e
+                    ));
+                }
+                Err(e) => {
+                    return Err(format!("Spotify login with your Client ID failed: {}", e));
+                }
+            }
+        };
+        let _ = save_web_token(&StoredWebToken {
+            client_id: web_client_id.to_string(),
+            access_token: web_token.access_token.clone(),
+            refresh_token: web_token.refresh_token.clone(),
+            expires_at_unix: instant_to_unix(web_token.expires_at),
+        });
+        Some(WebAuth {
+            oauth: web_oauth,
+            client_id: web_client_id.to_string(),
+            token: RwLock::new(web_token),
+        })
+    };
+
+    connect(oauth, token, device_id, web).await
 }
 
 /// Recreates the client from the stored refresh token, if there is one.
 pub async fn restore(
     device_id: &str,
-    client_id: &str,
+    web_client_id: &str,
 ) -> Result<Option<Arc<SpotifyClient>>, String> {
     let Some(stored) = load_token()? else {
         return Ok(None);
     };
 
-    let oauth = build_oauth(client_id)?;
+    let oauth = build_oauth(DEFAULT_CLIENT_ID)?;
     let mut token = OAuthToken {
         access_token: stored.access_token,
         refresh_token: stored.refresh_token,
@@ -133,10 +209,43 @@ pub async fn restore(
     } else {
         Some(stored.profile)
     };
-    connect_with_profile(oauth, token, device_id, client_id, profile).await.map(Some)
+    let web = restore_web(web_client_id).await;
+    connect_with_profile(oauth, token, device_id, web, profile).await.map(Some)
+}
+
+/// Restores the Web API credential for the user's own client ID. Without one
+/// (never logged in with it, or the ID changed) the default token is used, which
+/// shares its quota with every librespot install.
+async fn restore_web(web_client_id: &str) -> Option<WebAuth> {
+    if web_client_id == DEFAULT_CLIENT_ID {
+        return None;
+    }
+    let stored = load_web_token().ok().flatten()?;
+    if stored.client_id != web_client_id {
+        return None;
+    }
+
+    let oauth = build_oauth(web_client_id).ok()?;
+    let mut token = OAuthToken {
+        access_token: stored.access_token,
+        refresh_token: stored.refresh_token,
+        expires_at: unix_to_instant(stored.expires_at_unix),
+        token_type: "Bearer".to_string(),
+        scopes: SCOPES.iter().map(|scope| scope.to_string()).collect(),
+    };
+    if token.expires_at <= Instant::now() + Duration::from_secs(60) {
+        token = oauth.refresh_token_async(&token.refresh_token).await.ok()?;
+    }
+
+    Some(WebAuth {
+        oauth,
+        client_id: web_client_id.to_string(),
+        token: RwLock::new(token),
+    })
 }
 
 pub fn logout() -> Result<(), String> {
+    let _ = clear_web_token();
     clear_token()
 }
 
@@ -166,16 +275,16 @@ async fn connect(
     oauth: OAuthClient,
     token: OAuthToken,
     device_id: &str,
-    client_id: &str,
+    web: Option<WebAuth>,
 ) -> Result<Arc<SpotifyClient>, String> {
-    connect_with_profile(oauth, token, device_id, client_id, None).await
+    connect_with_profile(oauth, token, device_id, web, None).await
 }
 
 async fn connect_with_profile(
     oauth: OAuthClient,
     token: OAuthToken,
     device_id: &str,
-    client_id: &str,
+    web: Option<WebAuth>,
     cached_profile: Option<Profile>,
 ) -> Result<Arc<SpotifyClient>, String> {
     let http = reqwest::Client::builder()
@@ -186,24 +295,13 @@ async fn connect_with_profile(
     // The AP session and the Web API share the same access token.
     let mut config = SessionConfig::default();
     config.device_id = device_id.to_string();
-    config.client_id = client_id.to_string();
+    config.client_id = DEFAULT_CLIENT_ID.to_string();
 
     let session = Session::new(config, None);
     session
         .connect(Credentials::with_access_token(token.access_token.clone()), false)
         .await
-        .map_err(|e| {
-            if client_id == DEFAULT_CLIENT_ID {
-                format!("Spotify session failed: {}", e)
-            } else {
-                // Spotify may refuse AP logins for third-party client IDs.
-                format!(
-                    "Spotify session failed with a custom Client ID: {}. \
-                     Clear the Client ID in Settings to use the default.",
-                    e
-                )
-            }
-        })?;
+        .map_err(|e| format!("Spotify session failed: {}", e))?;
 
     // The AP already knows the account type and country, so a Web API call is
     // only needed for a display name we may have cached earlier.
@@ -237,6 +335,7 @@ async fn connect_with_profile(
         oauth,
         http,
         token: RwLock::new(token),
+        web,
         profile,
     }))
 }
@@ -260,6 +359,35 @@ fn unix_to_instant(unix: u64) -> Instant {
 fn entry() -> Result<keyring::Entry, String> {
     keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER)
         .map_err(|e| format!("Keyring error: {}", e))
+}
+
+fn web_entry() -> Result<keyring::Entry, String> {
+    keyring::Entry::new(KEYRING_SERVICE, KEYRING_WEB_USER)
+        .map_err(|e| format!("Keyring error: {}", e))
+}
+
+fn save_web_token(token: &StoredWebToken) -> Result<(), String> {
+    let json = serde_json::to_string(token).map_err(|e| e.to_string())?;
+    web_entry()?
+        .set_password(&json)
+        .map_err(|e| format!("Failed to save Spotify credential: {}", e))
+}
+
+fn load_web_token() -> Result<Option<StoredWebToken>, String> {
+    match web_entry()?.get_password() {
+        Ok(json) => serde_json::from_str(&json)
+            .map(Some)
+            .map_err(|e| format!("Stored Spotify credential is unreadable: {}", e)),
+        Err(keyring::Error::NoEntry) => Ok(None),
+        Err(e) => Err(format!("Failed to read Spotify credential: {}", e)),
+    }
+}
+
+fn clear_web_token() -> Result<(), String> {
+    match web_entry()?.delete_credential() {
+        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+        Err(e) => Err(format!("Failed to clear Spotify credential: {}", e)),
+    }
 }
 
 fn save_token(token: &StoredToken) -> Result<(), String> {

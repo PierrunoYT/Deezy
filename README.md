@@ -99,9 +99,9 @@ Amp automatically runs the executable `.agents/setup` script when creating a fre
 
 Open **Settings → Spotify** and click **Connect Spotify**. Complete the browser OAuth login, then select Spotify as the music source in Search. No Deezer account or ARL is required. Spotify OAuth tokens are stored separately from the ARL in the OS credential store when available.
 
-Deezy normally uses librespot's shared Client ID. To use your own Spotify developer app instead, add `http://127.0.0.1:5588/login` as a redirect URI in the Spotify Developer Dashboard, paste its Client ID into **Settings → Spotify Client ID**, and reconnect. Changing the saved ID while connected removes the old session token. Spotify may reject AP sessions from some third-party Client IDs; clear the field to restore the default.
+Deezy normally uses librespot's shared Client ID. Because every librespot install shares its Web API quota, search can hit `429` rate limits. To avoid that, add `http://127.0.0.1:5588/login` as a redirect URI in your own Spotify Developer Dashboard app, paste its Client ID into **Settings → Spotify Client ID**, and reconnect. Your ID is used only for search and library requests; downloads still use the default ID, since Spotify rejects track metadata requests from other Client IDs. Connecting with a custom ID opens the browser login twice — approve both. Changing the saved ID while connected disconnects you, and clearing the field restores the default.
 
-Track, album, and artist searches automatically use a Pathfinder fallback when the shared Web API quota is rate-limited. Catalog metadata is loaded through the AP session independently of Web API search quotas.
+Catalog metadata and downloads go through the AP session independently of Web API search quotas. A Pathfinder search fallback exists for rate-limited track, album, and artist searches, but Spotify currently refuses it, so a custom Client ID is the reliable fix for `429` errors.
 
 ---
 

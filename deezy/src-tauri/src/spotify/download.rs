@@ -10,7 +10,7 @@ use tauri::Emitter;
 use tokio::io::AsyncWriteExt;
 
 use super::auth::SpotifyClient;
-use super::{bare_track_id, tags};
+use super::{bare_track_id, debug_log, tags};
 use crate::deezer::bandwidth::BandwidthLimiter;
 use crate::deezer::models::{DownloadProgress, DownloadResult};
 use crate::paths::{
@@ -41,7 +41,12 @@ pub async fn download_track(
     cancel_flag: Arc<AtomicBool>,
 ) -> Result<DownloadResult, String> {
     let id = bare_track_id(track_key);
-    let track = super::ap::track(&client.session, id).await?;
+    debug_log(&format!("download start: {}", track_key));
+    let track = super::ap::track(&client.session, id).await.map_err(|e| {
+        debug_log(&format!("ap::track failed: {}", e));
+        e
+    })?;
+    debug_log(&format!("track metadata ok: {} - {}", track.artist, track.title));
 
     emit_progress(app, track_key, &track.title, 0.0, "resolving");
 
@@ -51,9 +56,21 @@ pub async fn download_track(
         .map_err(|e| format!("Invalid Spotify track id: {}", e))?;
     let ap_track = ApTrack::get(&client.session, &uri)
         .await
-        .map_err(|e| format!("Spotify metadata failed: {}", e))?;
+        .map_err(|e| {
+            debug_log(&format!("ApTrack::get failed: {:?}", e));
+            format!("Spotify metadata failed: {}", e)
+        })?;
+    debug_log(&format!(
+        "available formats: {:?}",
+        ap_track.files.iter().map(|(f, _)| *f).collect::<Vec<_>>()
+    ));
 
-    let (file_id, ext, actual_quality) = select_file(&ap_track.files, quality)?;
+    let (file_id, ext, actual_quality) =
+        select_file(&ap_track.files, quality).map_err(|e| {
+            debug_log(&format!("select_file failed: {}", e));
+            e
+        })?;
+    debug_log(&format!("selected {} ({}) for quality '{}'", actual_quality, ext, quality));
 
     let path_meta = TrackPathMeta {
         artist: track.artist.clone(),
@@ -108,10 +125,12 @@ pub async fn download_track(
     emit_progress(app, track_key, &track.title, 5.0, "downloading");
 
     let (temp_path, mut file) = create_temp_download_file(&download_path, track_key).await?;
+    debug_log(&format!("opening audio file, temp: {}", temp_path.display()));
 
     let mut audio = match AudioFile::open(&client.session, file_id, FETCH_RATE).await {
         Ok(audio) => audio,
         Err(e) => {
+            debug_log(&format!("AudioFile::open failed: {:?}", e));
             drop(file);
             cleanup_temp_file_async(&temp_path).await;
             return Err(format!("Spotify audio fetch failed: {}", e));
@@ -122,6 +141,7 @@ pub async fn download_track(
         .get_stream_loader_controller()
         .map(|controller| controller.len() as u64)
         .unwrap_or(0);
+    debug_log(&format!("audio opened, total size: {} bytes", total_size));
 
     let mut buffer = vec![0u8; READ_CHUNK];
     let mut downloaded = 0u64;
@@ -139,6 +159,7 @@ pub async fn download_track(
             Ok(0) => break,
             Ok(read) => read,
             Err(e) => {
+                debug_log(&format!("stream read failed after {} bytes: {:?}", downloaded, e));
                 drop(file);
                 cleanup_temp_file_async(&temp_path).await;
                 return Err(format!("Spotify stream read failed: {}", e));
@@ -180,6 +201,7 @@ pub async fn download_track(
         return Err("Spotify returned no audio".to_string());
     }
 
+    debug_log(&format!("stream complete: {} bytes, tagging", downloaded));
     emit_progress(app, track_key, &track.title, 92.0, "tagging");
 
     let cover = fetch_cover(client, &track.cover_medium).await;
@@ -237,6 +259,7 @@ pub async fn download_track(
         }
     };
 
+    debug_log(&format!("download complete: {}", download_path.display()));
     emit_progress(app, track_key, &track.title, 100.0, "complete");
 
     Ok(DownloadResult {

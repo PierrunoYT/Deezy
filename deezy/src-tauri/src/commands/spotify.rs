@@ -129,7 +129,7 @@ pub async fn get_spotify_artist_albums(
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<SpotifyAlbum>, String> {
     let client = spotify_client(&state).await?;
-    spotify::ap::artist_albums(&client.session, &artistId).await
+    client.artist_albums(&artistId).await
 }
 
 #[tauri::command]

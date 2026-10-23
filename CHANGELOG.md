@@ -15,8 +15,12 @@ All notable changes to Deezy are documented here.
 
 ### Fixed
 
+- **Spotify downloads with a custom Client ID** — Downloads failed with `400 Bad Request` on track metadata once a custom Client ID was saved, because Spotify only accepts AP metadata requests from the default ID. The AP session (metadata and audio) now always uses the default ID, and the custom ID is used only for the Web API, so search uses your own quota while downloads keep working. Connecting with a custom ID opens the browser login twice. The second login waits briefly, and the success page no longer requests a favicon from the shared callback port; this prevented `Auth code param not found in URI …/favicon.ico` errors.
+- **Spotify artist albums** — The artist albums command now uses the AP-then-Web-API fallback.
+- **Spotify diagnostics** — Panics and each Spotify download step, Pathfinder rejection, and Web API search result are logged to stderr and `deezy-debug.log` in the temp directory, so failures are visible without a console.
 - **Spotify rate-limit waits** — Web API 429 responses are retried at most twice and only for `Retry-After` waits of five seconds or less, avoiding long UI stalls.
 - **Spotify search and settings UI** — AP durations are converted to seconds, the sticky search header stays opaque, and long Spotify account names no longer disrupt the Settings layout.
+- **Spotify artist loading** — Artist discographies fall back to the Web API when the AP metadata request is rejected, instead of failing before any albums are shown.
 
 ---
 

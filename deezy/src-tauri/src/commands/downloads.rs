@@ -7,16 +7,22 @@ pub async fn download_track(
     state: tauri::State<'_, AppState>,
     app: AppHandle,
 ) -> Result<DownloadResult, String> {
+    crate::spotify::debug_log(&format!("download_track command: {}", trackId));
     let cancel_flag = Arc::new(AtomicBool::new(false));
     {
         let mut cancellation_map = state.download_cancellations.lock().await;
         if cancellation_map.contains_key(&trackId) {
+            crate::spotify::debug_log("rejected: already downloading");
             return Err("This track is already downloading".to_string());
         }
         cancellation_map.insert(trackId.clone(), cancel_flag.clone());
     }
 
     let result = execute_download_track(&trackId, &state, &app, cancel_flag).await;
+    match &result {
+        Ok(r) => crate::spotify::debug_log(&format!("download_track result: {} {}", r.status, r.file_path)),
+        Err(e) => crate::spotify::debug_log(&format!("download_track error: {}", e)),
+    }
 
     // Always remove the registration, including authentication and refresh
     // failures that return before the streaming download begins.

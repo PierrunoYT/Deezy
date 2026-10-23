@@ -19,6 +19,25 @@ pub use auth::SpotifyClient;
 /// never collide with a numeric Deezer ID (or with a Deezer download in flight).
 pub const KEY_PREFIX: &str = "spotify:";
 
+/// Prints to stderr and appends to `deezy-debug.log` in the temp dir, so the
+/// trail survives a crash that closes the console.
+pub fn debug_log(message: &str) {
+    use std::io::Write;
+
+    eprintln!("[deezy] {}", message);
+    if let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(std::env::temp_dir().join("deezy-debug.log"))
+    {
+        let secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let _ = writeln!(file, "[{}] {}", secs, message);
+    }
+}
+
 pub fn is_spotify_track(key: &str) -> bool {
     key.starts_with(KEY_PREFIX)
 }

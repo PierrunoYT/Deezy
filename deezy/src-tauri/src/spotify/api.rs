@@ -125,6 +125,10 @@ impl SpotifyClient {
                 ));
             }
 
+            if url.ends_with("/search") {
+                log_search(query, &body);
+            }
+
             return Ok(body);
         }
     }
@@ -262,6 +266,33 @@ impl SpotifyClient {
             .collect())
     }
 
+    pub async fn artist_albums(&self, artist_id: &str) -> Result<Vec<SpotifyAlbum>, String> {
+        match ap::artist_albums(&self.session, artist_id).await {
+            Ok(albums) => Ok(albums),
+            Err(ap_error) => match self.artist_albums_web(artist_id).await {
+                Ok(albums) => Ok(albums),
+                Err(web_error) => Err(format!(
+                    "{}; Web API fallback failed: {}",
+                    ap_error, web_error
+                )),
+            },
+        }
+    }
+
+    async fn artist_albums_web(&self, artist_id: &str) -> Result<Vec<SpotifyAlbum>, String> {
+        let items = self
+            .get_paged(
+                &format!(
+                    "{}/artists/{}/albums?include_groups=album,single&limit=50",
+                    API, artist_id
+                ),
+                1000,
+            )
+            .await?;
+
+        Ok(items.iter().filter_map(album_from_value).collect())
+    }
+
     pub async fn search_playlists(
         &self,
         query: &str,
@@ -292,6 +323,37 @@ impl SpotifyClient {
             .await?;
 
         Ok(items.iter().filter_map(playlist_from_value).collect())
+    }
+}
+
+/// Logs what `/search` returned, to compare against the Spotify app.
+fn log_search(query: &[(&str, String)], body: &Value) {
+    let params = query
+        .iter()
+        .map(|(k, v)| format!("{}={:?}", k, v))
+        .collect::<Vec<_>>()
+        .join(" ");
+    for section in ["tracks", "albums", "artists", "playlists"] {
+        let Some(items) = body[section]["items"].as_array() else {
+            continue;
+        };
+        let names = items
+            .iter()
+            .take(8)
+            .map(|item| {
+                let name = item["name"].as_str().unwrap_or("?");
+                let by = item["artists"][0]["name"].as_str().unwrap_or("");
+                format!("{} / {}", name, by)
+            })
+            .collect::<Vec<_>>()
+            .join(" | ");
+        super::debug_log(&format!(
+            "web search [{}] total={} returned={} top: {}",
+            params,
+            body[section]["total"],
+            items.len(),
+            names
+        ));
     }
 }
 

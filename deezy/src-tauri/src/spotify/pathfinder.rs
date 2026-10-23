@@ -136,9 +136,13 @@ async fn query_once(
         .json(&body);
 
     // The client token is optional; the request is accepted without it.
-    if let Ok(client_token) = client.session.spclient().client_token().await {
-        request = request.header("client-token", client_token);
-    }
+    let client_token_error = match client.session.spclient().client_token().await {
+        Ok(client_token) => {
+            request = request.header("client-token", client_token);
+            None
+        }
+        Err(e) => Some(format!("{:?}", e)),
+    };
 
     let response = request
         .send()
@@ -157,6 +161,14 @@ async fn query_once(
     // A stale hash answers 412 or a GraphQL `PersistedQueryNotFound` error.
     if !status.is_success() || value.get("errors").is_some() {
         let detail = value["errors"][0]["message"].as_str().unwrap_or("no details");
+        let snippet: String = text.chars().take(300).collect();
+        super::debug_log(&format!(
+            "pathfinder {} HTTP {}: body={} client_token_error={:?}",
+            operation,
+            status.as_u16(),
+            snippet,
+            client_token_error
+        ));
         return Err(format!(
             "{} rejected (HTTP {}: {})",
             operation,
