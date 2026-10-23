@@ -196,14 +196,6 @@
                 <span>{item.album}</span>
               {/if}
             </div>
-            <div class="progress-container">
-              <div class="progress-bar" role="progressbar" aria-valuenow={getProgressWidth(item.percent)} aria-valuemin={0} aria-valuemax={100}>
-                <div
-                  class="progress-fill {getStatusClass(item.status)}"
-                  style="width: {getProgressWidth(item.percent)}%"
-                ></div>
-              </div>
-            </div>
           </div>
           <div class="download-status {getStatusClass(item.status)}">
             {item.skipped ? $_('downloads.status.skipped') : getStatusText(item.status, item.percent)}
@@ -274,6 +266,14 @@
             {#if item.errorMsg && ['error', 'complete'].includes(item.status)}
               <div class="error-msg" title={item.errorMsg} role="alert">⚠</div>
             {/if}
+          </div>
+          <div class="progress-container">
+            <div class="progress-bar" role="progressbar" aria-valuenow={getProgressWidth(item.percent)} aria-valuemin={0} aria-valuemax={100}>
+              <div
+                class="progress-fill {getStatusClass(item.status)}"
+                style="width: {getProgressWidth(item.percent)}%"
+              ></div>
+            </div>
           </div>
         </div>
         {/each}
@@ -390,13 +390,23 @@
   .download-item {
     display: grid;
     grid-template-columns: 44px 1fr auto;
-    gap: 14px;
+    gap: 8px 14px;
     align-items: center;
     padding: 12px 16px;
     border-radius: var(--radius);
     background: var(--bg-surface);
   }
-  
+
+  /* The cover spans both rows; the bar gets its own row across the whole item. */
+  .download-item > .download-cover {
+    grid-row: 1 / span 2;
+  }
+
+  .download-item > .progress-container {
+    grid-column: 2 / -1;
+    margin-top: 0;
+  }
+
   .download-cover {
     width: 44px;
     height: 44px;
