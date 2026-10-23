@@ -360,15 +360,13 @@ fn requested_label(quality: &str) -> &str {
     }
 }
 
-/// Picks the best delivered format for the requested quality and maps it to a
-/// container extension and a label the UI can show.
-fn select_file(
-    files: &AudioFiles,
-    quality: &str,
-) -> Result<(FileId, &'static str, String), String> {
+/// Formats to try, best match first, for a settings value. Each setting starts
+/// at its own bitrate (`normal` 96, `high` 160, `very-high` 320) and only falls
+/// back to the others when Spotify does not deliver that one.
+fn format_order(quality: &str) -> &'static [AudioFileFormat] {
     use AudioFileFormat::*;
 
-    let order: &[AudioFileFormat] = match quality {
+    match quality {
         "lossless" => &[
             FLAC_FLAC_24BIT,
             FLAC_FLAC,
@@ -378,6 +376,14 @@ fn select_file(
             MP3_160,
             OGG_VORBIS_96,
             MP3_96,
+        ],
+        "normal" => &[
+            OGG_VORBIS_96,
+            MP3_96,
+            OGG_VORBIS_160,
+            MP3_160,
+            OGG_VORBIS_320,
+            MP3_320,
         ],
         "high" => &[
             OGG_VORBIS_160,
@@ -395,9 +401,16 @@ fn select_file(
             OGG_VORBIS_96,
             MP3_96,
         ],
-    };
+    }
+}
 
-    for format in order {
+/// Picks the best delivered format for the requested quality and maps it to a
+/// container extension and a label the UI can show.
+fn select_file(
+    files: &AudioFiles,
+    quality: &str,
+) -> Result<(FileId, &'static str, String), String> {
+    for format in format_order(quality) {
         if let Some(file_id) = files.get(format) {
             return Ok((file_id.clone(), extension_for(*format), label_for(*format)));
         }
@@ -514,6 +527,17 @@ mod tests {
         head[SPOTIFY_HEADER_LEN..].copy_from_slice(b"fLaC");
         assert_eq!(audio_start(&head, ".flac"), SPOTIFY_HEADER_LEN);
         assert_eq!(audio_start(&vec![0x11u8; SPOTIFY_HEADER_LEN + 4], ".m4a"), 0);
+    }
+
+    #[test]
+    fn each_quality_setting_starts_at_its_own_bitrate() {
+        use AudioFileFormat::*;
+        assert!(matches!(format_order("normal")[0], OGG_VORBIS_96));
+        assert!(matches!(format_order("high")[0], OGG_VORBIS_160));
+        assert!(matches!(format_order("very-high")[0], OGG_VORBIS_320));
+        assert!(matches!(format_order("lossless")[0], FLAC_FLAC_24BIT));
+        // Unknown values behave like the default (very-high).
+        assert!(matches!(format_order("anything")[0], OGG_VORBIS_320));
     }
 
     #[test]
