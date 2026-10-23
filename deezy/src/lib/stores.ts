@@ -33,6 +33,7 @@ export interface AppSettings {
   spotify_enabled: boolean;
   spotify_quality: SpotifyQuality;
   spotify_device_id?: string;
+  spotify_client_id?: string;
 }
 
 export interface ArlStorageStatus {

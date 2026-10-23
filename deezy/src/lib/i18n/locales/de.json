@@ -258,6 +258,10 @@
       "disconnectedStatus": "Spotify getrennt.",
       "connectFailed": "Spotify-Verbindung fehlgeschlagen: {error}",
       "disconnectFailed": "Spotify konnte nicht getrennt werden: {error}",
+      "clientIdLabel": "Spotify-Client-ID (optional)",
+      "clientIdHint": "Verwende deine eigene Spotify-Entwickler-App, um geteilte Ratenlimits zu vermeiden. Füge http://127.0.0.1:5588/login als Weiterleitungs-URI hinzu und verbinde dich dann erneut.",
+      "clientIdPlaceholder": "Leer lassen für den Standard",
+      "clientIdSaved": "Client-ID gespeichert. Verbinde Spotify erneut, um sie zu nutzen.",
       "quality": {
         "normal": "Normal (96 kbit/s)",
         "high": "Hoch (160 kbit/s)",

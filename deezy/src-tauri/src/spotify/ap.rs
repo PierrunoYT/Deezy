@@ -241,38 +241,6 @@ pub async fn artist_albums(
     Ok(albums)
 }
 
-/// Search is the one operation the AP only exposes as a playable context.
-pub async fn search_tracks(
-    session: &Session,
-    query: &str,
-    limit: usize,
-) -> Result<Vec<SpotifyTrack>, String> {
-    let uri = format!("spotify:search:{}", query.replace(' ', "+"));
-    let context = session
-        .spclient()
-        .get_context(&uri)
-        .await
-        .map_err(|e| format!("Spotify AP search failed: {}", e))?;
-
-    let uris: Vec<SpotifyUri> = context
-        .pages
-        .iter()
-        .flat_map(|page| page.tracks.iter())
-        .filter_map(|track| track.uri.as_deref())
-        .filter_map(|uri| SpotifyUri::from_uri(uri).ok())
-        .filter(|uri| matches!(uri, SpotifyUri::Track { .. }))
-        .take(limit)
-        .collect();
-
-    let mut tracks = Vec::new();
-    for uri in uris {
-        if let Some(track) = load_track(session, &uri).await {
-            tracks.push(track);
-        }
-    }
-    Ok(tracks)
-}
-
 /// The user's Liked Songs, exposed by the AP as a collection context.
 pub async fn liked_tracks(session: &Session, username: &str) -> Result<Vec<SpotifyTrack>, String> {
     if username.is_empty() {

@@ -35,7 +35,7 @@ pub async fn spotify_login(
     app: AppHandle,
 ) -> Result<SpotifyStatus, String> {
     let device_id = ensure_device_id(&state, &app).await?;
-    let client_id = spotify::auth::configured_client_id("");
+    let client_id = configured_client_id(&state).await;
     let client = spotify::auth::login(&device_id, &client_id).await?;
     let status = status(&client);
     *state.spotify.lock().await = Some(client);
@@ -59,7 +59,7 @@ pub async fn spotify_status(
     }
 
     let device_id = ensure_device_id(&state, &app).await?;
-    let client_id = spotify::auth::configured_client_id("");
+    let client_id = configured_client_id(&state).await;
     match spotify::auth::restore(&device_id, &client_id).await? {
         Some(client) => {
             let status = status(&client);
@@ -162,6 +162,11 @@ async fn spotify_client(state: &AppState) -> Result<Arc<spotify::SpotifyClient>,
         return Ok(client);
     }
     Err("Not connected to Spotify. Open Settings and connect your account.".to_string())
+}
+
+async fn configured_client_id(state: &AppState) -> String {
+    let saved = state.settings.lock().await.spotify_client_id.clone();
+    spotify::auth::configured_client_id(&saved)
 }
 
 async fn ensure_device_id(state: &AppState, app: &AppHandle) -> Result<String, String> {

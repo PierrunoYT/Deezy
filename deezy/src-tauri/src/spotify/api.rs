@@ -147,17 +147,9 @@ impl SpotifyClient {
     }
 
     pub async fn search_tracks(&self, query: &str, limit: u32) -> Result<Vec<SpotifyTrack>, String> {
-        match self.search_tracks_web(query, limit).await {
-            Ok(tracks) => Ok(tracks),
-            // The Web API can be exhausted through the shared keymaster client.
-            // Tracks are also available through the AP search context.
-            Err(error) if error.contains("429") => {
-                super::ap::search_tracks(&self.session, query, limit as usize)
-                    .await
-                    .map_err(|ap_error| format!("{} (AP fallback failed: {})", error, ap_error))
-            }
-            Err(error) => Err(error),
-        }
+        // The AP search context ignores the query terms, so a rate-limited Web
+        // API is reported instead of answered with unrelated tracks.
+        self.search_tracks_web(query, limit).await
     }
 
     async fn search_tracks_web(
