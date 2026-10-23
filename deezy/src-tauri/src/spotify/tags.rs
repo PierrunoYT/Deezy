@@ -16,7 +16,7 @@ pub fn write_tags(
     cover: Option<Vec<u8>>,
     ext: &str,
 ) -> Result<(), String> {
-    // The file is still the `.deezy.part` temp file, so the format cannot come
+    // The file is still the `.wavekeep.part` temp file, so the format cannot come
     // from its extension; sniff it from the content instead.
     let mut tagged = Probe::open(path)
         .map_err(|e| format!("Tag read error: {}", e))?

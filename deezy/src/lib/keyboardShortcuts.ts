@@ -1,5 +1,5 @@
 /**
- * Keyboard shortcuts handler for Deezy
+ * Keyboard shortcuts handler for Wavekeep
  * Provides centralized keyboard shortcut management
  */
 

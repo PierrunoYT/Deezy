@@ -1,12 +1,12 @@
 [package]
-name = "deezy"
+name = "wavekeep"
 version = "0.3.0"
-description = "A Tauri App"
+description = "Wavekeep, a desktop music downloader for Deezer and Spotify"
 authors = ["you"]
 edition = "2021"
 
 [lib]
-name = "deezy_lib"
+name = "wavekeep_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

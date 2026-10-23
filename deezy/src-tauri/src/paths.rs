@@ -10,7 +10,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::settings::FolderStructure;
 
-pub const IN_PROGRESS_SUFFIX: &str = ".deezy.part";
+pub const IN_PROGRESS_SUFFIX: &str = ".wavekeep.part";
 
 /// The metadata a folder template can reference, independent of provider.
 #[derive(Debug, Clone, Default)]
@@ -434,7 +434,7 @@ mod tests {
             .expect("system time should be after the Unix epoch")
             .as_nanos();
         let dir = std::env::temp_dir().join(format!(
-            "deezy-{}-{}-{}",
+            "wavekeep-{}-{}-{}",
             name,
             std::process::id(),
             unique
@@ -474,7 +474,7 @@ mod tests {
     #[test]
     fn finalization_uses_a_numbered_name_without_overwriting() {
         let dir = test_dir("finalize-collision");
-        let temp_path = dir.join("track.mp3.123.0.deezy.part");
+        let temp_path = dir.join("track.mp3.123.0.wavekeep.part");
         let preferred_path = dir.join("Artist - Track.mp3");
         std::fs::write(&temp_path, b"new audio").expect("temp audio should be written");
         std::fs::write(&preferred_path, b"existing audio")

@@ -71,7 +71,7 @@ pub struct Settings {
     #[serde(default)]
     pub spotify_client_id: String,
     /// Set on disk only when the plaintext ARL was saved with the keyring
-    /// disabled (`DEEZY_NO_KEYRING`). Such a credential is newer than whatever
+    /// disabled (`WAVEKEEP_NO_KEYRING`). Such a credential is newer than whatever
     /// the keyring holds; other plaintext may be stale and loses to the keyring.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub arl_saved_without_keyring: bool,
@@ -105,7 +105,7 @@ impl Default for Settings {
 
         let default_dir = PathBuf::from(home)
             .join("Music")
-            .join("Deezy");
+            .join("Wavekeep");
 
         Self {
             arl: String::new(),
@@ -133,10 +133,18 @@ impl Default for Settings {
     }
 }
 
+/// Reads `WAVEKEEP_<name>`, falling back to `DEEZY_<name>` from before the
+/// app was renamed so existing setups keep working.
+pub fn app_env(name: &str) -> Option<String> {
+    std::env::var(format!("WAVEKEEP_{}", name))
+        .or_else(|_| std::env::var(format!("DEEZY_{}", name)))
+        .ok()
+}
+
 fn keyring_enabled() -> bool {
     !matches!(
-        std::env::var("DEEZY_NO_KEYRING").as_deref(),
-        Ok("1") | Ok("true") | Ok("yes")
+        app_env("NO_KEYRING").as_deref(),
+        Some("1") | Some("true") | Some("yes")
     )
 }
 
@@ -215,7 +223,7 @@ pub fn arl_storage_status(app: &tauri::AppHandle) -> ArlStorageStatus {
             let reason = if keyring_enabled() {
                 load_arl_from_keyring().err()
             } else {
-                Some("Disabled by DEEZY_NO_KEYRING".to_string())
+                Some("Disabled by WAVEKEEP_NO_KEYRING".to_string())
             };
             return ArlStorageStatus {
                 storage: Some(ArlStorage::PlainFile),
@@ -233,7 +241,7 @@ pub fn arl_storage_status(app: &tauri::AppHandle) -> ArlStorageStatus {
 
     if !keyring_enabled() {
         return ArlStorageStatus::none(disk_hardening_error.or_else(|| {
-            Some("Disabled by DEEZY_NO_KEYRING".to_string())
+            Some("Disabled by WAVEKEEP_NO_KEYRING".to_string())
         }));
     }
 
@@ -529,7 +537,7 @@ impl Settings {
         }
 
         // Plaintext saved deliberately with the keyring disabled is the newest
-        // credential (e.g. another account used with DEEZY_NO_KEYRING), so it
+        // credential (e.g. another account used with WAVEKEEP_NO_KEYRING), so it
         // replaces the keyring entry. If the keyring can't take it, keep using it.
         if settings.arl_saved_without_keyring && !settings.arl.is_empty() {
             if save_arl_to_keyring(&settings.arl).is_ok() {
@@ -659,7 +667,7 @@ mod tests {
             .expect("system clock should be after Unix epoch")
             .as_nanos();
         let path = std::env::temp_dir().join(format!(
-            "deezy-settings-{}-{}-{}",
+            "wavekeep-settings-{}-{}-{}",
             name,
             std::process::id(),
             nonce

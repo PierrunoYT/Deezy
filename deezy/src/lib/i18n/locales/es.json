@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Deezy"
+    "name": "Wavekeep"
   },
   "nav": {
     "search": "Buscar",
@@ -155,7 +155,7 @@
       "savedKeyring": "El token ARL está guardado en el almacén de credenciales del sistema (oculto por seguridad)",
       "savedPlainFile": "El token ARL está guardado (oculto por seguridad)",
       "insecureStorageTitle": "Almacenamiento seguro de credenciales no disponible",
-      "insecureStorageHint": "Tu ARL se guarda como texto plano en settings.json. Cualquiera que pueda leer ese archivo puede usar tu cuenta de Deezer. Reinicia Deezy cuando el almacén de credenciales del sistema esté disponible para moverlo allí."
+      "insecureStorageHint": "Tu ARL se guarda como texto plano en settings.json. Cualquiera que pueda leer ese archivo puede usar tu cuenta de Deezer. Reinicia Wavekeep cuando el almacén de credenciales del sistema esté disponible para moverlo allí."
     },
     "outputDir": {
       "label": "Carpeta de Descargas",
@@ -330,7 +330,7 @@
     },
     "warning": {
       "title": "Antes de continuar",
-      "intro": "Deezy es una herramienta no oficial y no está afiliada a Deezer ni a Spotify. Lee esto primero.",
+      "intro": "Wavekeep es una herramienta no oficial y no está afiliada a Deezer ni a Spotify. Lee esto primero.",
       "dontShow": "No volver a mostrar",
       "understand": "Entendido",
       "moreInfo": "Info y FAQ"
@@ -346,11 +346,11 @@
       },
       "credentials": {
         "title": "Protege tu inicio de sesión",
-        "text": "Tu ARL de Deezer funciona como una contraseña, así que no lo compartas nunca. Spotify usa un inicio de sesión en el navegador y Deezy nunca ve tu contraseña de Spotify."
+        "text": "Tu ARL de Deezer funciona como una contraseña, así que no lo compartas nunca. Spotify usa un inicio de sesión en el navegador y Wavekeep nunca ve tu contraseña de Spotify."
       },
       "unofficial": {
         "title": "No oficial y sin soporte",
-        "text": "Deezy depende de interfaces que Deezer y Spotify pueden cambiar o bloquear en cualquier momento, por lo que las funciones pueden dejar de funcionar sin previo aviso."
+        "text": "Wavekeep depende de interfaces que Deezer y Spotify pueden cambiar o bloquear en cualquier momento, por lo que las funciones pueden dejar de funcionar sin previo aviso."
       },
       "accounts": {
         "title": "¿Qué cuenta necesito?",
@@ -358,17 +358,17 @@
       },
       "files": {
         "title": "¿Dónde están mis archivos?",
-        "text": "Las descargas van a la carpeta elegida en Configuración, por defecto una carpeta Deezy dentro de tu carpeta Música. Las etiquetas y la carátula están incrustadas y puedes editarlas después con el editor de etiquetas."
+        "text": "Las descargas van a la carpeta elegida en Configuración, por defecto una carpeta Wavekeep dentro de tu carpeta Música. Las etiquetas y la carátula están incrustadas y puedes editarlas después con el editor de etiquetas."
       },
       "log": {
         "title": "¿Algo ha salido mal?",
-        "text": "Deezy escribe un registro de diagnóstico llamado deezy-debug.log en tu carpeta temporal. Al informar de un problema, incluye sus últimas líneas y elimina antes las rutas personales."
+        "text": "Wavekeep escribe un registro de diagnóstico llamado wavekeep-debug.log en tu carpeta temporal. Al informar de un problema, incluye sus últimas líneas y elimina antes las rutas personales."
       }
     },
     "faq": {
       "legal": {
-        "q": "¿Es legal usar Deezy?",
-        "a": "Depende de tu país y de lo que hagas con los archivos. Deezy no puede comprobarlo por ti. Trata las descargas como copias personales y respeta las condiciones de los servicios y la ley de derechos de autor local."
+        "q": "¿Es legal usar Wavekeep?",
+        "a": "Depende de tu país y de lo que hagas con los archivos. Wavekeep no puede comprobarlo por ti. Trata las descargas como copias personales y respeta las condiciones de los servicios y la ley de derechos de autor local."
       },
       "ban": {
         "q": "¿Pueden banear mi cuenta?",
@@ -384,7 +384,7 @@
       },
       "rateLimit": {
         "q": "La búsqueda de Spotify indica que se alcanzó el límite (429)",
-        "a": "El Client ID de Spotify predeterminado de Deezy lo comparten todos los usuarios de librespot, así que su cuota de búsqueda puede agotarse. Añade tu propio Client ID en Configuración → Spotify, con el URI de redirección http://127.0.0.1:5588/login, y luego desconecta y vuelve a conectar."
+        "a": "El Client ID de Spotify predeterminado de Wavekeep lo comparten todos los usuarios de librespot, así que su cuota de búsqueda puede agotarse. Añade tu propio Client ID en Configuración → Spotify, con el URI de redirección http://127.0.0.1:5588/login, y luego desconecta y vuelve a conectar."
       },
       "twoLogins": {
         "q": "¿Por qué Spotify pide iniciar sesión dos veces?",
@@ -392,14 +392,14 @@
       },
       "failed": {
         "q": "Una descarga falló. ¿Qué hago?",
-        "a": "Pulsa Reintentar en Descargas. En Deezer, comprueba que tu ARL siga siendo válido en Configuración. En Spotify, desconecta y vuelve a conectar. Si sigue fallando, revisa deezy-debug.log en tu carpeta temporal."
+        "a": "Pulsa Reintentar en Descargas. En Deezer, comprueba que tu ARL siga siendo válido en Configuración. En Spotify, desconecta y vuelve a conectar. Si sigue fallando, revisa wavekeep-debug.log en tu carpeta temporal."
       },
       "tags": {
         "q": "¿Cómo edito etiquetas o carátulas?",
         "a": "Usa el editor de etiquetas de la barra lateral o el botón del lápiz junto a una descarga terminada. Se admiten archivos MP3, FLAC, OGG y M4A."
       },
       "privacy": {
-        "q": "¿Deezy recopila mis datos?",
+        "q": "¿Wavekeep recopila mis datos?",
         "a": "No. No tiene analíticas ni telemetría y solo se comunica con Deezer y Spotify. Tu ARL y tus tokens de Spotify se guardan en el almacén de credenciales de tu sistema operativo cuando está disponible."
       }
     }

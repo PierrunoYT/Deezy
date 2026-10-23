@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Deezy"
+    "name": "Wavekeep"
   },
   "nav": {
     "search": "Search",
@@ -155,7 +155,7 @@
       "savedKeyring": "ARL token is saved in your OS credential store (hidden for security)",
       "savedPlainFile": "ARL token is saved (hidden for security)",
       "insecureStorageTitle": "Secure credential storage unavailable",
-      "insecureStorageHint": "Your ARL is stored as plain text in settings.json. Anyone who can read that file can use your Deezer account. Restart Deezy once your system credential store is available to move it there."
+      "insecureStorageHint": "Your ARL is stored as plain text in settings.json. Anyone who can read that file can use your Deezer account. Restart Wavekeep once your system credential store is available to move it there."
     },
     "outputDir": {
       "label": "Download Folder",
@@ -330,7 +330,7 @@
     },
     "warning": {
       "title": "Before you continue",
-      "intro": "Deezy is an unofficial tool and is not affiliated with Deezer or Spotify. Please read this first.",
+      "intro": "Wavekeep is an unofficial tool and is not affiliated with Deezer or Spotify. Please read this first.",
       "dontShow": "Don't show this again",
       "understand": "I understand",
       "moreInfo": "More info & FAQ"
@@ -346,11 +346,11 @@
       },
       "credentials": {
         "title": "Protect your login",
-        "text": "Your Deezer ARL works like a password, so never share it. Spotify uses a browser login, and Deezy never sees your Spotify password."
+        "text": "Your Deezer ARL works like a password, so never share it. Spotify uses a browser login, and Wavekeep never sees your Spotify password."
       },
       "unofficial": {
         "title": "Unofficial and unsupported",
-        "text": "Deezy relies on interfaces that Deezer and Spotify can change or block at any time, so features may stop working without notice."
+        "text": "Wavekeep relies on interfaces that Deezer and Spotify can change or block at any time, so features may stop working without notice."
       },
       "accounts": {
         "title": "Which account do I need?",
@@ -358,17 +358,17 @@
       },
       "files": {
         "title": "Where are my files?",
-        "text": "Downloads go to the folder chosen in Settings, by default a Deezy folder inside your Music folder. Tags and cover art are embedded, and you can edit them later with the Tag Editor."
+        "text": "Downloads go to the folder chosen in Settings, by default a Wavekeep folder inside your Music folder. Tags and cover art are embedded, and you can edit them later with the Tag Editor."
       },
       "log": {
         "title": "Something went wrong?",
-        "text": "Deezy writes a diagnostic log named deezy-debug.log to your temporary folder. When you report a problem, include its last lines and remove any personal paths first."
+        "text": "Wavekeep writes a diagnostic log named wavekeep-debug.log to your temporary folder. When you report a problem, include its last lines and remove any personal paths first."
       }
     },
     "faq": {
       "legal": {
-        "q": "Is it legal to use Deezy?",
-        "a": "That depends on your country and on what you do with the files. Deezy cannot check this for you. Treat downloads as personal copies, and respect the services' terms and local copyright law."
+        "q": "Is it legal to use Wavekeep?",
+        "a": "That depends on your country and on what you do with the files. Wavekeep cannot check this for you. Treat downloads as personal copies, and respect the services' terms and local copyright law."
       },
       "ban": {
         "q": "Can my account be banned?",
@@ -384,7 +384,7 @@
       },
       "rateLimit": {
         "q": "Spotify search says the rate limit was reached (429)",
-        "a": "Deezy's default Spotify Client ID is shared by every librespot user, so its search quota can run out. Add your own Client ID under Settings → Spotify, use the redirect URI http://127.0.0.1:5588/login, then disconnect and connect again."
+        "a": "Wavekeep's default Spotify Client ID is shared by every librespot user, so its search quota can run out. Add your own Client ID under Settings → Spotify, use the redirect URI http://127.0.0.1:5588/login, then disconnect and connect again."
       },
       "twoLogins": {
         "q": "Why does Spotify ask me to log in twice?",
@@ -392,14 +392,14 @@
       },
       "failed": {
         "q": "A download failed. What can I do?",
-        "a": "Press Retry in Downloads. For Deezer, check that your ARL is still valid in Settings. For Spotify, disconnect and connect again. If it keeps failing, look at deezy-debug.log in your temporary folder."
+        "a": "Press Retry in Downloads. For Deezer, check that your ARL is still valid in Settings. For Spotify, disconnect and connect again. If it keeps failing, look at wavekeep-debug.log in your temporary folder."
       },
       "tags": {
         "q": "How do I edit tags or cover art?",
         "a": "Use the Tag Editor in the sidebar, or the pencil button next to a finished download. MP3, FLAC, OGG and M4A files are supported."
       },
       "privacy": {
-        "q": "Does Deezy collect my data?",
+        "q": "Does Wavekeep collect my data?",
         "a": "No. It has no analytics or telemetry and only talks to Deezer and Spotify. Your ARL and Spotify tokens are kept in your operating system's credential store when one is available."
       }
     }

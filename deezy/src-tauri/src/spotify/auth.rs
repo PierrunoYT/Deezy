@@ -23,7 +23,7 @@ const REDIRECT_URI: &str = "http://127.0.0.1:5588/login";
 // port for /favicon.ico, which a following login would mistake for its answer.
 const LOGIN_DONE_HTML: &str = "<html><head><link rel='icon' href='data:,'></head>\
 <body style='font-family:sans-serif;padding:2em'>\
-<h2>Deezy is connected to Spotify</h2><p>You can close this tab.</p></body></html>";
+<h2>Wavekeep is connected to Spotify</h2><p>You can close this tab.</p></body></html>";
 
 const SCOPES: &[&str] = &[
     "streaming",
@@ -303,8 +303,7 @@ pub fn configured_client_id(settings_value: &str) -> String {
     if !settings_value.is_empty() {
         return settings_value.to_string();
     }
-    std::env::var("DEEZY_SPOTIFY_CLIENT_ID")
-        .ok()
+    crate::settings::app_env("SPOTIFY_CLIENT_ID")
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
         .unwrap_or_else(|| DEFAULT_CLIENT_ID.to_string())
@@ -361,7 +360,7 @@ fn finish_connect(
     cached_profile: Option<Profile>,
 ) -> Result<Arc<SpotifyClient>, String> {
     let http = reqwest::Client::builder()
-        .user_agent(concat!("Deezy/", env!("CARGO_PKG_VERSION")))
+        .user_agent(concat!("Wavekeep/", env!("CARGO_PKG_VERSION")))
         .build()
         .map_err(|e| format!("HTTP client error: {}", e))?;
 
@@ -489,13 +488,18 @@ mod tests {
     // One test owns the environment variable so parallel tests never race on it.
     #[test]
     fn env_override_then_default_when_setting_is_blank() {
-        std::env::set_var("DEEZY_SPOTIFY_CLIENT_ID", " env-client ");
+        std::env::set_var("WAVEKEEP_SPOTIFY_CLIENT_ID", " env-client ");
         assert_eq!(configured_client_id(""), "env-client");
         assert_eq!(configured_client_id("   "), "env-client");
         assert_eq!(configured_client_id("setting"), "setting");
 
-        std::env::set_var("DEEZY_SPOTIFY_CLIENT_ID", "  ");
+        std::env::set_var("WAVEKEEP_SPOTIFY_CLIENT_ID", "  ");
         assert_eq!(configured_client_id(""), DEFAULT_CLIENT_ID);
+
+        // The pre-rename variable still works when the new one is unset.
+        std::env::remove_var("WAVEKEEP_SPOTIFY_CLIENT_ID");
+        std::env::set_var("DEEZY_SPOTIFY_CLIENT_ID", "old-client");
+        assert_eq!(configured_client_id(""), "old-client");
 
         std::env::remove_var("DEEZY_SPOTIFY_CLIENT_ID");
         assert_eq!(configured_client_id(""), DEFAULT_CLIENT_ID);

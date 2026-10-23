@@ -91,7 +91,7 @@ async fn require_audio_file(state: &AppState, path: &str) -> Result<PathBuf, Str
         }
     }
 
-    Err("Audio file has not been approved by Deezy".to_string())
+    Err("Audio file has not been approved by Wavekeep".to_string())
 }
 
 async fn grant_image_file(state: &AppState, path: &str) -> Result<(), String> {
@@ -103,7 +103,7 @@ async fn grant_image_file(state: &AppState, path: &str) -> Result<(), String> {
 async fn require_image_file(state: &AppState, path: &str) -> Result<PathBuf, String> {
     let canonical = canonical_file(path).await?;
     if !state.file_grants.lock().await.images.contains(&canonical) {
-        return Err("Cover image has not been approved by Deezy".to_string());
+        return Err("Cover image has not been approved by Wavekeep".to_string());
     }
     Ok(canonical)
 }
@@ -117,7 +117,7 @@ async fn grant_folder(state: &AppState, path: &str) -> Result<(), String> {
 async fn require_granted_folder(state: &AppState, path: &str) -> Result<(), String> {
     let canonical = canonical_folder(path).await?;
     if !state.file_grants.lock().await.folders.contains(&canonical) {
-        return Err("Download folder has not been approved by Deezy".to_string());
+        return Err("Download folder has not been approved by Wavekeep".to_string());
     }
     Ok(())
 }

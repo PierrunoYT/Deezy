@@ -1,6 +1,6 @@
-# Developing Deezy
+# Developing Wavekeep
 
-Deezy uses Tauri v2 and Rust for the desktop backend, with a Svelte 5/SvelteKit
+Wavekeep uses Tauri v2 and Rust for the desktop backend, with a Svelte 5/SvelteKit
 frontend in SPA mode. Server-side rendering is disabled in
 `deezy/src/routes/+layout.ts`.
 
@@ -69,7 +69,7 @@ downloads setting is set, starts are spaced at least that far apart (read from
 the `downloadDelaySeconds` store); a skipped track releases its spacing.
 
 The backend resolves metadata and media, streams/decrypts audio into a unique
-`.deezy.part` file, and writes tags on that temporary file. Tagging failures emit
+`.wavekeep.part` file, and writes tags on that temporary file. Tagging failures emit
 warnings without failing the audio download. Final publication avoids overwriting
 existing files, choosing a numbered name on collision. Filesystems without hard
 link support use an atomic no-overwrite rename instead.
@@ -120,7 +120,8 @@ OAuth uses `http://127.0.0.1:5588/login`. The AP session (track metadata and
 audio) always logs in with librespot's shared default Client ID, because Spotify
 rejects AP metadata requests made under any other ID with a 400. The Web API
 (search, playlists, library) uses the Client ID resolved from the saved
-`spotify_client_id` setting, then `DEEZY_SPOTIFY_CLIENT_ID`, then the default;
+`spotify_client_id` setting, then `WAVEKEEP_SPOTIFY_CLIENT_ID` (or the older
+`WAVEKEEP_SPOTIFY_CLIENT_ID`), then the default;
 with a custom ID this means a second browser login. Tokens are bound to the
 Client ID that issued them, so changing the setting while connected logs out
 both. The default token uses the `com.pierr.deezy` / `spotify_oauth`
@@ -134,7 +135,7 @@ The Spotify account type (`Profile.product`) is displayed but never enforced,
 and Free-account audio access through librespot has not been verified. Available
 quality depends on the formats Spotify lists for each track.
 
-`spotify::debug_log` writes to stderr and to `deezy-debug.log` in the temp
+`spotify::debug_log` writes to stderr and to `wavekeep-debug.log` in the temp
 directory, and `lib.rs` logs panics through it. It also records app start,
 every `download_track` command result (both providers), each Spotify download
 step, Pathfinder rejections, and the query and top results of each Web API
@@ -192,8 +193,12 @@ that review. Test these separately when changes affect those paths.
    tagging, restart recovery, themes, and tray shutdown on the release platform.
 5. Build with `bun run tauri build` and verify the generated artifacts under
    `src-tauri/target/release/bundle/`.
-6. Make one release commit named `chore: prepare version X.Y.Z release` and an
-   annotated tag `vX.Y.Z` with the message `Deezy vX.Y.Z`, then publish the
+6. Until Deezy installs are gone, the release notes must say that the `.exe`
+   installer installs Wavekeep next to Deezy, and that Deezy should be uninstalled
+   without ticking "Delete the application data", because both apps share the
+   `com.pierr.deezy` data folder. See `AGENTS.md` for why the identifier is kept.
+7. Make one release commit named `chore: prepare version X.Y.Z release` and an
+   annotated tag `vX.Y.Z` with the message `Wavekeep vX.Y.Z`, then publish the
    appropriate installers and notes through the repository's release process.
    Do not push the commit or tag before the smoke test in step 4 has passed. The
    app has no automatic updater.

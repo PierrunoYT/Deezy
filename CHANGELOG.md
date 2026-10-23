@@ -21,6 +21,7 @@ All notable changes to Deezy are documented here.
 
 ### Changed
 
+- **Renamed to Wavekeep** — Deezy is now called Wavekeep, now that it downloads from Spotify as well as Deezer. Settings, download history, themes, and saved Deezer and Spotify logins carry over because the internal app identifier is unchanged, and MSI installs upgrade the existing Deezy install. New installs default to a `Music/Wavekeep` download folder; existing download folders are kept. `WAVEKEEP_NO_KEYRING` and `WAVEKEEP_SPOTIFY_CLIENT_ID` replace the `DEEZY_` variables, which still work. The diagnostic log is now `wavekeep-debug.log` and unfinished downloads use `.wavekeep.part`. The `.exe` installer installs Wavekeep next to Deezy instead of replacing it: uninstall Deezy afterwards, but leave "Delete the application data" unticked, because both apps share the same data folder.
 - **Deezer-free settings** — Saving settings no longer requires an ARL, so the Spotify source can be used without a Deezer account.
 
 ### Fixed

@@ -11,7 +11,7 @@ import {
 } from './stores';
 import { downloadQueueManager } from './downloadQueue';
 
-const DEFAULT_TOOLTIP = 'Deezy';
+const DEFAULT_TOOLTIP = 'Wavekeep';
 
 class TrayManager {
   private initialized = false;

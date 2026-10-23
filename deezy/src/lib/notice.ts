@@ -8,7 +8,7 @@
  */
 
 export const NOTICE_VERSION = 1;
-const STORAGE_KEY = 'deezy.startupNotice';
+const STORAGE_KEY = 'wavekeep.startupNotice';
 
 /** Items in the startup warning; text lives under `info.items.<id>` in the locale files. */
 export const WARNING_ITEMS = ['legal', 'account', 'credentials', 'unofficial'] as const;

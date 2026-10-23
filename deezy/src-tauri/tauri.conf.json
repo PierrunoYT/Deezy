@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Deezy",
+  "productName": "Wavekeep",
   "version": "0.3.0",
   "identifier": "com.pierr.deezy",
   "build": {
@@ -13,7 +13,7 @@
     "withGlobalTauri": false,
     "windows": [
       {
-        "title": "Deezy",
+        "title": "Wavekeep",
         "width": 1100,
         "height": 750,
         "resizable": true
@@ -34,6 +34,10 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "windows": {}
+    "windows": {
+      "wix": {
+        "upgradeCode": "684c99f2-0a51-5c91-b293-fcbefe37bbc1"
+      }
+    }
   }
 }

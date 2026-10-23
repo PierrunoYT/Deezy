@@ -1,8 +1,8 @@
 # Example Themes
 
-Compatible with Deezy **v0.2.19**.
+Compatible with Wavekeep **v0.2.19**.
 
-This directory contains example theme files that demonstrate the custom theme format for Deezy.
+This directory contains example theme files that demonstrate the custom theme format for Wavekeep.
 
 ## Available Themes
 
@@ -96,23 +96,23 @@ A futuristic cyberpunk theme with electric neon accents. Bold and eye-catching f
 
 ## How to Use
 
-### Method 1: Import via Deezy UI
-1. Open Deezy and go to Settings
+### Method 1: Import via Wavekeep UI
+1. Open Wavekeep and go to Settings
 2. Scroll to the Custom Themes section
 3. Click "Import Theme"
 4. Select one of these JSON files
 5. Click "Apply" to activate the theme
 
 ### Method 2: Copy to Themes Directory
-1. Copy the JSON file to your Deezy themes directory:
-   - **Windows**: `%APPDATA%/Deezy/themes/`
-   - **macOS**: `~/Library/Application Support/Deezy/themes/`
-   - **Linux**: `~/.local/share/Deezy/themes/`
-2. Restart Deezy or refresh the themes list
+1. Copy the JSON file to your Wavekeep themes directory:
+   - **Windows**: `%APPDATA%/com.pierr.deezy/themes/`
+   - **macOS**: `~/Library/Application Support/com.pierr.deezy/themes/`
+   - **Linux**: `~/.local/share/com.pierr.deezy/themes/`
+2. Restart Wavekeep or refresh the themes list
 3. The theme will appear in the Custom Themes section
 
 ### Method 3: Use "Add Examples" Button
-1. Open Deezy and go to Settings
+1. Open Wavekeep and go to Settings
 2. Scroll to the Custom Themes section
 3. Click "Add Examples"
 4. All example themes will be automatically installed
@@ -125,7 +125,7 @@ Feel free to use these themes as starting points for your own custom themes:
 2. Rename it (e.g., `my_custom_theme.json`)
 3. Edit the color values to your liking
 4. Update the name, author, and description fields
-5. Import it into Deezy
+5. Import it into Wavekeep
 
 ## Theme Structure
 

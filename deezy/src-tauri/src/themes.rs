@@ -249,7 +249,7 @@ pub fn create_example_themes(app: &tauri::AppHandle) -> Result<(), String> {
     // Midnight Blue theme
     let midnight_blue = CustomTheme {
         name: "Midnight Blue".to_string(),
-        author: Some("Deezy Team".to_string()),
+        author: Some("Wavekeep Team".to_string()),
         description: Some("A deep blue theme inspired by the midnight sky".to_string()),
         version: "1.0.0".to_string(),
         colors: ThemeColors {
@@ -274,7 +274,7 @@ pub fn create_example_themes(app: &tauri::AppHandle) -> Result<(), String> {
     // Forest Green theme
     let forest_green = CustomTheme {
         name: "Forest Green".to_string(),
-        author: Some("Deezy Team".to_string()),
+        author: Some("Wavekeep Team".to_string()),
         description: Some("A calming green theme inspired by nature".to_string()),
         version: "1.0.0".to_string(),
         colors: ThemeColors {
@@ -302,7 +302,7 @@ pub fn create_example_themes(app: &tauri::AppHandle) -> Result<(), String> {
     // Sunset Orange theme
     let sunset_orange = CustomTheme {
         name: "Sunset Orange".to_string(),
-        author: Some("Deezy Team".to_string()),
+        author: Some("Wavekeep Team".to_string()),
         description: Some("A warm orange theme inspired by beautiful sunsets".to_string()),
         version: "1.0.0".to_string(),
         colors: ThemeColors {
@@ -329,7 +329,7 @@ pub fn create_example_themes(app: &tauri::AppHandle) -> Result<(), String> {
     // Purple Haze theme
     let purple_haze = CustomTheme {
         name: "Purple Haze".to_string(),
-        author: Some("Deezy Team".to_string()),
+        author: Some("Wavekeep Team".to_string()),
         description: Some("A vibrant purple theme with dreamy, mystical vibes".to_string()),
         version: "1.0.0".to_string(),
         colors: ThemeColors {
@@ -354,7 +354,7 @@ pub fn create_example_themes(app: &tauri::AppHandle) -> Result<(), String> {
     // Ocean Teal theme
     let ocean_teal = CustomTheme {
         name: "Ocean Teal".to_string(),
-        author: Some("Deezy Team".to_string()),
+        author: Some("Wavekeep Team".to_string()),
         description: Some("A refreshing teal theme inspired by tropical ocean waters".to_string()),
         version: "1.0.0".to_string(),
         colors: ThemeColors {
@@ -379,7 +379,7 @@ pub fn create_example_themes(app: &tauri::AppHandle) -> Result<(), String> {
     // Crimson Red theme
     let crimson_red = CustomTheme {
         name: "Crimson Red".to_string(),
-        author: Some("Deezy Team".to_string()),
+        author: Some("Wavekeep Team".to_string()),
         description: Some("A bold red theme with intense, passionate energy".to_string()),
         version: "1.0.0".to_string(),
         colors: ThemeColors {
@@ -404,7 +404,7 @@ pub fn create_example_themes(app: &tauri::AppHandle) -> Result<(), String> {
     // Golden Amber theme
     let golden_amber = CustomTheme {
         name: "Golden Amber".to_string(),
-        author: Some("Deezy Team".to_string()),
+        author: Some("Wavekeep Team".to_string()),
         description: Some("A luxurious golden theme with warm, rich amber tones".to_string()),
         version: "1.0.0".to_string(),
         colors: ThemeColors {
@@ -429,7 +429,7 @@ pub fn create_example_themes(app: &tauri::AppHandle) -> Result<(), String> {
     // Rose Pink theme
     let rose_pink = CustomTheme {
         name: "Rose Pink".to_string(),
-        author: Some("Deezy Team".to_string()),
+        author: Some("Wavekeep Team".to_string()),
         description: Some("A soft pink theme with elegant, romantic aesthetics".to_string()),
         version: "1.0.0".to_string(),
         colors: ThemeColors {
@@ -454,7 +454,7 @@ pub fn create_example_themes(app: &tauri::AppHandle) -> Result<(), String> {
     // Slate Gray theme
     let slate_gray = CustomTheme {
         name: "Slate Gray".to_string(),
-        author: Some("Deezy Team".to_string()),
+        author: Some("Wavekeep Team".to_string()),
         description: Some("A professional gray theme with modern, minimalist design".to_string()),
         version: "1.0.0".to_string(),
         colors: ThemeColors {
@@ -479,7 +479,7 @@ pub fn create_example_themes(app: &tauri::AppHandle) -> Result<(), String> {
     // Cherry Blossom theme
     let cherry_blossom = CustomTheme {
         name: "Cherry Blossom".to_string(),
-        author: Some("Deezy Team".to_string()),
+        author: Some("Wavekeep Team".to_string()),
         description: Some("A delicate theme inspired by Japanese cherry blossoms in spring".to_string()),
         version: "1.0.0".to_string(),
         colors: ThemeColors {
@@ -504,7 +504,7 @@ pub fn create_example_themes(app: &tauri::AppHandle) -> Result<(), String> {
     // Cyber Neon theme
     let cyber_neon = CustomTheme {
         name: "Cyber Neon".to_string(),
-        author: Some("Deezy Team".to_string()),
+        author: Some("Wavekeep Team".to_string()),
         description: Some("A futuristic cyberpunk theme with electric neon accents".to_string()),
         version: "1.0.0".to_string(),
         colors: ThemeColors {

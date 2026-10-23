@@ -1,8 +1,10 @@
-# Deezy
+# Wavekeep
 
 <p align="center">
-  <img src="deezy/static/logodeezy.svg" alt="Deezy Logo" width="200"/>
+  <img src="deezy/static/logodeezy.svg" alt="Wavekeep Logo" width="200"/>
 </p>
+
+> Wavekeep was previously called **Deezy**. Updating keeps your settings, download history, themes and saved logins; see [Upgrading from Deezy](#upgrading-from-deezy).
 
 A modern desktop Deezer and Spotify downloader. Search for tracks, albums, artists, and playlists, paste music URLs for direct download, and save audio with full metadata and cover art.
 
@@ -13,13 +15,13 @@ A modern desktop Deezer and Spotify downloader. Search for tracks, albums, artis
 
 ## ⚠️ Important Information
 
-**This tool is for educational and personal use only.** By using Deezy, you acknowledge and agree to the following:
+**This tool is for educational and personal use only.** By using Wavekeep, you acknowledge and agree to the following:
 
 - **Deezer Account Required** – You need a Deezer account (Free or Premium) for the Deezer source. The ARL token is tied to your account.
   - **Free accounts** are limited to MP3 128 kbps downloads
   - **Premium accounts** can download MP3 320 kbps or FLAC
-  - The **Spotify source** needs its own Spotify account and uses a browser OAuth login; it does not need an ARL. Deezy does not check the account type. Premium is recommended: it is the account type librespot is built for, and the 320 kbps and lossless FLAC options depend on what Spotify offers per track and account. Whether Spotify serves audio to Free accounts is not guaranteed and has not been verified for this build; if a download fails, the debug log (`deezy-debug.log` in the temp folder) shows the step that was refused. Quality is limited to the formats Spotify returns for each track, and the best match for the selected setting is used.
-  - A **custom Spotify Client ID** (Development-mode app) may have its own restrictions on Spotify's side, such as limited user access or a Premium requirement for the app owner; these are Spotify's rules and are not enforced or checked by Deezy.
+  - The **Spotify source** needs its own Spotify account and uses a browser OAuth login; it does not need an ARL. Wavekeep does not check the account type. Premium is recommended: it is the account type librespot is built for, and the 320 kbps and lossless FLAC options depend on what Spotify offers per track and account. Whether Spotify serves audio to Free accounts is not guaranteed and has not been verified for this build; if a download fails, the debug log (`wavekeep-debug.log` in the temp folder) shows the step that was refused. Quality is limited to the formats Spotify returns for each track, and the best match for the selected setting is used.
+  - A **custom Spotify Client ID** (Development-mode app) may have its own restrictions on Spotify's side, such as limited user access or a Premium requirement for the app owner; these are Spotify's rules and are not enforced or checked by Wavekeep.
 - **Terms of Service** – Downloading music may violate the [Deezer](https://www.deezer.com/legal/cgu) or [Spotify](https://www.spotify.com/legal/end-user-agreement/) terms of service. Use at your own risk.
 - **Account Blocking Risk** – Your account may get suspended. Deezer and Spotify can detect unusual download activity.
 - **Copyright Laws** – Respect copyright laws in your jurisdiction. Downloaded content is for personal use only and must not be redistributed.
@@ -59,6 +61,13 @@ These docs describe the current source. Changes under [Unreleased](CHANGELOG.md#
 
 ## Install
 
+### Upgrading from Deezy
+
+Your settings, download history, custom themes, saved Deezer and Spotify logins, and downloaded music all carry over. Wavekeep stores them under the same internal app identifier as Deezy (`com.pierr.deezy`), so it finds them where Deezy left them.
+
+- **`.msi` installer:** upgrades the existing Deezy installation in place.
+- **`.exe` installer:** installs Wavekeep next to Deezy, because it is keyed on the app name. Both apps share the same data. Afterwards, uninstall Deezy from Windows Settings, and **do not tick "Delete the application data"** in its uninstaller: that would delete the settings, history, themes and saved logins that Wavekeep uses too. Your music files are not affected either way.
+
 ### Windows
 
 Download the latest installer from the [Releases page](https://github.com/PierrunoYT/Deezy/releases/latest):
@@ -79,11 +88,11 @@ bun run tauri build
 
 Install the output from `src-tauri/target/release/bundle/` (`.dmg` on macOS, `.deb` / `.rpm` / `.AppImage` on Linux).
 
-> **Update note:** Deezy does not currently include an automatic updater. Pull the latest source, run `bun install --frozen-lockfile`, and run `bun run tauri build` again to update a source-built installation.
+> **Update note:** Wavekeep does not currently include an automatic updater. Pull the latest source, run `bun install --frozen-lockfile`, and run `bun run tauri build` again to update a source-built installation.
 
 ### Amp development orbs
 
-Amp automatically runs the executable `.agents/setup` script when creating a fresh orb. It installs the Linux packages and toolchains required by Tauri, installs the locked frontend dependencies, and fetches the Rust dependencies. On resume, `.agents/resume` verifies that the toolchains and frontend dependencies are ready; Deezy has no background services to restart.
+Amp automatically runs the executable `.agents/setup` script when creating a fresh orb. It installs the Linux packages and toolchains required by Tauri, installs the locked frontend dependencies, and fetches the Rust dependencies. On resume, `.agents/resume` verifies that the toolchains and frontend dependencies are ready; Wavekeep has no background services to restart.
 
 ---
 
@@ -93,7 +102,7 @@ Amp automatically runs the executable `.agents/setup` script when creating a fre
 2. Open DevTools (`F12`) → **Application** (Chrome) or **Storage** (Firefox) → **Cookies** → `https://www.deezer.com`
 3. Copy the complete value of the `arl` cookie
 
-> Treat the ARL like a password. Deezy normally stores it in Windows Credential Manager, macOS Keychain, or Linux Secret Service and excludes it from `settings.json`. If secure storage is unavailable or cannot be read (for example, no running Secret Service on Linux), Deezy can use a clearly indicated private-file fallback. A replacement is authenticated before the working credential is changed. The ARL can expire or be invalidated and may need to be updated.
+> Treat the ARL like a password. Wavekeep normally stores it in Windows Credential Manager, macOS Keychain, or Linux Secret Service and excludes it from `settings.json`. If secure storage is unavailable or cannot be read (for example, no running Secret Service on Linux), Wavekeep can use a clearly indicated private-file fallback. A replacement is authenticated before the working credential is changed. The ARL can expire or be invalidated and may need to be updated.
 
 ---
 
@@ -101,7 +110,7 @@ Amp automatically runs the executable `.agents/setup` script when creating a fre
 
 Open **Settings → Spotify** and click **Connect Spotify**. Complete the browser OAuth login, then select Spotify as the music source in Search. No Deezer account or ARL is required. Spotify OAuth tokens are stored separately from the ARL in the OS credential store when available.
 
-Deezy normally uses librespot's shared Client ID. Because every librespot install shares its Web API quota, search can hit `429` rate limits. To avoid that, add `http://127.0.0.1:5588/login` as a redirect URI in your own Spotify Developer Dashboard app, paste its Client ID into **Settings → Spotify Client ID**, and reconnect. Your ID is used only for search and library requests; downloads still use the default ID, since Spotify rejects track metadata requests from other Client IDs. Connecting with a custom ID opens the browser login twice — approve both. Changing the saved ID while connected disconnects you, and clearing the field restores the default.
+Wavekeep normally uses librespot's shared Client ID. Because every librespot install shares its Web API quota, search can hit `429` rate limits. To avoid that, add `http://127.0.0.1:5588/login` as a redirect URI in your own Spotify Developer Dashboard app, paste its Client ID into **Settings → Spotify Client ID**, and reconnect. Your ID is used only for search and library requests; downloads still use the default ID, since Spotify rejects track metadata requests from other Client IDs. Connecting with a custom ID opens the browser login twice — approve both. Changing the saved ID while connected disconnects you, and clearing the field restores the default.
 
 Track metadata, downloads, Loved Tracks and the tracks of a playlist or album go through the AP session independently of Web API search quotas, but search itself (and playlist search and your playlist list, which have no fallback) uses the Web API and its quota. A Pathfinder search fallback exists for rate-limited track, album, and artist searches, but Spotify currently refuses it, so a custom Client ID is the reliable fix for `429` errors.
 
