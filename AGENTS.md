@@ -149,7 +149,13 @@ The app is called **Wavekeep** (formerly Deezy). Its identifier `com.pierr.wavek
 - The `.exe` (NSIS) installer is keyed on `productName`, so it installs Wavekeep next to Deezy. If Deezy is uninstalled with "Delete the application data" before Wavekeep's first start, the data is gone before it can be moved, so release notes must tell users to start Wavekeep once first.
 - WebView storage (`localStorage`, caches) also lives under the identifier and is not migrated; the only thing the app keeps there is the startup-notice flag, so the startup warning shows once more after the upgrade. Tauri puts it in `app_local_data_dir` on Windows and Linux. On Linux that is the same folder as `app_data_dir`, so the old `com.pierr.deezy` folder keeps its WebKit data and is never removed (the data itself still moves).
 - Environment variables are read through `settings::app_env`, which tries `WAVEKEEP_<NAME>` and then the old `DEEZY_<NAME>`; blank values count as unset.
-- The source folder `deezy/`, the GitHub repository `PierrunoYT/Deezy`, the logo files `static/logodeezy.*` and `deezy-mark-mono.svg`, and the `.agents/` scripts still use the old name.
+- The source folder `deezy/`, the GitHub repository `PierrunoYT/Deezy`, and the `.agents/` scripts still use the old name.
+
+### Logo and icons
+- `static/wavekeep.svg` is the colour logo (sidebar, startup screen, favicon) and `static/wavekeep-mono.svg` the single-colour mark. Sources for the generated icons live in `src-tauri/icons/source/` (`wavekeep-icon.svg`, the colour logo with a tight `viewBox` so it fills the icon square like other taskbar icons, and `wavekeep-tray.svg`, a bolder three-bar version for small sizes, cropped the same way).
+- App icons (`.ico`, `.icns`, PNG, Appx, Android, iOS) are generated with `npm run tauri -- icon src-tauri/icons/source/wavekeep-icon.svg` from `deezy/`; do not edit them by hand. `static/favicon.png` (180×180) is rendered from `static/wavekeep.svg`. Keep both colour SVGs' fills identical.
+- The logo's keep uses the UI accent purple `#a238ff` (`--accent` in `app.css`) and the waveform a soft teal `#8FDCD3` (a brighter teal clashed with the purple); keep them in sync if the accent changes.
+- The tray uses `icons/tray.png` (accent purple, Windows and Linux) and `icons/tray-template.png` (black, used as a macOS template image), both 64×64 RGBA rendered from `icons/source/wavekeep-tray.svg`, e.g. `magick -background none -density 384 <svg> -resize 64x64 -depth 8 -define png:color-type=6 <png>` after setting the fill to `#a238ff` for the purple one. `tray.rs` embeds them with `include_bytes!`.
 
 ### Version must be bumped in three places simultaneously
 `deezy/package.json` → `version`, `deezy/src-tauri/Cargo.toml` → `version`, `deezy/src-tauri/tauri.conf.json` → `version`. All three must match.

@@ -91,6 +91,7 @@ pub fn create_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
 
     let _tray = TrayIconBuilder::with_id("main")
         .icon(get_tray_icon(app)?)
+        .icon_as_template(TRAY_IS_TEMPLATE)
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_tray_icon_event(|tray, event| {
@@ -134,28 +135,22 @@ pub fn create_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn get_tray_icon(app: &AppHandle) -> Result<tauri::image::Image<'static>, Box<dyn std::error::Error>> {
-    // Try to load the icon from the icons directory
-    let icon_path = app.path().resource_dir()
-        .map_err(|e| format!("Failed to get resource dir: {}", e))?
-        .join("icons")
-        .join("32x32.png");
+/// macOS tints tray icons itself, so it gets a black template image; Windows
+/// and Linux get the mark in the app's accent purple (#a238ff), which reads on
+/// light and dark taskbars. Both are rendered from
+/// `icons/source/wavekeep-tray.svg`.
+const TRAY_IS_TEMPLATE: bool = cfg!(target_os = "macos");
 
-    if icon_path.exists() {
-        let icon_data = std::fs::read(&icon_path)
-            .map_err(|e| format!("Failed to read icon file: {}", e))?;
-        let img = image::load_from_memory(&icon_data)?;
-        let rgba = img.to_rgba8();
-        let (width, height) = rgba.dimensions();
-        Ok(tauri::image::Image::new_owned(rgba.into_raw(), width, height))
+fn get_tray_icon(_app: &AppHandle) -> Result<tauri::image::Image<'static>, Box<dyn std::error::Error>> {
+    let icon_bytes: &[u8] = if TRAY_IS_TEMPLATE {
+        include_bytes!("../icons/tray-template.png")
     } else {
-        // Fallback: use the app icon
-        let icon_bytes = include_bytes!("../icons/32x32.png");
-        let img = image::load_from_memory(icon_bytes)?;
-        let rgba = img.to_rgba8();
-        let (width, height) = rgba.dimensions();
-        Ok(tauri::image::Image::new_owned(rgba.into_raw(), width, height))
-    }
+        include_bytes!("../icons/tray.png")
+    };
+    let img = image::load_from_memory(icon_bytes)?;
+    let rgba = img.to_rgba8();
+    let (width, height) = rgba.dimensions();
+    Ok(tauri::image::Image::new_owned(rgba.into_raw(), width, height))
 }
 
 pub fn update_tray_menu(
@@ -213,6 +208,8 @@ pub fn update_tray_menu(
         } else {
             let _ = tray.set_icon(Some(get_tray_icon(app)?));
         }
+        // Replacing the icon can reset the template flag on macOS.
+        let _ = tray.set_icon_as_template(TRAY_IS_TEMPLATE);
     }
 
     Ok(())

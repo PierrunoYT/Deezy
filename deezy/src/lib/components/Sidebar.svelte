@@ -39,7 +39,7 @@
 
 <nav id="sidebar">
   <div class="logo">
-    <img src="/logodeezy.svg" width="36" height="36" alt="" aria-hidden="true" />
+    <img src="/wavekeep.svg" width="36" height="36" alt="" aria-hidden="true" />
     <span>{$_('app.name')}</span>
   </div>
   

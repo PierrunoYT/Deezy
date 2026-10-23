@@ -1,7 +1,7 @@
 # Wavekeep
 
 <p align="center">
-  <img src="deezy/static/logodeezy.svg" alt="Wavekeep Logo" width="200"/>
+  <img src="deezy/static/wavekeep.svg" alt="Wavekeep Logo" width="200"/>
 </p>
 
 > Wavekeep was previously called **Deezy**. Updating keeps your settings, download history, themes and saved logins (the startup warning shows once more); see [Upgrading from Deezy](#upgrading-from-deezy).

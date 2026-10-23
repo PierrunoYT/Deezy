@@ -394,7 +394,7 @@
   </div>
 {:else}
   <div class="startup-splash" aria-live="polite" aria-busy="true">
-    <img class="startup-logo" src="/logodeezy.svg" alt="Wavekeep logo" />
+    <img class="startup-logo" src="/wavekeep.svg" alt="Wavekeep logo" />
     <div class="startup-loading">
       <span class="spinner" aria-hidden="true"></span>
       <span>Loading Wavekeep...</span>
