@@ -9,6 +9,10 @@ pub(crate) const KEYRING_USER: &str = "arl_token";
 const MAX_SETTINGS_BYTES: u64 = 1024 * 1024;
 const MAX_DOWNLOAD_DELAY_SECONDS: u32 = 3600;
 pub const MAX_CONCURRENT_DOWNLOADS: u32 = 10;
+/// Shortest ARL `validate` accepts; real ones are 192 characters.
+const MIN_ARL_LENGTH: usize = 100;
+const QUALITIES: [&str; 3] = ["MP3_128", "MP3_320", "FLAC"];
+const SPOTIFY_QUALITIES: [&str; 4] = ["normal", "high", "very-high", "lossless"];
 static TEMP_FILE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -99,6 +103,11 @@ fn default_locale() -> String {
 
 fn default_custom_folder_template() -> String {
     "{artist}/{release_date} - {album}/{track_number} - {title}".to_string()
+}
+
+/// An own Spotify Client ID is 32 hexadecimal characters; empty means none.
+fn is_valid_spotify_client_id(id: &str) -> bool {
+    id.is_empty() || (id.len() == 32 && id.bytes().all(|b| b.is_ascii_hexdigit()))
 }
 
 impl Default for Settings {
@@ -216,8 +225,7 @@ fn disk_arl(app: &tauri::AppHandle) -> Result<(Option<String>, Option<String>), 
 
 /// Reports where the current ARL is actually persisted without exposing its value.
 pub fn arl_storage_status(app: &tauri::AppHandle) -> ArlStorageStatus {
-    let disk_hardening_error;
-    match disk_arl(app) {
+    let disk_hardening_error = match disk_arl(app) {
         Ok((Some(arl), hardening_error)) if !arl.trim().is_empty() => {
             if let Some(error) = hardening_error {
                 return ArlStorageStatus::none(Some(format!(
@@ -235,14 +243,14 @@ pub fn arl_storage_status(app: &tauri::AppHandle) -> ArlStorageStatus {
                 reason,
             };
         }
-        Ok((_, hardening_error)) => disk_hardening_error = hardening_error,
+        Ok((_, hardening_error)) => hardening_error,
         Err(e) => {
             return ArlStorageStatus::none(Some(format!(
                 "Cannot safely read settings.json: {}",
                 e
             )));
         }
-    }
+    };
 
     if !keyring_enabled() {
         return ArlStorageStatus::none(disk_hardening_error.or_else(|| {
@@ -383,17 +391,38 @@ fn replace_file(source: &Path, destination: &Path) -> Result<(), String> {
         .encode_wide()
         .chain(Some(0))
         .collect();
-    let result = unsafe {
-        MoveFileExW(
-            source_wide.as_ptr(),
-            destination_wide.as_ptr(),
-            MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH,
-        )
-    };
-    if result == 0 {
-        Err(std::io::Error::last_os_error().to_string())
-    } else {
-        Ok(())
+    // Antivirus scanners, backup and search indexers briefly open new files,
+    // which makes the replace fail with a sharing or access error. Retry those
+    // a few times before giving up.
+    const ERROR_ACCESS_DENIED: i32 = 5;
+    const ERROR_SHARING_VIOLATION: i32 = 32;
+    const ERROR_LOCK_VIOLATION: i32 = 33;
+    const RETRY_DELAYS_MS: [u64; 4] = [20, 50, 100, 200];
+
+    let mut attempt = 0;
+    loop {
+        let result = unsafe {
+            MoveFileExW(
+                source_wide.as_ptr(),
+                destination_wide.as_ptr(),
+                MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH,
+            )
+        };
+        if result != 0 {
+            return Ok(());
+        }
+        let error = std::io::Error::last_os_error();
+        let transient = matches!(
+            error.raw_os_error(),
+            Some(ERROR_ACCESS_DENIED | ERROR_SHARING_VIOLATION | ERROR_LOCK_VIOLATION)
+        );
+        match RETRY_DELAYS_MS.get(attempt) {
+            Some(delay) if transient => {
+                std::thread::sleep(std::time::Duration::from_millis(*delay));
+                attempt += 1;
+            }
+            _ => return Err(error.to_string()),
+        }
     }
 }
 
@@ -468,7 +497,7 @@ impl Settings {
     pub fn validate(&self) -> Result<(), String> {
         // An empty ARL is allowed so preferences can be saved before the first
         // login. Credential paths (login, Save & Login) require one themselves.
-        if !self.arl.trim().is_empty() && self.arl.trim().len() < 100 {
+        if !self.arl.trim().is_empty() && self.arl.trim().len() < MIN_ARL_LENGTH {
             return Err("ARL token appears to be invalid (too short)".to_string());
         }
 
@@ -490,13 +519,11 @@ impl Settings {
         }
 
         // Validate quality
-        let valid_qualities = ["MP3_128", "MP3_320", "FLAC"];
-        if !valid_qualities.contains(&self.quality.as_str()) {
+        if !QUALITIES.contains(&self.quality.as_str()) {
             return Err(format!("Invalid quality '{}'. Must be one of: MP3_128, MP3_320, FLAC", self.quality));
         }
 
-        let valid_spotify_qualities = ["normal", "high", "very-high", "lossless"];
-        if !valid_spotify_qualities.contains(&self.spotify_quality.as_str()) {
+        if !SPOTIFY_QUALITIES.contains(&self.spotify_quality.as_str()) {
             return Err(format!(
                 "Invalid Spotify quality '{}'. Must be one of: normal, high, very-high, lossless",
                 self.spotify_quality
@@ -521,6 +548,10 @@ impl Settings {
             ));
         }
 
+        if !is_valid_spotify_client_id(&self.spotify_client_id) {
+            return Err("Spotify Client ID must be 32 hexadecimal characters".to_string());
+        }
+
         let serialized = serde_json::to_vec(self).map_err(|e| e.to_string())?;
         if serialized.len() as u64 > MAX_SETTINGS_BYTES {
             return Err("Settings are too large to save".to_string());
@@ -529,7 +560,66 @@ impl Settings {
         Ok(())
     }
 
+    /// Brings values read from disk back into the ranges [`Settings::validate`]
+    /// accepts, so one bad value in settings.json (edited by hand, or written by
+    /// another version) can't make every later save fail. Returns the names of
+    /// the fields it changed.
+    fn normalize(&mut self) -> Vec<&'static str> {
+        let mut fixed = Vec::new();
+        if self.output_dir.trim().is_empty() {
+            self.output_dir = Self::default().output_dir;
+            fixed.push("output_dir");
+        }
+        if !QUALITIES.contains(&self.quality.as_str()) {
+            self.quality = "MP3_320".to_string();
+            fixed.push("quality");
+        }
+        if !SPOTIFY_QUALITIES.contains(&self.spotify_quality.as_str()) {
+            self.spotify_quality = default_spotify_quality();
+            fixed.push("spotify_quality");
+        }
+        if self.folder_structure == FolderStructure::Custom && self.custom_folder_template.trim().is_empty() {
+            self.custom_folder_template = default_custom_folder_template();
+            fixed.push("custom_folder_template");
+        }
+        if self.download_delay_seconds > MAX_DOWNLOAD_DELAY_SECONDS {
+            self.download_delay_seconds = MAX_DOWNLOAD_DELAY_SECONDS;
+            fixed.push("download_delay_seconds");
+        }
+        let concurrent = self.max_concurrent_downloads.clamp(1, MAX_CONCURRENT_DOWNLOADS);
+        if concurrent != self.max_concurrent_downloads {
+            self.max_concurrent_downloads = concurrent;
+            fixed.push("max_concurrent_downloads");
+        }
+        let client_id = self.spotify_client_id.trim();
+        if !is_valid_spotify_client_id(client_id) {
+            self.spotify_client_id = String::new();
+            fixed.push("spotify_client_id");
+        } else if client_id.len() != self.spotify_client_id.len() {
+            self.spotify_client_id = client_id.to_string();
+        }
+        // Too short to be real, and it would fail every save. The keyring entry
+        // itself is left alone: saves with an empty ARL never touch it.
+        if !self.arl.trim().is_empty() && self.arl.trim().len() < MIN_ARL_LENGTH {
+            self.arl = String::new();
+            fixed.push("arl");
+        }
+        fixed
+    }
+
     pub fn load(app: &tauri::AppHandle) -> Result<Self, String> {
+        let mut settings = Self::load_stored(app)?;
+        let fixed = settings.normalize();
+        if !fixed.is_empty() {
+            crate::logging::warn(
+                "settings",
+                format!("Reset invalid saved settings to valid values: {}", fixed.join(", ")),
+            );
+        }
+        Ok(settings)
+    }
+
+    fn load_stored(app: &tauri::AppHandle) -> Result<Self, String> {
         let path = Self::path(app)?;
         let mut settings: Self = if let Some(contents) = read_private(&path)? {
             parse_private_settings(contents)?
@@ -658,7 +748,10 @@ impl Settings {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_private_settings, read_private, write_private, PrivateFileContents, Settings};
+    use super::{
+        is_valid_spotify_client_id, parse_private_settings, read_private, write_private,
+        FolderStructure, PrivateFileContents, Settings,
+    };
     #[cfg(unix)]
     use std::ffi::CString;
     #[cfg(unix)]
@@ -710,6 +803,59 @@ mod tests {
         })
         .expect_err("plaintext ARL must be rejected");
         assert!(error.contains("plaintext ARL"));
+    }
+
+    #[test]
+    fn spotify_client_ids_must_be_32_hex_characters() {
+        assert!(is_valid_spotify_client_id(""));
+        assert!(is_valid_spotify_client_id("0123456789abcdef0123456789ABCDEF"));
+        for invalid in [
+            "0123456789abcdef0123456789abcde",
+            "0123456789abcdef0123456789abcdef0",
+            "0123456789abcdef0123456789abcdeg",
+            "0123456789abcdef&redirect_uri=x/",
+            " 123456789abcdef0123456789abcdef",
+        ] {
+            assert!(!is_valid_spotify_client_id(invalid), "{}", invalid);
+        }
+    }
+
+    #[test]
+    fn normalize_repairs_out_of_range_values_from_disk() {
+        let mut settings = Settings {
+            quality: "MP3_999".to_string(),
+            spotify_quality: "ultra".to_string(),
+            folder_structure: FolderStructure::Custom,
+            custom_folder_template: "  ".to_string(),
+            download_delay_seconds: 99_999,
+            max_concurrent_downloads: 0,
+            spotify_client_id: "not-a-client-id".to_string(),
+            arl: "short".to_string(),
+            ..Settings::default()
+        };
+        let fixed = settings.normalize();
+        assert_eq!(fixed.len(), 7, "{:?}", fixed);
+        assert_eq!(settings.quality, "MP3_320");
+        assert_eq!(settings.spotify_quality, "very-high");
+        assert!(!settings.custom_folder_template.trim().is_empty());
+        assert_eq!(settings.download_delay_seconds, 3600);
+        assert_eq!(settings.max_concurrent_downloads, 1);
+        assert_eq!(settings.spotify_client_id, "");
+        assert_eq!(settings.arl, "");
+
+        settings.max_concurrent_downloads = 50;
+        settings.spotify_client_id = " 0123456789abcdef0123456789abcdef ".to_string();
+        assert_eq!(settings.normalize(), vec!["max_concurrent_downloads"]);
+        assert_eq!(settings.max_concurrent_downloads, 10);
+        assert_eq!(settings.spotify_client_id, "0123456789abcdef0123456789abcdef");
+
+        // Valid settings are left exactly as they are.
+        let mut valid = Settings {
+            arl: "a".repeat(192),
+            ..Settings::default()
+        };
+        assert!(valid.normalize().is_empty());
+        assert_eq!(valid.arl.len(), 192);
     }
 
     #[test]

@@ -60,6 +60,22 @@
 
   let modalRef = $state<HTMLDivElement | undefined>(undefined);
 
+  // Bumped on every new file load and when the editor closes, so a result that
+  // arrives later (a slow read, a dialog left open) cannot fill a closed editor
+  // or replace the file the user picked since.
+  let requestGeneration = 0;
+
+  // The cover type comes from the file's own tag; only the two types the
+  // editor writes are passed through to the data: URL.
+  const COVER_MIME_TYPES = ['image/jpeg', 'image/png'];
+
+  function coverDataUrl(data?: string, mime?: string): string | null {
+    if (!data || !/^[A-Za-z0-9+/]+={0,2}$/.test(data)) return null;
+    const normalized = (mime ?? '').trim().toLowerCase();
+    const safeMime = COVER_MIME_TYPES.includes(normalized) ? normalized : 'image/jpeg';
+    return `data:${safeMime};base64,${data}`;
+  }
+
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   $effect(() => {
     if (show) {
@@ -75,6 +91,8 @@
       setTimeout(() => modalRef?.focus(), 0);
     } else {
       // Reset on close
+      requestGeneration++;
+      loading = false;
       tags = null;
       filePath = '';
       resetFields();
@@ -108,46 +126,64 @@
     newCoverPath = null;
     removeCover  = false;
 
-    if (data.cover_data && data.cover_mime) {
-      coverPreviewUrl = `data:${data.cover_mime};base64,${data.cover_data}`;
-    } else {
-      coverPreviewUrl = null;
-    }
+    coverPreviewUrl = coverDataUrl(data.cover_data, data.cover_mime);
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
   async function pickFile(): Promise<void> {
-    const picked = await invoke<string | null>('pick_audio_file');
-    if (picked) {
+    const generation = requestGeneration;
+    let picked: string | null;
+    try {
+      picked = await invoke<string | null>('pick_audio_file');
+    } catch (e) {
+      if (generation === requestGeneration) error = String(e);
+      return;
+    }
+    if (picked && generation === requestGeneration) {
       filePath = picked;
       await loadTagsFromPath(picked);
     }
   }
 
-  async function loadTagsFromPath(path: string): Promise<void> {
+  /** Returns false when the result was dropped because the editor moved on. */
+  async function loadTagsFromPath(path: string): Promise<boolean> {
+    const generation = ++requestGeneration;
     loading = true;
     error = '';
     successMsg = '';
     try {
       const data = await invoke<FileTagData>('read_file_tags', { filePath: path });
+      if (generation !== requestGeneration) return false;
       tags = data;
       populateFields(data);
     } catch (e) {
+      if (generation !== requestGeneration) return false;
       error = String(e);
       tags = null;
     } finally {
-      loading = false;
+      if (generation === requestGeneration) loading = false;
     }
+    return true;
   }
 
   async function pickCover(): Promise<void> {
-    const picked = await invoke<string | null>('pick_cover_image');
-    if (!picked) return;
+    const generation = requestGeneration;
+    let picked: string | null;
+    try {
+      picked = await invoke<string | null>('pick_cover_image');
+    } catch (e) {
+      if (generation === requestGeneration) error = String(e);
+      return;
+    }
+    if (!picked || generation !== requestGeneration) return;
     newCoverPath = picked;
     removeCover = false;
     try {
-      coverPreviewUrl = await invoke<string>('read_image_as_data_url', { filePath: picked });
+      const preview = await invoke<string>('read_image_as_data_url', { filePath: picked });
+      if (generation !== requestGeneration || newCoverPath !== picked) return;
+      coverPreviewUrl = preview;
     } catch (e) {
+      if (generation !== requestGeneration || newCoverPath !== picked) return;
       // Preview failed; keep the path but show no image.
       console.error('Cover preview failed:', e);
       coverPreviewUrl = null;
@@ -163,22 +199,20 @@
   function resetCover(): void {
     newCoverPath = null;
     removeCover = false;
-    if (tags?.cover_data && tags?.cover_mime) {
-      coverPreviewUrl = `data:${tags.cover_mime};base64,${tags.cover_data}`;
-    } else {
-      coverPreviewUrl = null;
-    }
+    coverPreviewUrl = coverDataUrl(tags?.cover_data, tags?.cover_mime);
   }
 
   async function save(): Promise<void> {
     if (!tags) return;
+    const savedPath = tags.file_path;
+    const generation = requestGeneration;
     saving = true;
     error = '';
     successMsg = '';
 
     try {
       await invoke('write_file_tags', {
-        filePath: tags.file_path,
+        filePath: savedPath,
         tags: {
           title:        title       || null,
           artist:       artist      || null,
@@ -196,11 +230,15 @@
           remove_cover:   removeCover,
         }
       });
-      successMsg = $_('tagEditor.saveSuccess');
-      // Refresh tags from disk
-      await loadTagsFromPath(tags.file_path);
+      // The editor was closed or switched to another file while saving.
+      if (generation !== requestGeneration) return;
+      // Refresh tags from disk. The reload clears messages, so the success
+      // message is set afterwards, and only if the reload is still current.
+      if (await loadTagsFromPath(savedPath) && !error) {
+        successMsg = $_('tagEditor.saveSuccess');
+      }
     } catch (e) {
-      error = String(e);
+      if (generation === requestGeneration) error = String(e);
     } finally {
       saving = false;
     }

@@ -56,47 +56,6 @@ fn legacy_api_error(data: &Value) -> Option<String> {
     )
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{collect_pages, legacy_api_error};
-    use serde_json::json;
-
-    #[test]
-    fn reads_the_legacy_error_message_by_name() {
-        let body = json!({"error": {"type": "DataException", "message": "no data", "code": 800}});
-        assert_eq!(legacy_api_error(&body).as_deref(), Some("no data"));
-        assert_eq!(legacy_api_error(&json!({"data": []})), None);
-    }
-
-    #[tokio::test]
-    async fn collects_all_pages_in_order_and_upgrades_legacy_links() {
-        let first = json!({"data": [{"id": 1}], "next": "http://api.deezer.com/playlist/1/tracks?index=1"});
-        let result = collect_pages(first, |url| async move {
-            assert_eq!(url.scheme(), "https");
-            Ok(json!({"data": [{"id": 2}, {"id": 1}]}))
-        }).await.unwrap();
-        assert_eq!(result, vec![json!({"id": 1}), json!({"id": 2}), json!({"id": 1})]);
-    }
-
-    #[tokio::test]
-    async fn rejects_pagination_cycles() {
-        let page = json!({"data": [], "next": "https://api.deezer.com/playlist/1/tracks?index=0"});
-        assert!(collect_pages(page.clone(), |_| std::future::ready(Ok(page.clone()))).await.is_err());
-    }
-
-    #[tokio::test]
-    async fn rejects_foreign_pagination_hosts_without_fetching() {
-        let page = json!({"data": [], "next": "https://example.com/tracks"});
-        assert!(collect_pages(page, |_| async { panic!("must not fetch a foreign host") }).await.is_err());
-    }
-
-    #[tokio::test]
-    async fn propagates_later_page_failures_instead_of_returning_a_partial_playlist() {
-        let page = json!({"data": [{"id": 1}], "next": "https://api.deezer.com/playlist/1/tracks?index=1"});
-        assert!(collect_pages(page, |_| async { Err("network failure".to_string()) }).await.is_err());
-    }
-}
-
 impl DeezerClient {
     async fn collect_catalog_pages(&self, page: Value) -> Result<Vec<Value>, String> {
         collect_pages(page, |url| async move {
@@ -123,7 +82,7 @@ impl DeezerClient {
             ])
             .send()
             .await
-            .map_err(|e| format!("Search failed: {}", e))?;
+            .map_err(|e| format!("Search failed: {}", e.without_url()))?;
 
         let data: Value = response_json(res)
             .await
@@ -178,7 +137,7 @@ impl DeezerClient {
             ])
             .send()
             .await
-            .map_err(|e| format!("Search failed: {}", e))?;
+            .map_err(|e| format!("Search failed: {}", e.without_url()))?;
 
         let data: Value = response_json(res)
             .await
@@ -212,7 +171,7 @@ impl DeezerClient {
         &self,
         album_id: &str,
     ) -> Result<Vec<SearchResult>, String> {
-        let tracks_url = format!("{}/album/{}/tracks", LEGACY_API_URL, album_id);
+        let tracks_url = format!("{}/album/{}/tracks", LEGACY_API_URL, deezer_id(album_id)?);
 
         // Fetch tracks and album metadata concurrently.
         let (tracks_res, album_data) = tokio::try_join!(
@@ -222,7 +181,7 @@ impl DeezerClient {
                     .query(&[("limit", "500")])
                     .send()
                     .await
-                    .map_err(|e| format!("Failed to get album tracks: {}", e))?;
+                    .map_err(|e| format!("Failed to get album tracks: {}", e.without_url()))?;
                 response_json::<Value>(response)
                     .await
                     .map_err(|e| format!("Failed to parse album tracks: {}", e))
@@ -273,7 +232,7 @@ impl DeezerClient {
             ])
             .send()
             .await
-            .map_err(|e| format!("Search failed: {}", e))?;
+            .map_err(|e| format!("Search failed: {}", e.without_url()))?;
 
         let data: Value = response_json(res)
             .await
@@ -306,7 +265,7 @@ impl DeezerClient {
         &self,
         artist_id: &str,
     ) -> Result<Vec<AlbumResult>, String> {
-        let url = format!("{}/artist/{}/albums", LEGACY_API_URL, artist_id);
+        let url = format!("{}/artist/{}/albums", LEGACY_API_URL, deezer_id(artist_id)?);
 
         let res = self
             .http
@@ -314,7 +273,7 @@ impl DeezerClient {
             .query(&[("limit", "100")])
             .send()
             .await
-            .map_err(|e| format!("Failed to get artist albums: {}", e))?;
+            .map_err(|e| format!("Failed to get artist albums: {}", e.without_url()))?;
 
         let data: Value = response_json(res)
             .await
@@ -356,7 +315,7 @@ impl DeezerClient {
             ])
             .send()
             .await
-            .map_err(|e| format!("Search failed: {}", e))?;
+            .map_err(|e| format!("Search failed: {}", e.without_url()))?;
 
         let data: Value = response_json(res)
             .await
@@ -389,14 +348,14 @@ impl DeezerClient {
         &self,
         playlist_id: &str,
     ) -> Result<Vec<SearchResult>, String> {
-        let url = format!("{}/playlist/{}", LEGACY_API_URL, playlist_id);
+        let url = format!("{}/playlist/{}", LEGACY_API_URL, deezer_id(playlist_id)?);
 
         let res = self
             .http
             .get(&url)
             .send()
             .await
-            .map_err(|e| format!("Failed to get playlist tracks: {}", e))?;
+            .map_err(|e| format!("Failed to get playlist tracks: {}", e.without_url()))?;
 
         let data: Value = response_json(res)
             .await
@@ -433,14 +392,14 @@ impl DeezerClient {
     }
 
     pub async fn get_track_by_id(&self, track_id: &str) -> Result<SearchResult, String> {
-        let url = format!("{}/track/{}", LEGACY_API_URL, track_id);
+        let url = format!("{}/track/{}", LEGACY_API_URL, deezer_id(track_id)?);
 
         let response = self
             .http
             .get(&url)
             .send()
             .await
-            .map_err(|e| format!("Failed to get track: {}", e))?;
+            .map_err(|e| format!("Failed to get track: {}", e.without_url()))?;
         let data: Value = response_json(response)
             .await
             .map_err(|e| format!("Failed to parse track: {}", e))?;
@@ -472,5 +431,46 @@ impl DeezerClient {
             cover_medium: data["album"]["cover_medium"].as_str().unwrap_or("").to_string(),
             preview: data["preview"].as_str().map(|s| s.to_string()),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{collect_pages, legacy_api_error};
+    use serde_json::json;
+
+    #[test]
+    fn reads_the_legacy_error_message_by_name() {
+        let body = json!({"error": {"type": "DataException", "message": "no data", "code": 800}});
+        assert_eq!(legacy_api_error(&body).as_deref(), Some("no data"));
+        assert_eq!(legacy_api_error(&json!({"data": []})), None);
+    }
+
+    #[tokio::test]
+    async fn collects_all_pages_in_order_and_upgrades_legacy_links() {
+        let first = json!({"data": [{"id": 1}], "next": "http://api.deezer.com/playlist/1/tracks?index=1"});
+        let result = collect_pages(first, |url| async move {
+            assert_eq!(url.scheme(), "https");
+            Ok(json!({"data": [{"id": 2}, {"id": 1}]}))
+        }).await.unwrap();
+        assert_eq!(result, vec![json!({"id": 1}), json!({"id": 2}), json!({"id": 1})]);
+    }
+
+    #[tokio::test]
+    async fn rejects_pagination_cycles() {
+        let page = json!({"data": [], "next": "https://api.deezer.com/playlist/1/tracks?index=0"});
+        assert!(collect_pages(page.clone(), |_| std::future::ready(Ok(page.clone()))).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn rejects_foreign_pagination_hosts_without_fetching() {
+        let page = json!({"data": [], "next": "https://example.com/tracks"});
+        assert!(collect_pages(page, |_| async { panic!("must not fetch a foreign host") }).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn propagates_later_page_failures_instead_of_returning_a_partial_playlist() {
+        let page = json!({"data": [{"id": 1}], "next": "https://api.deezer.com/playlist/1/tracks?index=1"});
+        assert!(collect_pages(page, |_| async { Err("network failure".to_string()) }).await.is_err());
     }
 }

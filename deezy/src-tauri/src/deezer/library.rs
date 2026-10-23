@@ -66,48 +66,6 @@ fn gw_playlist(playlist: &Value, owner_name: &str) -> Option<PlaylistResult> {
     })
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{gw_playlist, gw_track};
-    use serde_json::json;
-
-    #[test]
-    fn maps_private_api_songs_to_search_results() {
-        let song = json!({
-            "SNG_ID": "3135556", "SNG_TITLE": "Harder, Better, Faster, Stronger", "VERSION": "(Live)",
-            "ART_ID": "27", "ART_NAME": "Daft Punk", "ALB_TITLE": "Discovery", "ALB_PICTURE": "abc",
-            "DURATION": "224",
-            "MEDIA": [{"TYPE": "preview", "HREF": "https://cdns-preview-d.dzcdn.net/stream/x.mp3"}]
-        });
-        let track = gw_track(&song).unwrap();
-        assert_eq!(track.id, 3135556);
-        assert_eq!(track.title, "Harder, Better, Faster, Stronger (Live)");
-        assert_eq!(track.artist_id, 27);
-        assert_eq!(track.duration, 224);
-        assert_eq!(track.cover_small, "https://e-cdns-images.dzcdn.net/images/cover/abc/56x56-000000-80-0-0.jpg");
-        assert_eq!(track.preview.as_deref(), Some("https://cdns-preview-d.dzcdn.net/stream/x.mp3"));
-    }
-
-    #[test]
-    fn drops_user_uploaded_songs() {
-        assert!(gw_track(&json!({"SNG_ID": "-123", "SNG_TITLE": "My upload"})).is_none());
-    }
-
-    #[test]
-    fn maps_profile_playlists_and_falls_back_to_the_owner_name() {
-        let playlist = json!({
-            "PLAYLIST_ID": "908622995", "TITLE": "Road trip", "NB_SONG": 42,
-            "PLAYLIST_PICTURE": "def", "PICTURE_TYPE": "playlist"
-        });
-        let result = gw_playlist(&playlist, "Sam").unwrap();
-        assert_eq!(result.id, 908622995);
-        assert_eq!(result.creator, "Sam");
-        assert_eq!(result.nb_tracks, 42);
-        assert_eq!(result.cover_medium, "https://e-cdns-images.dzcdn.net/images/playlist/def/250x250-000000-80-0-0.jpg");
-        assert_eq!(gw_playlist(&json!({"PLAYLIST_ID": "1", "TITLE": "No cover"}), "").unwrap().cover_small, "");
-    }
-}
-
 impl DeezerClient {
     /// Tracks of any playlist the account can open, including private ones
     /// the public API refuses to return.
@@ -161,5 +119,47 @@ impl DeezerClient {
             // Loved Tracks has its own tab.
             .filter(|playlist| Some(playlist.id) != loved_tracks_id)
             .collect())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{gw_playlist, gw_track};
+    use serde_json::json;
+
+    #[test]
+    fn maps_private_api_songs_to_search_results() {
+        let song = json!({
+            "SNG_ID": "3135556", "SNG_TITLE": "Harder, Better, Faster, Stronger", "VERSION": "(Live)",
+            "ART_ID": "27", "ART_NAME": "Daft Punk", "ALB_TITLE": "Discovery", "ALB_PICTURE": "abc",
+            "DURATION": "224",
+            "MEDIA": [{"TYPE": "preview", "HREF": "https://cdns-preview-d.dzcdn.net/stream/x.mp3"}]
+        });
+        let track = gw_track(&song).unwrap();
+        assert_eq!(track.id, 3135556);
+        assert_eq!(track.title, "Harder, Better, Faster, Stronger (Live)");
+        assert_eq!(track.artist_id, 27);
+        assert_eq!(track.duration, 224);
+        assert_eq!(track.cover_small, "https://e-cdns-images.dzcdn.net/images/cover/abc/56x56-000000-80-0-0.jpg");
+        assert_eq!(track.preview.as_deref(), Some("https://cdns-preview-d.dzcdn.net/stream/x.mp3"));
+    }
+
+    #[test]
+    fn drops_user_uploaded_songs() {
+        assert!(gw_track(&json!({"SNG_ID": "-123", "SNG_TITLE": "My upload"})).is_none());
+    }
+
+    #[test]
+    fn maps_profile_playlists_and_falls_back_to_the_owner_name() {
+        let playlist = json!({
+            "PLAYLIST_ID": "908622995", "TITLE": "Road trip", "NB_SONG": 42,
+            "PLAYLIST_PICTURE": "def", "PICTURE_TYPE": "playlist"
+        });
+        let result = gw_playlist(&playlist, "Sam").unwrap();
+        assert_eq!(result.id, 908622995);
+        assert_eq!(result.creator, "Sam");
+        assert_eq!(result.nb_tracks, 42);
+        assert_eq!(result.cover_medium, "https://e-cdns-images.dzcdn.net/images/playlist/def/250x250-000000-80-0-0.jpg");
+        assert_eq!(gw_playlist(&json!({"PLAYLIST_ID": "1", "TITLE": "No cover"}), "").unwrap().cover_small, "");
     }
 }

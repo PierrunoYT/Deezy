@@ -7,10 +7,15 @@ pub async fn download_track(
     state: tauri::State<'_, AppState>,
     app: AppHandle,
 ) -> Result<DownloadResult, String> {
-    crate::logging::info("download", &format!("download_track command: {}", trackId));
+    crate::logging::info("download", format!("download_track command: {}", trackId));
     let cancel_flag = Arc::new(AtomicBool::new(false));
     {
         let mut cancellation_map = state.download_cancellations.lock().await;
+        // Checked under the map lock; see `shut_down_and_exit`.
+        if is_shutting_down() {
+            crate::logging::warn("download", "rejected: app is exiting");
+            return Err("Wavekeep is closing".to_string());
+        }
         if cancellation_map.contains_key(&trackId) {
             crate::logging::warn("download", "rejected: already downloading");
             return Err("This track is already downloading".to_string());
@@ -18,13 +23,20 @@ pub async fn download_track(
         cancellation_map.insert(trackId.clone(), cancel_flag.clone());
     }
 
-    let result = execute_download_track(&trackId, &state, &app, cancel_flag).await;
+    // The download runs in its own task. Tauri does not catch panics in async
+    // commands, so a panic here would leave the promise pending forever and
+    // the registration in place; in a task it becomes an ordinary error.
+    let task = tauri::async_runtime::spawn(run_download(trackId.clone(), app.clone(), cancel_flag));
+    let result = task.await.unwrap_or_else(|_| {
+        // The panic itself is logged by the panic hook.
+        Err("Download failed because of an internal error".to_string())
+    });
     match &result {
         Ok(r) => crate::logging::info(
             "download",
-            &format!("download_track result: {} {}", r.status, crate::logging::detail(&r.file_path)),
+            format!("download_track result: {} {}", r.status, crate::logging::detail(&r.file_path)),
         ),
-        Err(e) => crate::logging::error("download", &format!("download_track error: {}", e)),
+        Err(e) => crate::logging::error("download", format!("download_track error: {}", e)),
     }
 
     // Always remove the registration, including authentication and refresh
@@ -33,11 +45,25 @@ pub async fn download_track(
 
     if let Ok(download) = &result {
         if !download.file_path.is_empty() {
-            grant_audio_file(&state, &download.file_path).await?;
+            // The file is saved either way; without the grant only the Tag
+            // Editor cannot open it outside the download folder.
+            if let Err(e) = grant_audio_file(&state, &download.file_path).await {
+                crate::logging::warn("download", format!("Could not approve the saved file: {}", e));
+            }
         }
     }
 
     result
+}
+
+/// `execute_download_track` with owned arguments, so it can run in its own task.
+async fn run_download(
+    track_id: String,
+    app: AppHandle,
+    cancel_flag: Arc<AtomicBool>,
+) -> Result<DownloadResult, String> {
+    let state = app.state::<AppState>();
+    execute_download_track(&track_id, &state, &app, cancel_flag).await
 }
 
 async fn execute_download_track(

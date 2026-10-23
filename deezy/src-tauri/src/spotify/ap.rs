@@ -12,7 +12,7 @@ use librespot_metadata::image::Images;
 use librespot_metadata::{Album, Artist, Metadata, Playlist, Track};
 
 use super::api::{SpotifyAlbum, SpotifyArtist, SpotifyTrack};
-use super::track_key;
+use super::{track_key, validate_id};
 
 /// Refuse artist discographies that would need an unbounded number of calls.
 const MAX_ARTIST_ALBUMS: usize = 120;
@@ -26,19 +26,19 @@ fn uri(id: &str) -> Result<SpotifyUri, String> {
 }
 
 fn track_uri(id: &str) -> Result<SpotifyUri, String> {
-    uri(&format!("spotify:track:{}", id))
+    uri(&format!("spotify:track:{}", validate_id(id, "track")?))
 }
 
 fn album_uri(id: &str) -> Result<SpotifyUri, String> {
-    uri(&format!("spotify:album:{}", id))
+    uri(&format!("spotify:album:{}", validate_id(id, "album")?))
 }
 
 fn playlist_uri(id: &str) -> Result<SpotifyUri, String> {
-    uri(&format!("spotify:playlist:{}", id))
+    uri(&format!("spotify:playlist:{}", validate_id(id, "playlist")?))
 }
 
 fn artist_uri(id: &str) -> Result<SpotifyUri, String> {
-    uri(&format!("spotify:artist:{}", id))
+    uri(&format!("spotify:artist:{}", validate_id(id, "artist")?))
 }
 
 fn id_of(uri: &SpotifyUri) -> String {
@@ -48,20 +48,21 @@ fn id_of(uri: &SpotifyUri) -> String {
 fn cover_urls(images: &Images) -> (String, String) {
     let mut small = String::new();
     let mut medium = String::new();
-    let mut small_diff = i32::MAX;
-    let mut medium_diff = i32::MAX;
+    let mut small_diff = u32::MAX;
+    let mut medium_diff = u32::MAX;
 
     for image in images.iter() {
         let Ok(file_id) = image.id.to_base16() else {
             continue;
         };
         let url = format!("https://i.scdn.co/image/{}", file_id);
-        let small_distance = (image.width - 300).abs();
+        // `abs_diff` cannot overflow, even for a nonsense width such as i32::MIN.
+        let small_distance = image.width.abs_diff(300);
         if small_distance < small_diff {
             small_diff = small_distance;
             small = url.clone();
         }
-        let medium_distance = (image.width - 640).abs();
+        let medium_distance = image.width.abs_diff(640);
         if medium_distance < medium_diff {
             medium_diff = medium_distance;
             medium = url;

@@ -41,9 +41,20 @@ impl BandwidthLimiter {
         while !cancel_flag.load(Ordering::Relaxed) {
             let now = Instant::now();
             if now >= due {
-                break;
+                return;
             }
             tokio::time::sleep((due - now).min(MAX_SLEEP_STEP)).await;
+        }
+
+        // Cancelled: give back the part of this booking that has not elapsed
+        // yet, so other downloads are not slowed by bytes nobody will write.
+        let now = Instant::now();
+        if due > now {
+            let refund = (due - now).min(cost);
+            let mut next_slot = self.next_slot.lock().await;
+            if let Some(earlier) = next_slot.checked_sub(refund) {
+                *next_slot = earlier.max(now);
+            }
         }
     }
 }
@@ -85,5 +96,15 @@ mod tests {
         let started = Instant::now();
         limiter.acquire(1_000_000, 8, &AtomicBool::new(true)).await;
         assert!(started.elapsed() < Duration::from_millis(50));
+    }
+
+    #[tokio::test]
+    async fn a_cancelled_booking_is_given_back() {
+        // 1,000,000 bytes at 1000 bytes per second would book 1000 s.
+        let limiter = BandwidthLimiter::new();
+        limiter.acquire(1_000_000, 8, &AtomicBool::new(true)).await;
+        let started = Instant::now();
+        limiter.acquire(100, 8, &AtomicBool::new(false)).await;
+        assert!(started.elapsed() < Duration::from_secs(2));
     }
 }

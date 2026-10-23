@@ -2,6 +2,7 @@
   import { invoke } from '@tauri-apps/api/core';
   import { onMount } from 'svelte';
   import { theme, type AppSettings } from '$lib/stores';
+  import { isSafeThemeColor } from '$lib/themeColors';
   
   interface ThemeColors {
     'bg-darkest': string;
@@ -100,8 +101,14 @@
 
   function applyThemeColors(colors: ThemeColors): void {
     const root = document.documentElement;
-    Object.entries(colors).forEach(([key, value]) => {
-      root.style.setProperty(`--${key}`, value);
+    clearThemeColors();
+    CSS_VARIABLES.forEach(variable => {
+      const value = colors[variable.slice(2) as keyof ThemeColors];
+      if (isSafeThemeColor(value)) {
+        root.style.setProperty(variable, value);
+      } else if (value) {
+        console.warn(`Ignored invalid custom theme color for ${variable}`);
+      }
     });
     root.classList.remove('light');
   }
@@ -335,7 +342,7 @@
               {/if}
               <div class="color-preview" role="img" aria-label="Theme color palette">
                 {#each getColorPreview(themeData.colors) as color, index (color + index)}
-                  <div class="color-swatch" style="background-color: {color}" title={color}></div>
+                  <div class="color-swatch" style:background-color={isSafeThemeColor(color) ? color : null} title={color}></div>
                 {/each}
               </div>
             {/if}

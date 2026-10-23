@@ -85,12 +85,17 @@ impl DeezerClient {
         for q in fallback_qualities(quality) {
             let qc = get_quality_code(q);
             let url = crypto::encrypt_download_url(md5_origin, qc, &sng_id, media_version)?;
-            let res = self
-                .http
-                .get(&url)
-                .send()
-                .await
-                .map_err(|e| e.without_url().to_string())?;
+            // A failed probe only rules out this quality; try the next one.
+            let res = match self.http.get(&url).send().await {
+                Ok(res) => res,
+                Err(e) => {
+                    crate::logging::warn(
+                        "deezer",
+                        format!("Legacy URL probe for {} failed: {}", q, e.without_url()),
+                    );
+                    continue;
+                }
+            };
 
             if res.status().is_success() {
                 if let Some(len) = res.content_length() {
@@ -110,13 +115,13 @@ impl DeezerClient {
     }
 
     pub async fn get_album(&self, album_id: &str) -> Result<Value, String> {
-        let url = format!("{}/album/{}", LEGACY_API_URL, album_id);
+        let url = format!("{}/album/{}", LEGACY_API_URL, deezer_id(album_id)?);
         let res = self
             .http
             .get(&url)
             .send()
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| e.without_url().to_string())?;
 
         response_json(res).await
     }
@@ -126,11 +131,15 @@ impl DeezerClient {
         // an unexpectedly large response from exhausting memory.
         const MAX_COVER_BYTES: usize = 10 * 1024 * 1024;
 
+        // Cover IDs are hex hashes; anything else must not shape the URL path.
+        if cover_id.is_empty() || cover_id.len() > 64 || !cover_id.bytes().all(|b| b.is_ascii_alphanumeric()) {
+            return Err("Invalid cover ID".to_string());
+        }
         let url = format!(
             "https://e-cdns-images.dzcdn.net/images/cover/{}/{}x{}.jpg",
             cover_id, size, size
         );
-        let res = self.http.get(&url).send().await.map_err(|e| e.to_string())?;
+        let res = self.http.get(&url).send().await.map_err(|e| e.without_url().to_string())?;
 
         response_bytes(res, MAX_COVER_BYTES, "Cover image").await
     }

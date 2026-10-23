@@ -1,17 +1,14 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window",
+  "description": "Capability for the main window. Only what the frontend calls: event listen/unlisten (listen() in +layout.svelte and tray.ts), window hide (Ctrl+H minimise to tray in +page.svelte) and the notification calls behind isPermissionGranted, requestPermission and sendNotification (notifications.ts). Tray, dialogs and window show/close run from Rust and need no permission here.",
   "windows": ["main"],
   "permissions": [
-    "core:default",
-    "core:window:allow-show",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
     "core:window:allow-hide",
-    "core:window:allow-close",
-    "core:window:allow-set-skip-taskbar",
-    "core:tray:default",
-    "dialog:default",
-    "notification:default",
-    "process:allow-restart"
+    "notification:allow-is-permission-granted",
+    "notification:allow-request-permission",
+    "notification:allow-notify"
   ]
 }

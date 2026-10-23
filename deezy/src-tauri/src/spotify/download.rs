@@ -1,7 +1,9 @@
 use std::io::Read;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 
+use futures::StreamExt;
 use librespot_audio::{AudioDecrypt, AudioFile};
 use librespot_core::{FileId, SpotifyId};
 use librespot_metadata::audio::file::{AudioFileFormat, AudioFiles};
@@ -22,6 +24,7 @@ const READ_CHUNK: usize = 128 * 1024;
 /// Ask librespot to fetch well ahead of playback speed; we are not playing.
 const FETCH_RATE: usize = 10 * 1024 * 1024;
 const MAX_COVER_BYTES: usize = 20 * 1024 * 1024;
+const COVER_TIMEOUT: Duration = Duration::from_secs(30);
 /// Length of the header Spotify puts in front of the audio (librespot's
 /// `SPOTIFY_OGG_HEADER_END`).
 const SPOTIFY_HEADER_LEN: usize = 0xa7;
@@ -43,33 +46,33 @@ pub async fn download_track(
     cancel_flag: Arc<AtomicBool>,
 ) -> Result<DownloadResult, String> {
     let id = bare_track_id(track_key);
-    crate::logging::info("spotify", &format!("download start: {}", track_key));
+    crate::logging::info("spotify", format!("download start: {}", track_key));
     // One AP request gives both the catalog metadata and the file IDs; the AP
     // session also holds the AES key librespot uses to decrypt the stream.
     let (track, ap_track) = super::ap::track_with_files(&client.session, id)
         .await
         .map_err(|e| {
-            crate::logging::warn("spotify", &format!("track metadata failed: {}", e));
+            crate::logging::warn("spotify", format!("track metadata failed: {}", e));
             e
         })?;
     crate::logging::debug(
         "spotify",
-        &format!("track metadata ok: {}", crate::logging::detail(format!("{} - {}", track.artist, track.title))),
+        format!("track metadata ok: {}", crate::logging::detail(format!("{} - {}", track.artist, track.title))),
     );
 
     emit_progress(app, track_key, &track.title, 0.0, "resolving");
 
-    crate::logging::debug("spotify", &format!(
+    crate::logging::debug("spotify", format!(
         "available formats: {:?}",
-        ap_track.files.iter().map(|(f, _)| *f).collect::<Vec<_>>()
+        ap_track.files.keys().copied().collect::<Vec<_>>()
     ));
 
     let (file_id, ext, actual_quality) =
         select_file(&ap_track.files, quality).map_err(|e| {
-            crate::logging::warn("spotify", &format!("select_file failed: {}", e));
+            crate::logging::warn("spotify", format!("select_file failed: {}", e));
             e
         })?;
-    crate::logging::debug("spotify", &format!("selected {} ({}) for quality '{}'", actual_quality, ext, quality));
+    crate::logging::debug("spotify", format!("selected {} ({}) for quality '{}'", actual_quality, ext, quality));
 
     let path_meta = TrackPathMeta {
         artist: track.artist.clone(),
@@ -132,21 +135,24 @@ pub async fn download_track(
         .request(spotify_id, file_id)
         .await
         .map_err(|e| {
-            crate::logging::warn("spotify", &format!("audio key request failed: {:?}", e));
+            crate::logging::warn("spotify", format!("audio key request failed: {:?}", e));
             format!("Spotify audio key failed: {}", e)
         })?;
     crate::logging::debug("spotify", "audio key received");
 
-    let (temp_path, mut file) = create_temp_download_file(&download_path, track_key).await?;
+    // The guard removes the temp file on any early return or panic until the
+    // file is published.
+    let (mut temp_guard, mut file) = create_temp_download_file(&download_path, track_key).await?;
+    let temp_path = temp_guard.path().to_path_buf();
     crate::logging::debug(
         "spotify",
-        &format!("opening audio file, temp: {}", crate::logging::detail(temp_path.display())),
+        format!("opening audio file, temp: {}", crate::logging::detail(temp_path.display())),
     );
 
     let encrypted = match AudioFile::open(&client.session, file_id, FETCH_RATE).await {
         Ok(audio) => audio,
         Err(e) => {
-            crate::logging::warn("spotify", &format!("AudioFile::open failed: {:?}", e));
+            crate::logging::warn("spotify", format!("AudioFile::open failed: {:?}", e));
             drop(file);
             cleanup_temp_file_async(&temp_path).await;
             return Err(format!("Spotify audio fetch failed: {}", e));
@@ -157,7 +163,7 @@ pub async fn download_track(
         .get_stream_loader_controller()
         .map(|controller| controller.len() as u64)
         .unwrap_or(0);
-    crate::logging::debug("spotify", &format!("audio opened, total size: {} bytes", total_size));
+    crate::logging::debug("spotify", format!("audio opened, total size: {} bytes", total_size));
     let mut audio = AudioDecrypt::new(Some(audio_key), encrypted);
 
     let mut buffer = vec![0u8; READ_CHUNK];
@@ -166,19 +172,35 @@ pub async fn download_track(
     // Spotify prepends a short non-standard header to the decrypted stream
     // (librespot skips the same number of bytes before decoding). Read enough
     // to find where the real audio starts, then write from there.
-    let mut head = vec![0u8; SPOTIFY_HEADER_LEN + 4];
+    // Eight bytes past the header are enough to recognise every format,
+    // including MP4's "ftyp" at offset 4.
+    let mut head = vec![0u8; SPOTIFY_HEADER_LEN + 8];
     if let Err(e) = tokio::task::block_in_place(|| audio.read_exact(&mut head)) {
-        crate::logging::warn("spotify", &format!("stream header read failed: {:?}", e));
+        crate::logging::warn("spotify", format!("stream header read failed: {:?}", e));
         drop(file);
         cleanup_temp_file_async(&temp_path).await;
         return Err(format!("Spotify stream read failed: {}", e));
     }
     let start = audio_start(&head, ext);
-    crate::logging::debug("spotify", &format!(
+    crate::logging::debug("spotify", format!(
         "decrypted head: {:02x?}, audio starts at byte {}",
         &head[..8],
         start
     ));
+    // A wrong key or an unexpected container would otherwise be saved and
+    // reported as a finished download.
+    if !looks_like(ext, &head[start..]) {
+        crate::logging::warn(
+            "spotify",
+            format!("decrypted stream is not {} audio ({})", ext, actual_quality),
+        );
+        drop(file);
+        cleanup_temp_file_async(&temp_path).await;
+        return Err(format!(
+            "Spotify stream is not valid {} audio; the file could not be decrypted",
+            ext.trim_start_matches('.')
+        ));
+    }
     if let Err(e) = file.write_all(&head[start..]).await {
         drop(file);
         cleanup_temp_file_async(&temp_path).await;
@@ -199,7 +221,7 @@ pub async fn download_track(
             Ok(0) => break,
             Ok(read) => read,
             Err(e) => {
-                crate::logging::warn("spotify", &format!("stream read failed after {} bytes: {:?}", downloaded, e));
+                crate::logging::warn("spotify", format!("stream read failed after {} bytes: {:?}", downloaded, e));
                 drop(file);
                 cleanup_temp_file_async(&temp_path).await;
                 return Err(format!("Spotify stream read failed: {}", e));
@@ -241,18 +263,20 @@ pub async fn download_track(
         return Err("Spotify returned no audio".to_string());
     }
 
-    crate::logging::info("spotify", &format!("stream complete: {} bytes, tagging", downloaded));
+    crate::logging::info("spotify", format!("stream complete: {} bytes, tagging", downloaded));
     emit_progress(app, track_key, &track.title, 92.0, "tagging");
 
     let cover = fetch_cover(client, &track.cover_medium).await;
     let tag_path = temp_path.clone();
     let tag_track = track.clone();
     let tag_ext = ext.to_string();
+    // A panicking tagger (lofty on malformed audio) is a tag failure like any
+    // other: the audio is intact.
     let tag_result = tokio::task::spawn_blocking(move || {
         tags::write_tags(&tag_path, &tag_track, cover, &tag_ext)
     })
     .await
-    .map_err(|e| format!("Tagging task failed: {}", e))?;
+    .unwrap_or_else(|e| Err(format!("Tagging task failed: {}", e)));
 
     if let Err(e) = tag_result {
         // Tagging is non-fatal, exactly like the Deezer engine.
@@ -278,7 +302,7 @@ pub async fn download_track(
     let finalize_stem = base_stem.clone();
     let finalize_ext = ext.to_string();
     let finalize_cancel = cancel_flag.clone();
-    let finalized = tokio::task::spawn_blocking(move || {
+    let finalized = match tokio::task::spawn_blocking(move || {
         finalize_download_file(
             &finalize_temp,
             &preferred_path,
@@ -289,7 +313,10 @@ pub async fn download_track(
         )
     })
     .await
-    .map_err(|e| format!("File finalization task failed: {}", e))?;
+    {
+        Ok(result) => result,
+        Err(e) => Err(format!("File finalization task failed: {}", e)),
+    };
 
     let download_path = match finalized {
         Ok(path) => path,
@@ -298,10 +325,11 @@ pub async fn download_track(
             return Err(e);
         }
     };
+    temp_guard.disarm();
 
     crate::logging::info(
         "spotify",
-        &format!("download complete: {}", crate::logging::detail(download_path.display())),
+        format!("download complete: {}", crate::logging::detail(download_path.display())),
     );
     emit_progress(app, track_key, &track.title, 100.0, "complete");
 
@@ -320,6 +348,19 @@ fn is_audio_magic(bytes: &[u8]) -> bool {
         || bytes.starts_with(b"ID3")
         || (bytes.len() >= 2 && bytes[0] == 0xff && bytes[1] & 0xe0 == 0xe0)
         || (bytes.len() >= 8 && &bytes[4..8] == b"ftyp")
+}
+
+/// Whether `bytes` begins like audio of the container `ext` names.
+fn looks_like(ext: &str, bytes: &[u8]) -> bool {
+    match ext {
+        ".ogg" => bytes.starts_with(b"OggS"),
+        ".flac" => bytes.starts_with(b"fLaC"),
+        ".mp3" => {
+            bytes.starts_with(b"ID3") || (bytes.len() >= 2 && bytes[0] == 0xff && bytes[1] & 0xe0 == 0xe0)
+        }
+        ".m4a" => bytes.len() >= 8 && &bytes[4..8] == b"ftyp",
+        _ => false,
+    }
 }
 
 /// Where the real audio begins in `head` (the first bytes of the decrypted
@@ -413,29 +454,39 @@ fn format_order(quality: &str) -> &'static [AudioFileFormat] {
     }
 }
 
+/// Formats tried, in this order, when none of the quality setting's own
+/// formats exist. Each one can be named and tagged. `MP3_160_ENC` (an extra
+/// encryption layer) and `OTHER5` (unknown) are never selected.
+const FALLBACK_FORMATS: [AudioFileFormat; 11] = [
+    AudioFileFormat::MP3_256,
+    AudioFileFormat::AAC_320,
+    AudioFileFormat::AAC_160,
+    AudioFileFormat::MP4_128,
+    AudioFileFormat::AAC_48,
+    AudioFileFormat::AAC_24,
+    AudioFileFormat::FLAC_FLAC,
+    AudioFileFormat::FLAC_FLAC_24BIT,
+    AudioFileFormat::XHE_AAC_24,
+    AudioFileFormat::XHE_AAC_16,
+    AudioFileFormat::XHE_AAC_12,
+];
+
 /// Picks the best delivered format for the requested quality and maps it to a
-/// container extension and a label the UI can show.
+/// container extension and a label the UI can show. The choice never depends
+/// on `AudioFiles`' (hash map) iteration order.
 fn select_file(
     files: &AudioFiles,
     quality: &str,
 ) -> Result<(FileId, &'static str, String), String> {
-    for format in format_order(quality) {
-        if let Some(file_id) = files.get(format) {
-            return Ok((file_id.clone(), extension_for(*format), label_for(*format)));
-        }
-    }
-
-    files
+    format_order(quality)
         .iter()
-        .next()
-        .map(|(format, file_id)| {
-            (
-                file_id.clone(),
-                extension_for(*format),
-                label_for(*format),
-            )
+        .chain(FALLBACK_FORMATS.iter())
+        .find_map(|format| {
+            files
+                .get(format)
+                .map(|file_id| (*file_id, extension_for(*format), label_for(*format)))
         })
-        .ok_or_else(|| "Spotify has no playable file for this track".to_string())
+        .ok_or_else(|| "Spotify has no supported file for this track".to_string())
 }
 
 fn extension_for(format: AudioFileFormat) -> &'static str {
@@ -464,7 +515,14 @@ async fn fetch_cover(client: &SpotifyClient, url: &str) -> Option<Vec<u8>> {
         return None;
     }
 
-    let response = client.http.get(url).send().await.ok()?;
+    // Bounded, so a stalled server cannot hold the download at "tagging".
+    let response = client
+        .http
+        .get(url)
+        .timeout(COVER_TIMEOUT)
+        .send()
+        .await
+        .ok()?;
     if !response.status().is_success() {
         return None;
     }
@@ -475,12 +533,18 @@ async fn fetch_cover(client: &SpotifyClient, url: &str) -> Option<Vec<u8>> {
         return None;
     }
 
-    let bytes = response.bytes().await.ok()?;
-    if bytes.is_empty() || bytes.len() > MAX_COVER_BYTES {
-        None
-    } else {
-        Some(bytes.to_vec())
+    // Read in chunks and stop at the cap: a body without a Content-Length
+    // could otherwise be any size.
+    let mut bytes = Vec::new();
+    let mut stream = response.bytes_stream();
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk.ok()?;
+        if chunk.len() > MAX_COVER_BYTES.saturating_sub(bytes.len()) {
+            return None;
+        }
+        bytes.extend_from_slice(&chunk);
     }
+    (!bytes.is_empty()).then_some(bytes)
 }
 
 fn emit_progress(
@@ -525,7 +589,7 @@ mod tests {
 
     #[test]
     fn unrecognised_ogg_falls_back_to_the_header_length() {
-        assert_eq!(audio_start(&vec![0x11u8; SPOTIFY_HEADER_LEN + 4], ".ogg"), SPOTIFY_HEADER_LEN);
+        assert_eq!(audio_start(&[0x11u8; SPOTIFY_HEADER_LEN + 4], ".ogg"), SPOTIFY_HEADER_LEN);
     }
 
     #[test]
@@ -535,7 +599,7 @@ mod tests {
         let mut head = vec![0x11u8; SPOTIFY_HEADER_LEN + 4];
         head[SPOTIFY_HEADER_LEN..].copy_from_slice(b"fLaC");
         assert_eq!(audio_start(&head, ".flac"), SPOTIFY_HEADER_LEN);
-        assert_eq!(audio_start(&vec![0x11u8; SPOTIFY_HEADER_LEN + 4], ".m4a"), 0);
+        assert_eq!(audio_start(&[0x11u8; SPOTIFY_HEADER_LEN + 4], ".m4a"), 0);
     }
 
     #[test]
@@ -547,6 +611,62 @@ mod tests {
         assert!(matches!(format_order("lossless")[0], FLAC_FLAC_24BIT));
         // Unknown values behave like the default (very-high).
         assert!(matches!(format_order("anything")[0], OGG_VORBIS_320));
+    }
+
+    fn files(formats: &[AudioFileFormat]) -> AudioFiles {
+        AudioFiles(
+            formats
+                .iter()
+                .enumerate()
+                .map(|(i, format)| (*format, FileId([i as u8; 20])))
+                .collect(),
+        )
+    }
+
+    #[test]
+    fn select_file_falls_back_in_a_fixed_order() {
+        use AudioFileFormat::*;
+        let available = files(&[OTHER5, AAC_24, FLAC_FLAC, MP3_256, MP3_160_ENC]);
+        // Run several times: a hash map's order would make this flaky.
+        for _ in 0..20 {
+            let (file_id, ext, label) = select_file(&available, "very-high").unwrap();
+            assert_eq!(file_id, available[&MP3_256]);
+            assert_eq!(ext, ".mp3");
+            assert!(!label.is_empty());
+        }
+
+        let (_, ext, _) = select_file(&files(&[AAC_24, FLAC_FLAC]), "normal").unwrap();
+        assert_eq!(ext, ".m4a");
+        let (_, ext, _) = select_file(&files(&[MP3_96, FLAC_FLAC]), "lossless").unwrap();
+        assert_eq!(ext, ".flac");
+        let (_, ext, _) = select_file(&files(&[MP3_96, FLAC_FLAC]), "high").unwrap();
+        assert_eq!(ext, ".mp3");
+    }
+
+    #[test]
+    fn select_file_refuses_formats_it_cannot_handle() {
+        use AudioFileFormat::*;
+        assert!(select_file(&files(&[OTHER5, MP3_160_ENC]), "very-high").is_err());
+        assert!(select_file(&files(&[]), "very-high").is_err());
+    }
+
+    #[test]
+    fn decrypted_audio_must_match_the_extension() {
+        assert!(looks_like(".ogg", b"OggS\x00\x02\x00\x00"));
+        assert!(looks_like(".flac", b"fLaC\x00\x00\x00\x22"));
+        assert!(looks_like(".mp3", b"ID3\x04\x00\x00\x00\x00"));
+        assert!(looks_like(".mp3", &[0xff, 0xfb, 0x90, 0x00]));
+        assert!(looks_like(".m4a", b"\x00\x00\x00\x20ftypM4A "));
+
+        assert!(!looks_like(".ogg", b"fLaC\x00\x00\x00\x22"));
+        assert!(!looks_like(".m4a", b"\x00\x00\x00\x20"));
+        assert!(!looks_like(".flac", &[0x1a, 0xec, 0xe8, 0x3b]));
+        assert!(!looks_like(".wav", b"RIFF\x00\x00\x00\x00"));
+
+        // An undecryptable OGG falls back to the header offset, which then fails the check.
+        let garbage = [0x11u8; SPOTIFY_HEADER_LEN + 8];
+        let start = audio_start(&garbage, ".ogg");
+        assert!(!looks_like(".ogg", &garbage[start..]));
     }
 
     #[test]

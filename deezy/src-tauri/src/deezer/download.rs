@@ -24,6 +24,7 @@ const MAX_TRACK_DOWNLOAD_BYTES: u64 = 1024 * 1024 * 1024; // 1 GiB safety cap
 /// since the delivered quality can differ from the requested one.
 const AUDIO_EXTENSIONS: [&str; 2] = [".mp3", ".flac"];
 
+#[allow(clippy::too_many_arguments)]
 pub async fn download_track(
     client: &DeezerClient,
     track_id: &str,
@@ -98,7 +99,7 @@ pub async fn download_track(
         .await?;
 
     let ext = get_quality_ext(&actual_quality);
-    let bf_key = crypto::get_blowfish_key(&sng_id);
+    let bf_key = crypto::get_blowfish_key(&sng_id)?;
 
     let download_path = build_download_path(
         output_dir,
@@ -157,13 +158,18 @@ pub async fn download_track(
     // Atomically reserve a unique temporary file. Different tracks can resolve
     // to the same display filename, so deriving the temp path only from the
     // destination would let concurrent downloads truncate each other's data.
-    let (temp_download_path, file) = create_temp_download_file(&download_path, track_id).await?;
+    // The guard removes the temp file on any early return or panic until the
+    // file is published.
+    let (mut temp_guard, file) = create_temp_download_file(&download_path, track_id).await?;
+    let temp_download_path = temp_guard.path().to_path_buf();
     let mut file = tokio::io::BufWriter::new(file);
     let mut stream = response.bytes_stream();
     let mut buffer: Vec<u8> = Vec::new();
     let mut chunk_index = 0u64;
     let mut downloaded = 0u64;
     let mut received = 0u64;
+    // One event per whole percent instead of one per 2 KiB chunk.
+    let mut last_percent = 5u32;
 
     while let Some(item) = stream.next().await {
         if cancel_flag.load(Ordering::Relaxed) {
@@ -182,7 +188,7 @@ pub async fn download_track(
             Err(e) => {
                 drop(file);
                 cleanup_temp_file_async(&temp_download_path).await;
-                return Err(format!("Stream error: {}", e));
+                return Err(format!("Stream error: {}", e.without_url()));
             }
         };
         received = received.saturating_add(bytes.len() as u64);
@@ -242,7 +248,11 @@ pub async fn download_track(
 
             if total_size > 0 {
                 let percent = 5.0 + ((downloaded as f64 / total_size as f64) * 85.0).min(85.0);
-                emit_progress(app, track_id, &full_title, percent, "downloading");
+                let whole_percent = percent as u32;
+                if whole_percent != last_percent {
+                    last_percent = whole_percent;
+                    emit_progress(app, track_id, &full_title, percent, "downloading");
+                }
             }
         }
     }
@@ -350,6 +360,7 @@ pub async fn download_track(
             return Err(e);
         }
     };
+    temp_guard.disarm();
 
     // Publication is the commit point. Cancellation after this point is too
     // late and must not remove a valid completed file.
@@ -382,12 +393,8 @@ async fn write_mp3_tags(
         tag.set_album_artist(album_artist);
     }
 
-    if let Some(date) = track_data["PHYSICAL_RELEASE_DATE"].as_str() {
-        if date.len() >= 4 {
-            if let Ok(year) = date[..4].parse::<i32>() {
-                tag.set_year(year);
-            }
-        }
+    if let Some(year) = release_year(track_data).and_then(|year| year.parse::<i32>().ok()) {
+        tag.set_year(year);
     }
 
     if let Some(n) = parse_u32_from_value(&track_data["TRACK_NUMBER"]) {
@@ -473,10 +480,8 @@ async fn write_flac_tags(
         tag.set_vorbis("ALBUMARTIST", vec![album_artist]);
     }
 
-    if let Some(date) = track_data["PHYSICAL_RELEASE_DATE"].as_str() {
-        if date.len() >= 4 {
-            tag.set_vorbis("DATE", vec![&date[..4]]);
-        }
+    if let Some(year) = release_year(track_data) {
+        tag.set_vorbis("DATE", vec![year]);
     }
 
     if let Some(n) = parse_u32_from_value(&track_data["TRACK_NUMBER"]) {
@@ -549,10 +554,32 @@ fn emit_progress(
     );
 }
 
+/// The first four bytes of `PHYSICAL_RELEASE_DATE`, or `None` when the date is
+/// shorter or byte 4 falls inside a multibyte character (slicing would panic).
+fn release_year(track_data: &Value) -> Option<&str> {
+    track_data["PHYSICAL_RELEASE_DATE"].as_str()?.get(..4)
+}
+
 fn extract_val(val: &Value) -> String {
     val.as_str()
         .map(|s| s.to_string())
         .or_else(|| val.as_u64().map(|n| n.to_string()))
         .or_else(|| val.as_i64().map(|n| n.to_string()))
         .unwrap_or_default()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::release_year;
+    use serde_json::json;
+
+    #[test]
+    fn release_year_never_splits_a_character() {
+        let year = |date: &str| release_year(&json!({ "PHYSICAL_RELEASE_DATE": date })).map(str::to_string);
+        assert_eq!(year("2024-05-17"), Some("2024".to_string()));
+        assert_eq!(year("2éé0"), None);
+        assert_eq!(year("未定日期"), None);
+        assert_eq!(year("202"), None);
+        assert_eq!(release_year(&json!({})), None);
+    }
 }

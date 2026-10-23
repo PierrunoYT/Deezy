@@ -1,5 +1,16 @@
 use super::*;
 
+/// The ARL as it goes into the cookie. Real ones are 192 hex characters; any
+/// letters and digits are accepted, but nothing that could end the cookie
+/// value (`;`, spaces) and add attributes of its own.
+fn cookie_arl(arl: &str) -> Result<&str, String> {
+    let arl = arl.trim();
+    if arl.is_empty() || arl.len() > 1024 || !arl.bytes().all(|b| b.is_ascii_alphanumeric()) {
+        return Err("Invalid ARL token".to_string());
+    }
+    Ok(arl)
+}
+
 impl DeezerClient {
     pub async fn new(arl: &str) -> Result<Self, String> {
         let mut headers = HeaderMap::new();
@@ -16,7 +27,7 @@ impl DeezerClient {
 
         let jar = Arc::new(Jar::default());
         let deezer_url = "https://www.deezer.com".parse().unwrap();
-        jar.add_cookie_str(&format!("arl={}; Domain=.deezer.com; Path=/", arl), &deezer_url);
+        jar.add_cookie_str(&format!("arl={}; Domain=.deezer.com; Path=/", cookie_arl(arl)?), &deezer_url);
 
         let http = reqwest::Client::builder()
             .default_headers(headers)
@@ -132,5 +143,21 @@ impl DeezerClient {
         });
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::cookie_arl;
+
+    #[test]
+    fn arl_cannot_add_cookie_attributes() {
+        let arl = "0a".repeat(96);
+        assert_eq!(cookie_arl(&arl), Ok(arl.as_str()));
+        assert_eq!(cookie_arl(&format!(" {}\n", arl)), Ok(arl.as_str()));
+        for invalid in ["", "   ", "abc; Domain=evil.example", "abc def", "abc\r\nX: y", "äbc"] {
+            assert!(cookie_arl(invalid).is_err(), "{:?}", invalid);
+        }
+        assert!(cookie_arl(&"a".repeat(1025)).is_err());
     }
 }

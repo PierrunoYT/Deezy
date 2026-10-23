@@ -77,15 +77,52 @@ impl CustomTheme {
             if value.trim().is_empty() {
                 return Err(format!("Color '{}' cannot be empty", name));
             }
-            // Basic validation - should start with # or rgb or rgba or hsl or hsla
-            let v = value.trim().to_lowercase();
-            if !v.starts_with('#') && !v.starts_with("rgb") && !v.starts_with("hsl") {
+            if !is_css_color(value) {
                 return Err(format!("Color '{}' has invalid format: {}", name, value));
             }
         }
 
         Ok(())
     }
+}
+
+/// Accepts only plain colour values: `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`,
+/// or `rgb()`, `rgba()`, `hsl()`, `hsla()` with 3 or 4 numeric arguments.
+/// The values end up in CSS custom properties and inline styles, so anything
+/// else (`;`, `url(`, nested functions) could restyle or overlay the window.
+fn is_css_color(value: &str) -> bool {
+    let value = value.trim().to_ascii_lowercase();
+    if let Some(hex) = value.strip_prefix('#') {
+        return matches!(hex.len(), 3 | 4 | 6 | 8) && hex.bytes().all(|b| b.is_ascii_hexdigit());
+    }
+
+    let Some((function, rest)) = value.split_once('(') else {
+        return false;
+    };
+    if !matches!(function, "rgb" | "rgba" | "hsl" | "hsla") {
+        return false;
+    }
+    let Some(arguments) = rest.strip_suffix(')') else {
+        return false;
+    };
+    // Both syntaxes: "rgba(1, 2, 3, 0.5)" and "rgb(1 2 3 / 50%)".
+    let arguments: Vec<&str> = arguments
+        .split([',', '/', ' '])
+        .filter(|argument| !argument.is_empty())
+        .collect();
+    (3..=4).contains(&arguments.len()) && arguments.iter().all(|argument| is_css_number(argument))
+}
+
+/// A number with an optional sign and an optional `%` or `deg` unit.
+fn is_css_number(token: &str) -> bool {
+    let number = token
+        .strip_suffix('%')
+        .or_else(|| token.strip_suffix("deg"))
+        .unwrap_or(token);
+    let digits = number.strip_prefix(['+', '-']).unwrap_or(number);
+    digits.bytes().any(|b| b.is_ascii_digit())
+        && digits.bytes().all(|b| b.is_ascii_digit() || b == b'.')
+        && digits.bytes().filter(|&b| b == b'.').count() <= 1
 }
 
 pub fn themes_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -129,10 +166,19 @@ fn sanitize_theme_name(name: &str) -> Result<String, String> {
     {
         return Err("Theme name contains invalid characters".to_string());
     }
-    let is_device_name = matches!(sanitized.as_str(), "con" | "prn" | "aux" | "nul")
-        || ((sanitized.starts_with("com") || sanitized.starts_with("lpt"))
-            && sanitized.len() == 4
-            && sanitized.as_bytes()[3].is_ascii_digit());
+    // Windows device names, including the superscript-digit ports (COM¹)
+    // that paths.rs also refuses.
+    let device_number = |prefix: &str| {
+        sanitized.strip_prefix(prefix).is_some_and(|suffix| {
+            let mut chars = suffix.chars();
+            matches!((chars.next(), chars.next()), (Some('0'..='9' | '¹' | '²' | '³'), None))
+        })
+    };
+    let is_device_name = matches!(
+        sanitized.as_str(),
+        "con" | "prn" | "aux" | "nul" | "conin$" | "conout$" | "clock$"
+    ) || device_number("com")
+        || device_number("lpt");
     if is_device_name {
         return Err("Theme name is reserved by the operating system".to_string());
     }
@@ -166,6 +212,8 @@ pub fn save_custom_theme(app: &tauri::AppHandle, theme: &CustomTheme) -> Result<
 }
 
 pub fn read_theme_file(path: &std::path::Path) -> Result<CustomTheme, String> {
+    use std::io::Read;
+
     let metadata = std::fs::metadata(path).map_err(|e| e.to_string())?;
     if !metadata.is_file() {
         return Err("Theme path is not a file".to_string());
@@ -174,7 +222,15 @@ pub fn read_theme_file(path: &std::path::Path) -> Result<CustomTheme, String> {
         return Err("Theme file is too large".to_string());
     }
 
-    let data = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
+    // The file can grow after the size check; cap what is actually read.
+    let file = std::fs::File::open(path).map_err(|e| e.to_string())?;
+    let mut data = String::new();
+    file.take(MAX_THEME_BYTES + 1)
+        .read_to_string(&mut data)
+        .map_err(|e| e.to_string())?;
+    if data.len() as u64 > MAX_THEME_BYTES {
+        return Err("Theme file is too large".to_string());
+    }
     let theme: CustomTheme = serde_json::from_str(&data).map_err(|e| e.to_string())?;
     theme.validate()?;
     Ok(theme)
@@ -536,4 +592,66 @@ pub fn create_example_themes(app: &tauri::AppHandle) -> Result<(), String> {
     save_custom_theme(app, &cyber_neon)?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{export_current_theme, is_css_color, read_theme_file, sanitize_theme_name};
+
+    #[test]
+    fn accepts_only_plain_colour_values() {
+        for valid in [
+            "#fff", "#FFFA", "#a238ff", "#a238ff80", " #0a0a0a ",
+            "rgb(0, 0, 0)", "rgba(162, 56, 255, 0.15)", "RGBA(1,2,3,.5)",
+            "rgb(1 2 3 / 50%)", "hsl(270, 100%, 61%)", "hsla(270deg 100% 61% / 0.5)",
+        ] {
+            assert!(is_css_color(valid), "{}", valid);
+        }
+        for invalid in [
+            "#000;position:fixed;inset:0;z-index:9999",
+            "#000 url(https://host/x)",
+            "rgb(0,0,0);background:url(x)",
+            "rgb(var(--x), 0, 0)",
+            "rgb(calc(1), 2, 3)",
+            "rgbx(1, 2, 3)",
+            "rgb(1, 2)",
+            "rgb(1, 2, 3, 4, 5)",
+            "rgb(1, 2, 3",
+            "hsl(1..2, 2%, 3%)",
+            "#ggg",
+            "#12345",
+            "red",
+            "",
+        ] {
+            assert!(!is_css_color(invalid), "{}", invalid);
+        }
+    }
+
+    #[test]
+    fn bundled_and_default_themes_still_validate() {
+        export_current_theme("Light".into(), None, None, true).validate().unwrap();
+        export_current_theme("Dark".into(), None, None, false).validate().unwrap();
+
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../example-themes");
+        let mut checked = 0;
+        for entry in std::fs::read_dir(dir).unwrap() {
+            let path = entry.unwrap().path();
+            if path.extension().is_some_and(|ext| ext == "json") {
+                read_theme_file(&path).unwrap_or_else(|e| panic!("{}: {}", path.display(), e));
+                checked += 1;
+            }
+        }
+        assert!(checked > 0);
+    }
+
+    #[test]
+    fn theme_names_reject_windows_device_names() {
+        for reserved in ["CON", "nul", "COM1", "lpt9", "com¹", "LPT²", "com0", "CONIN$", "conout$", "Clock$"] {
+            assert!(sanitize_theme_name(reserved).is_err(), "{}", reserved);
+        }
+        for allowed in ["com10", "console", "Midnight Blue", "lpt", "clock"] {
+            assert!(sanitize_theme_name(allowed).is_ok(), "{}", allowed);
+        }
+        assert_eq!(sanitize_theme_name("Midnight Blue").unwrap(), "midnight_blue");
+    }
 }

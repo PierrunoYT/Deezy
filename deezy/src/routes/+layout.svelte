@@ -30,6 +30,7 @@
   import { recoverDownloadHistory } from '$lib/downloadHistory';
   import { notificationManager } from '$lib/notifications';
   import { installErrorLogging } from '$lib/logger';
+  import { isSafeThemeColor } from '$lib/themeColors';
 
   let { children } = $props();
   
@@ -73,8 +74,10 @@
     const root = document.documentElement;
     CSS_VARIABLES.forEach(variable => {
       const value = colors[variable] || colors[variable.replace(/-/g, '_')];
-      if (value) {
+      if (isSafeThemeColor(value)) {
         root.style.setProperty(`--${variable}`, value);
+      } else if (value) {
+        console.warn(`Ignored invalid custom theme color for --${variable}`);
       }
     });
     root.classList.remove('light');

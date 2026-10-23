@@ -49,27 +49,20 @@ pub async fn open_log_folder() -> Result<(), String> {
     {
         use std::os::windows::process::CommandExt;
         // Quote only the path: Explorer does not parse a quoted "/select,...".
-        Command::new("explorer")
-            .raw_arg(format!("/select,\"{}\"", path.display()))
-            .spawn()
+        spawn_and_reap(Command::new("explorer").raw_arg(format!("/select,\"{}\"", path.display())))
             .map_err(|e| format!("Failed to open Explorer: {}", e))?;
     }
 
     #[cfg(target_os = "macos")]
     {
-        Command::new("open")
-            .arg("-R")
-            .arg(&path)
-            .spawn()
+        spawn_and_reap(Command::new("open").arg("-R").arg(&path))
             .map_err(|e| format!("Failed to reveal the log in Finder: {}", e))?;
     }
 
     #[cfg(all(unix, not(target_os = "macos")))]
     {
         let parent = path.parent().ok_or("Failed to resolve the log folder")?;
-        Command::new("xdg-open")
-            .arg(parent)
-            .spawn()
+        spawn_and_reap(Command::new("xdg-open").arg(parent))
             .map_err(|e| format!("Failed to open file manager: {}", e))?;
     }
 

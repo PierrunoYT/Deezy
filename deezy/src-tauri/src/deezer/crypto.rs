@@ -27,16 +27,21 @@ fn deobfuscate(data: &[u8; 16]) -> [u8; 16] {
     out
 }
 
-pub fn get_blowfish_key(track_id: &str) -> Vec<u8> {
+pub fn get_blowfish_key(track_id: &str) -> Result<Vec<u8>, String> {
+    // An empty ID would still give a key (from md5("")), and with it silently
+    // corrupted audio.
+    if track_id.is_empty() {
+        return Err("Track unavailable (missing SNG_ID)".to_string());
+    }
     let secret = deobfuscate(&BF_SECRET);
     let id_bytes: Vec<u8> = track_id.chars().map(|c| c as u8).collect();
     let hash = md5::compute(&id_bytes);
     let hex = format!("{:x}", hash);
     let hex_bytes = hex.as_bytes();
 
-    (0..16)
+    Ok((0..16)
         .map(|i| hex_bytes[i] ^ hex_bytes[i + 16] ^ secret[i])
-        .collect()
+        .collect())
 }
 
 pub fn encrypt_download_url(
@@ -80,9 +85,12 @@ pub fn encrypt_download_url(
         }
     }
 
+    // The first character picks the CDN host, so anything but a hex digit
+    // (such as '@' or '/') would change where the request goes.
     let cdn = md5_origin
         .chars()
         .next()
+        .filter(char::is_ascii_hexdigit)
         .ok_or("Track unavailable (invalid MD5_ORIGIN)")?;
 
     Ok(format!(
@@ -101,4 +109,26 @@ pub fn decrypt_blowfish_chunk(chunk: &[u8], key: &[u8]) -> Result<Vec<u8>, Strin
         .decrypt_padded_mut::<NoPadding>(&mut buf)
         .map_err(|_| "Decryption failed".to_string())?;
     Ok(decrypted.to_vec())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{encrypt_download_url, get_blowfish_key};
+
+    #[test]
+    fn an_empty_track_id_has_no_blowfish_key() {
+        assert!(get_blowfish_key("").is_err());
+        assert_eq!(get_blowfish_key("3135556").unwrap().len(), 16);
+    }
+
+    #[test]
+    fn the_cdn_host_needs_a_hex_digit() {
+        let url = encrypt_download_url("a1b2c3", 1, "3135556", "4").unwrap();
+        assert!(url.starts_with("https://e-cdns-proxy-a.dzcdn.net/mobile/1/"), "{url}");
+        assert!(encrypt_download_url("F00", 1, "3135556", "4").is_ok());
+
+        for origin in ["@evil", "/x", "?q", "#f", "\\x", "g12", "é1", ""] {
+            assert!(encrypt_download_url(origin, 1, "3135556", "4").is_err(), "{origin}");
+        }
+    }
 }

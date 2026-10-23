@@ -225,7 +225,15 @@
       // catch below must not clear loggedIn either.
       let user: UserInfo | null;
       if (trimmedArl) {
-        user = await invoke<UserInfo>('login', { arl: trimmedArl });
+        try {
+          user = await invoke<UserInfo>('login', { arl: trimmedArl });
+        } catch (err) {
+          // The draft only exists to survive view switches before saving; a
+          // rejected ARL should not linger in memory, so it is pasted again.
+          arl = '';
+          settingsArlDraft.set('');
+          throw err;
+        }
       } else if ($loggedIn) {
         user = $userInfo;
       } else {
@@ -319,6 +327,11 @@
   async function saveSpotifyClientId(): Promise<void> {
     const value = spotifyClientId.trim();
     if (value === savedSpotifyClientId) return;
+    // The backend accepts only an empty value or 32 hex characters.
+    if (value !== '' && !/^[0-9a-fA-F]{32}$/.test(value)) {
+      showStatus($_('settings.spotify.clientIdInvalid'), 'error');
+      return;
+    }
     try {
       await updateSetting('spotify_client_id', value);
       savedSpotifyClientId = value;
@@ -332,6 +345,10 @@
       showStatus($_('settings.spotify.clientIdSaved'), 'success');
     } catch (err) {
       console.error('Failed to save Spotify client ID:', err);
+      showStatus(
+        $_('settings.spotify.clientIdSaveFailed', { values: { error: String(err) } }),
+        'error'
+      );
     }
   }
 
@@ -499,8 +516,12 @@
       <div class="input-row">
         <input 
           type={showArl ? 'text' : 'password'}
-          id="arl-input" 
+          id="arl-input"
           bind:value={arl}
+          autocomplete="off"
+          spellcheck="false"
+          autocapitalize="off"
+          autocorrect="off"
           placeholder={isLoggedIn && !arl ? 'Enter new ARL to update' : $_('settings.arl.placeholder')}
         />
         <button class="btn-icon" onclick={() => showArl = !showArl} title={$_('settings.arl.showHide')}>

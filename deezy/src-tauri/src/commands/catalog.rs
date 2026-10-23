@@ -114,6 +114,8 @@ pub async fn get_playlist_tracks(
     playlistId: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<SearchResult>, String> {
+    // Checked here too, so a malformed ID doesn't fall through to the private API.
+    crate::deezer::deezer_id(&playlistId)?;
     let client = {
         let lock = state.client.lock().await;
         lock

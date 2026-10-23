@@ -195,21 +195,25 @@ that review. Test these separately when changes affect those paths.
    (patch for fixes only, minor for any new feature). Update it together in `deezy/package.json`,
    `deezy/src-tauri/Cargo.toml`, and `deezy/src-tauri/tauri.conf.json`. The committed
    `bun.lock` does not contain the app version, so a bump alone needs no lockfile
-   change (only a dependency change does). `Cargo.lock` is currently ignored by
-   this repository, so Rust dependencies are not pinned in Git.
-2. Move the relevant `CHANGELOG.md` Unreleased entries into a dated version
+   change (only a dependency change does). `deezy/src-tauri/Cargo.lock` is
+   committed and does record the app version, so run a Rust build or test after
+   the bump and commit the updated `Cargo.lock` with it.
+2. Check dependencies: `bun audit` from `deezy/` and `cargo audit` from
+   `deezy/src-tauri/` (see `AUDIT.md` for the advisories that are known and
+   accepted, such as `rsa` in librespot, which has no fixed version).
+3. Move the relevant `CHANGELOG.md` Unreleased entries into a dated version
    section. Keep source-only changes distinct from shipped installer behavior.
-3. Install locked dependencies and run `npm test`, `npm run check`, `npm run build`,
+4. Install locked dependencies and run `npm test`, `npm run check`, `npm run build`,
    and `cargo test --manifest-path src-tauri/Cargo.toml`.
-4. Smoke-test Deezer and Spotify login/session restoration, search and rate-limit
+5. Smoke-test Deezer and Spotify login/session restoration, search and rate-limit
    fallback, catalog loading, previews where available, download/pause/resume,
    tagging, restart recovery, themes, and tray shutdown on the release platform.
-5. Build with `bun run tauri build` and verify the generated artifacts under
+6. Build with `bun run tauri build` and verify the generated artifacts under
    `src-tauri/target/release/bundle/`.
-6. Until Deezy installs are gone, the release notes must tell `.exe` users to
+7. Until Deezy installs are gone, the release notes must tell `.exe` users to
    start Wavekeep once before uninstalling Deezy, so `migration.rs` has moved their
    data and logins first. See `AGENTS.md` for how the migration works.
-7. Make one release commit named `chore: prepare version X.Y.Z release` and an
+8. Make one release commit named `chore: prepare version X.Y.Z release` and an
    annotated tag `vX.Y.Z` with the message `Wavekeep vX.Y.Z`, then publish the
    appropriate installers and notes through the repository's release process.
    Push the commit and tag only when the maintainer asks, and never before the

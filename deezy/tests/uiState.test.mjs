@@ -73,7 +73,7 @@ function themeSetup() {
     '@tauri-apps/api/core': { invoke: async command => command === 'get_settings' ? { custom_theme: 'custom' } : pending.promise },
     '@tauri-apps/api/event': {}, '$lib/stores': {}, '$lib/i18n': {}, 'svelte-i18n': {},
     '$lib/tray': {}, '$lib/downloadQueue': {}, '$lib/downloadHistory': {}, '$lib/notifications': {},
-    '$lib/logger': {}
+    '$lib/logger': {}, '$lib/themeColors': loadModule('../src/lib/themeColors.ts', {})
   }, {
     $state: value => value, $props: () => ({}),
     document: { documentElement: {
@@ -93,6 +93,33 @@ test('switching to a built-in theme removes custom inline colors', async () => {
   await applyTheme('light');
   assert.equal(colors.size, 0);
   assert.equal(classes.has('light'), true);
+});
+
+test('custom theme values that are not plain colors are not applied', async () => {
+  const { applyTheme, pending, colors } = themeSetup();
+  pending.resolve({ colors: {
+    accent: '#000;position:fixed;inset:0',
+    'bg-dark': '#000 url(https://example.invalid/x.png)',
+    bg_surface: 'rgb(1, 2, 3)',
+    success: 'var(--x, red)'
+  } });
+  await applyTheme('custom');
+  assert.equal(colors.has('--accent'), false);
+  assert.equal(colors.has('--bg-dark'), false);
+  assert.equal(colors.has('--success'), false);
+  assert.equal(colors.get('--bg-surface'), 'rgb(1, 2, 3)');
+});
+
+test('theme colors are checked with CSS.supports when the browser provides it', () => {
+  const calls = [];
+  const { isSafeThemeColor } = loadModule('../src/lib/themeColors.ts', {}, {
+    CSS: { supports(property, value) { calls.push(property); return value !== 'notacolor'; } }
+  });
+  assert.equal(isSafeThemeColor('notacolor'), false);
+  assert.equal(isSafeThemeColor('rebeccapurple'), true);
+  assert.equal(isSafeThemeColor('#000; color: red'), false);
+  assert.equal(isSafeThemeColor(42), false);
+  assert.deepEqual(calls, ['color', 'color']);
 });
 
 test('a delayed custom theme cannot overwrite a newer built-in selection', async () => {

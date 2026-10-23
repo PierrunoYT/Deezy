@@ -63,6 +63,17 @@ pub fn get_quality_ext(quality: &str) -> &str {
     }
 }
 
+/// Checks a catalogue ID (track, album, artist, playlist) before it goes into a
+/// URL path. Deezer IDs are decimal numbers; refusing anything else keeps
+/// `../`, `?` or `#` from re-targeting a request that carries the session.
+pub(crate) fn deezer_id(id: &str) -> Result<&str, String> {
+    if !id.is_empty() && id.len() <= 20 && id.bytes().all(|b| b.is_ascii_digit()) {
+        Ok(id)
+    } else {
+        Err("Invalid Deezer ID".to_string())
+    }
+}
+
 fn extract_string_or_u64(val: &Value) -> Option<String> {
     val.as_str()
         .map(|s| s.to_string())
@@ -118,8 +129,21 @@ async fn response_bytes(
 
 #[cfg(test)]
 mod tests {
-    use super::{is_allowed_deezer_url, response_bytes};
+    use super::{deezer_id, is_allowed_deezer_url, response_bytes};
     use url::Url;
+
+    #[test]
+    fn only_numeric_ids_reach_a_url() {
+        for valid in ["3135556", "302127", "908622995", "1"] {
+            assert_eq!(deezer_id(valid), Ok(valid));
+        }
+        for invalid in [
+            "", "1/../../user/me/flow", "1?request_method=delete", "1#", "-123", " 1", "1 ",
+            "x", "١٢٣", "123456789012345678901",
+        ] {
+            assert!(deezer_id(invalid).is_err(), "{}", invalid);
+        }
+    }
 
     #[tokio::test]
     async fn rejects_http_error_bodies_before_treating_them_as_media() {

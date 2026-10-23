@@ -14,6 +14,7 @@ use librespot_core::SpotifyUri;
 use serde_json::{json, Value};
 
 use super::auth::SpotifyClient;
+use super::{read_capped, MAX_RESPONSE_BYTES};
 
 const PATHFINDER_URL: &str = "https://api-partner.spotify.com/pathfinder/v2/query";
 const APP_PLATFORM: &str = "Win32_x86_64";
@@ -149,10 +150,10 @@ async fn query_once(
         .await
         .map_err(|e| format!("request failed: {}", e))?;
     let status = response.status();
-    let text = response
-        .text()
+    let bytes = read_capped(response, MAX_RESPONSE_BYTES, "Pathfinder response")
         .await
         .map_err(|e| format!("{} (HTTP {})", e, status.as_u16()))?;
+    let text = String::from_utf8_lossy(&bytes);
     let value: Value = serde_json::from_str(&text).map_err(|_| {
         let snippet: String = text.chars().take(120).collect();
         format!("{} returned HTTP {}: {}", operation, status.as_u16(), snippet)
@@ -162,7 +163,7 @@ async fn query_once(
     if !status.is_success() || value.get("errors").is_some() {
         let detail = value["errors"][0]["message"].as_str().unwrap_or("no details");
         let snippet: String = text.chars().take(300).collect();
-        crate::logging::warn("spotify", &format!(
+        crate::logging::warn("spotify", format!(
             "pathfinder {} HTTP {}: body={} client_token_error={:?}",
             operation,
             status.as_u16(),

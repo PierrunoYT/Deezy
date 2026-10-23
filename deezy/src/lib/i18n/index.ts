@@ -79,8 +79,4 @@ export async function changeLocale(newLocale: string): Promise<void> {
   await waitLocale(newLocale);
 }
 
-export function getCurrentLocale(): string {
-  return locale.subscribe(val => val) as unknown as string;
-}
-
 export { locale, isLoading, waitLocale };

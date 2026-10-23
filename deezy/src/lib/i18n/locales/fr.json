@@ -277,6 +277,8 @@
       "clientIdHint": "Utilisez votre propre application développeur Spotify pour éviter les limites partagées. Ajoutez http://127.0.0.1:5588/login comme URI de redirection, puis reconnectez-vous.",
       "clientIdPlaceholder": "Laisser vide pour utiliser la valeur par défaut",
       "clientIdSaved": "Client ID enregistré. Reconnectez Spotify pour l'utiliser.",
+      "clientIdInvalid": "Un Client ID Spotify compte 32 caractères et n'utilise que 0-9 et a-f. Laissez le champ vide pour utiliser celui par défaut.",
+      "clientIdSaveFailed": "Impossible d'enregistrer le Client ID : {error}",
       "quality": {
         "normal": "Normale (96 kbps)",
         "high": "Élevée (160 kbps)",

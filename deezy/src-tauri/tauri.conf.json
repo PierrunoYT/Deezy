@@ -20,7 +20,8 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' https://*.dzcdn.net https://api.deezer.com https://*.scdn.co https://*.spotifycdn.com data:; media-src 'self' https://*.dzcdn.net https://*.scdn.co; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost"
+      "csp": "default-src 'self'; script-src 'self'; img-src 'self' https://*.dzcdn.net https://api.deezer.com https://*.scdn.co https://*.spotifycdn.com data:; media-src 'self' https://*.dzcdn.net https://*.scdn.co; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; frame-ancestors 'none'; worker-src 'none'",
+      "freezePrototype": true
     }
   },
   "plugins": {},

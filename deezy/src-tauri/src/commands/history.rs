@@ -34,11 +34,7 @@ pub async fn load_download_history(app: AppHandle) -> Result<Vec<serde_json::Val
         let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
         let path = dir.join("download_history.json");
         if path.exists() {
-            let metadata = std::fs::metadata(&path).map_err(|e| e.to_string())?;
-            if metadata.len() > MAX_HISTORY_BYTES {
-                return Err("Download history file is too large".to_string());
-            }
-            let data = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+            let data = read_history_file(&path)?;
             let history: Vec<serde_json::Value> =
                 serde_json::from_str(&data).map_err(|e| e.to_string())?;
             validate_history(&history)?;
@@ -47,6 +43,22 @@ pub async fn load_download_history(app: AppHandle) -> Result<Vec<serde_json::Val
             Ok(vec![])
         }
     }).await
+}
+
+/// Reads the history file, enforcing the size limit on the bytes actually read
+/// so a file that grows after a size check can't slip past it.
+fn read_history_file(path: &std::path::Path) -> Result<String, String> {
+    use std::io::Read;
+
+    let file = std::fs::File::open(path).map_err(|e| e.to_string())?;
+    let mut data = String::new();
+    file.take(MAX_HISTORY_BYTES + 1)
+        .read_to_string(&mut data)
+        .map_err(|e| e.to_string())?;
+    if data.len() as u64 > MAX_HISTORY_BYTES {
+        return Err("Download history file is too large".to_string());
+    }
+    Ok(data)
 }
 
 #[tauri::command]
@@ -115,23 +127,36 @@ fn generate_csv(history: &[serde_json::Value]) -> Result<String, String> {
     Ok(csv)
 }
 
+/// Escapes quotes and neutralises values a spreadsheet would run as a formula:
+/// those starting with a line break or tab, or whose first non-blank character
+/// is `=`, `+`, `-` or `@` (spreadsheets skip leading blanks).
 fn sanitize_csv_field(value: &str) -> String {
     let escaped = value.replace("\"", "\"\"");
-    if let Some(first) = escaped.chars().next() {
-        if matches!(first, '=' | '+' | '-' | '@' | '\t' | '\r') {
-            return format!("'{}", escaped);
-        }
+    let starts_with_control = escaped.starts_with(['\t', '\r', '\n']);
+    let starts_with_formula = escaped.trim_start().starts_with(['=', '+', '-', '@']);
+    if starts_with_control || starts_with_formula {
+        return format!("'{}", escaped);
     }
     escaped
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{validate_history, MAX_HISTORY_ENTRIES};
+    use super::{sanitize_csv_field, validate_history, MAX_HISTORY_ENTRIES};
 
     #[test]
     fn rejects_excessive_history_entries() {
         let history = vec![serde_json::Value::Null; MAX_HISTORY_ENTRIES + 1];
         assert!(validate_history(&history).is_err());
+    }
+
+    #[test]
+    fn neutralises_spreadsheet_formulas() {
+        for formula in ["=1+1", "+1", "-1", "@SUM(A1)", " =HYPERLINK(\"x\")", "\t=1", "\nplain", "\r\n=1"] {
+            assert!(sanitize_csv_field(formula).starts_with('\''), "{:?}", formula);
+        }
+        assert_eq!(sanitize_csv_field("Song \"Live\""), "Song \"\"Live\"\"");
+        assert_eq!(sanitize_csv_field("Daft Punk - One More Time"), "Daft Punk - One More Time");
+        assert_eq!(sanitize_csv_field(""), "");
     }
 }

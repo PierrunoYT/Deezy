@@ -11,9 +11,17 @@ mod tray;
 use std::sync::Arc;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 use tokio::sync::Mutex;
-use tauri::{Emitter, Manager};
+use tauri::{AppHandle, Emitter, Listener, Manager};
+
+/// Event that asks the renderer to save its state and call `exit_app`. The
+/// close button, the tray's Quit item and an OS-level quit all send it.
+const EXIT_REQUESTED_EVENT: &str = "app-exit-requested";
+/// How long the renderer gets to call `exit_app` before the backend exits on
+/// its own (it pauses downloads for up to 5 s, then saves the history).
+const EXIT_FALLBACK_DELAY: Duration = Duration::from_secs(15);
 
 #[derive(Default)]
 pub struct FileGrants {
@@ -66,7 +74,7 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_process::init())
+        .plugin(navigation_guard())
         .manage(AppState {
             client: Arc::new(Mutex::new(None)),
             spotify: Arc::new(Mutex::new(None)),
@@ -91,32 +99,33 @@ pub fn run() {
                 logging::error("app", format!("Failed to create system tray: {}", e));
             }
 
+            // However the exit was requested, stop new downloads and make sure
+            // the app exits even if the renderer never calls `exit_app`.
+            let handle = app.handle().clone();
+            app.listen_any(EXIT_REQUESTED_EVENT, move |_| arm_exit_fallback(&handle));
+
             // Handle window close event
             if let Some(window) = app.get_webview_window("main") {
                 let window_clone = window.clone();
                 window.on_window_event(move |event| {
                     if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                        // Get settings to check if close_to_tray is enabled.
-                        // Use try_lock to avoid blocking the main thread; if the
-                        // lock is contended, treat this as a full exit request.
-                        let app_handle = window_clone.app_handle();
-                        let state: tauri::State<AppState> = app_handle.state();
-                        
-                        let close_to_tray = state.settings
-                            .try_lock()
-                            .map(|s| s.close_to_tray)
-                            .unwrap_or(false);
-
-                        if close_to_tray {
-                            // Hide window instead of closing
-                            let _ = window_clone.hide();
-                            api.prevent_close();
-                        } else {
-                            // Keep the renderer alive long enough to flush its
-                            // pending debounced download-history save.
-                            api.prevent_close();
-                            let _ = app_handle.emit("app-exit-requested", ());
-                        }
+                        // The window never closes directly: it is either hidden
+                        // or the renderer first saves its pending download
+                        // history. Which one depends on a setting, read in a
+                        // task so a busy settings lock neither blocks the main
+                        // thread nor turns "hide to tray" into an exit.
+                        api.prevent_close();
+                        let window = window_clone.clone();
+                        tauri::async_runtime::spawn(async move {
+                            let app_handle = window.app_handle().clone();
+                            let state = app_handle.state::<AppState>();
+                            let close_to_tray = state.settings.lock().await.close_to_tray;
+                            if close_to_tray {
+                                let _ = window.hide();
+                            } else {
+                                let _ = app_handle.emit(EXIT_REQUESTED_EVENT, ());
+                            }
+                        });
                     }
                 });
             }
@@ -185,6 +194,105 @@ pub fn run() {
             commands::read_file_tags,
             commands::write_file_tags,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            // An exit without a code comes from the OS (macOS Cmd+Q, the Dock,
+            // the app menu) rather than from `exit_app`. Route it through the
+            // normal exit so downloads are cancelled and their files removed.
+            if let tauri::RunEvent::ExitRequested { code: None, api, .. } = &event {
+                api.prevent_exit();
+                let _ = app.emit(EXIT_REQUESTED_EVENT, ());
+            }
+        });
+}
+
+/// Starts the backend's exit fallback, once: new downloads are refused at
+/// once, and if the renderer has not called `exit_app` within
+/// `EXIT_FALLBACK_DELAY` (hung or crashed WebView), the backend runs the same
+/// cleanup and exits itself.
+fn arm_exit_fallback(app: &AppHandle) {
+    static ARMED: AtomicBool = AtomicBool::new(false);
+
+    commands::begin_shutdown();
+    if ARMED.swap(true, Ordering::SeqCst) {
+        return;
+    }
+
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(EXIT_FALLBACK_DELAY).await;
+        if commands::exit_started() {
+            return;
+        }
+        logging::warn(
+            "app",
+            format!(
+                "The window did not finish closing within {} s; exiting from the backend",
+                EXIT_FALLBACK_DELAY.as_secs()
+            ),
+        );
+        let state = app.state::<AppState>();
+        commands::shut_down_and_exit(state.inner(), &app).await;
+    });
+}
+
+/// Keeps the WebView on the app's own pages. A script injected into the page
+/// could otherwise send what it can read to another site by navigating there.
+/// (New windows from `window.open` are already refused, because no handler
+/// for them is installed.)
+fn navigation_guard<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
+    tauri::plugin::Builder::new("navigation-guard")
+        .on_navigation(|_, url| {
+            let allowed = is_app_url(url);
+            if !allowed {
+                logging::warn(
+                    "app",
+                    format!("Blocked navigation to {}://{}", url.scheme(), url.host_str().unwrap_or("")),
+                );
+            }
+            allowed
+        })
+        .build()
+}
+
+/// The app's own origin: `tauri://localhost` (macOS, Linux),
+/// `http(s)://tauri.localhost` (Windows) and, in development, the Vite server.
+fn is_app_url(url: &tauri::Url) -> bool {
+    match url.scheme() {
+        "tauri" => url.host_str() == Some("localhost"),
+        "http" | "https" => {
+            url.host_str() == Some("tauri.localhost")
+                || (cfg!(dev)
+                    && url.scheme() == "http"
+                    && url.host_str() == Some("localhost")
+                    && url.port() == Some(1420))
+        }
+        _ => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_app_url;
+
+    fn allowed(url: &str) -> bool {
+        is_app_url(&url.parse().unwrap())
+    }
+
+    #[test]
+    fn navigation_stays_on_the_app_origin() {
+        assert!(allowed("tauri://localhost/"));
+        assert!(allowed("http://tauri.localhost/index.html"));
+        assert!(allowed("https://tauri.localhost/"));
+
+        assert!(!allowed("https://evil.example/?data=1"));
+        assert!(!allowed("https://tauri.localhost.evil.example/"));
+        assert!(!allowed("http://user@evil.example/"));
+        assert!(!allowed("tauri://evil/"));
+        assert!(!allowed("file:///C:/Windows/"));
+        assert!(!allowed("data:text/html,hi"));
+        assert!(!allowed("javascript:alert(1)"));
+        assert!(!allowed("http://localhost:8080/"));
+    }
 }

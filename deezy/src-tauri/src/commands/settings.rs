@@ -44,10 +44,10 @@ pub async fn save_settings(
     let settings = state.settings.lock().await;
     let mut merged = new_settings.clone();
 
-    // Allow non-auth settings updates without exposing ARL to the renderer.
-    if merged.arl.trim().is_empty() {
-        merged.arl = settings.arl.clone();
-    }
+    // Non-auth settings only. The renderer never sees the ARL and may not
+    // replace it here: a new one goes through `login`, which verifies it first.
+    merged.arl = settings.arl.clone();
+    merged.arl_saved_without_keyring = settings.arl_saved_without_keyring;
     // Search history is backend-owned and must not be erased by a stale or
     // intentionally redacted full-settings payload from the renderer.
     merged.search_history = settings.search_history.clone();

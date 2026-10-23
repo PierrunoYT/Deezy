@@ -4,10 +4,11 @@ use serde::Serialize;
 use serde_json::Value;
 
 use super::auth::SpotifyClient;
-use super::track_key;
 use super::{ap, pathfinder};
+use super::{read_capped, track_key, validate_id, MAX_RESPONSE_BYTES};
 
 const API: &str = "https://api.spotify.com/v1";
+const API_HOST: &str = "api.spotify.com";
 
 /// Longest `Retry-After` worth sleeping through before giving up.
 const MAX_RETRY_WAIT_SECS: u64 = 5;
@@ -100,11 +101,8 @@ impl SpotifyClient {
                 .max(1);
             // Spotify's 429 body can be plain text; parse it leniently so a
             // rate limit is still reported as one instead of a parse error.
-            let text = response
-                .text()
-                .await
-                .map_err(|e| format!("Spotify response read failed: {}", e))?;
-            let body: Value = match serde_json::from_str(&text) {
+            let bytes = read_capped(response, MAX_RESPONSE_BYTES, "Spotify response").await?;
+            let body: Value = match serde_json::from_slice(&bytes) {
                 Ok(value) => value,
                 Err(e) if status.is_success() => {
                     return Err(format!("Spotify response parse failed: {}", e));
@@ -157,6 +155,12 @@ impl SpotifyClient {
                 items.extend(page_items.iter().cloned());
             }
             next = body["next"].as_str().map(str::to_string);
+            // The bearer token goes with every page, so only follow links
+            // back to the Web API itself.
+            if next.as_deref().is_some_and(|link| !is_web_api_link(link)) {
+                crate::logging::warn("spotify", "Web API returned a pagination link to another host; stopped paging");
+                return Err("Spotify returned an unexpected pagination link".to_string());
+            }
             pages += 1;
         }
 
@@ -276,6 +280,7 @@ impl SpotifyClient {
     }
 
     pub async fn artist_albums(&self, artist_id: &str) -> Result<Vec<SpotifyAlbum>, String> {
+        let artist_id = validate_id(artist_id, "artist")?;
         match ap::artist_albums(&self.session, artist_id).await {
             Ok(albums) => Ok(albums),
             Err(ap_error) => match self.artist_albums_web(artist_id).await {
@@ -289,6 +294,7 @@ impl SpotifyClient {
     }
 
     async fn artist_albums_web(&self, artist_id: &str) -> Result<Vec<SpotifyAlbum>, String> {
+        let artist_id = validate_id(artist_id, "artist")?;
         let items = self
             .get_paged(
                 &format!(
@@ -349,15 +355,18 @@ fn rate_limit_message() -> String {
         .to_string()
 }
 
-#[cfg(test)]
-mod rate_limit_tests {
-    use super::*;
-
-    #[test]
-    fn detects_its_own_rate_limit_message_only() {
-        assert!(is_rate_limited(&rate_limit_message()));
-        assert!(!is_rate_limited("Spotify API error (500): boom"));
-    }
+/// Whether a `next` link from a paged response points back at the Web API
+/// over HTTPS (no other host, port, scheme or credentials).
+fn is_web_api_link(link: &str) -> bool {
+    let Ok(url) = url::Url::parse(link) else {
+        return false;
+    };
+    url.scheme() == "https"
+        && url.host_str() == Some(API_HOST)
+        && url.port().is_none()
+        && url.username().is_empty()
+        && url.password().is_none()
+        && url.path().starts_with("/v1/")
 }
 
 fn api_error(body: &Value) -> String {
@@ -488,4 +497,40 @@ fn playlist_from_value(playlist: &Value) -> Option<SpotifyPlaylist> {
         nb_tracks: playlist["tracks"]["total"].as_u64().unwrap_or(0),
         provider: "spotify".to_string(),
     })
+}
+
+#[cfg(test)]
+mod rate_limit_tests {
+    use super::*;
+
+    #[test]
+    fn detects_its_own_rate_limit_message_only() {
+        assert!(is_rate_limited(&rate_limit_message()));
+        assert!(!is_rate_limited("Spotify API error (500): boom"));
+    }
+
+    #[test]
+    fn follows_only_web_api_pagination_links() {
+        for allowed in [
+            "https://api.spotify.com/v1/me/playlists?offset=50&limit=50",
+            "https://api.spotify.com/v1/artists/0OdUWJ0sBjDrqHygGUXeCF/albums?offset=50",
+            "https://API.spotify.com/v1/me/playlists?offset=100",
+        ] {
+            assert!(is_web_api_link(allowed), "{allowed} should be followed");
+        }
+
+        for rejected in [
+            "http://api.spotify.com/v1/me/playlists?offset=50",
+            "https://api.spotify.com.evil.example/v1/me",
+            "https://evil.example/v1/me/playlists",
+            "https://api.spotify.com:8443/v1/me/playlists",
+            "https://user:pass@api.spotify.com/v1/me/playlists",
+            "https://api-partner.spotify.com/v1/me",
+            "https://api.spotify.com/oauth/token",
+            "/v1/me/playlists?offset=50",
+            "",
+        ] {
+            assert!(!is_web_api_link(rejected), "{rejected} should be refused");
+        }
+    }
 }

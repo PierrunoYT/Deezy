@@ -1,10 +1,48 @@
 use super::*;
+use std::time::Duration;
+
+/// Set once the app has committed to exiting; `download_track` refuses new
+/// downloads from then on.
+static SHUTTING_DOWN: AtomicBool = AtomicBool::new(false);
+/// Set when the cleanup in `shut_down_and_exit` starts, so it runs only once.
+static EXIT_STARTED: AtomicBool = AtomicBool::new(false);
+/// How long exit waits for cancelled downloads to remove their temporary files.
+const EXIT_CLEANUP_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// Marks the app as exiting, so no new download starts.
+pub fn begin_shutdown() {
+    SHUTTING_DOWN.store(true, Ordering::SeqCst);
+}
+
+pub fn is_shutting_down() -> bool {
+    SHUTTING_DOWN.load(Ordering::SeqCst)
+}
+
+/// Whether `shut_down_and_exit` has been called.
+pub fn exit_started() -> bool {
+    EXIT_STARTED.load(Ordering::SeqCst)
+}
 
 #[tauri::command]
 pub async fn exit_app(
     state: tauri::State<'_, AppState>,
     app: AppHandle,
 ) -> Result<(), String> {
+    shut_down_and_exit(state.inner(), &app).await;
+    Ok(())
+}
+
+/// Cancels every download, waits for them to clean up, then exits. Used by
+/// `exit_app` and by the backend's own fallback when the window does not
+/// finish closing.
+pub async fn shut_down_and_exit(state: &AppState, app: &AppHandle) {
+    // Before the map is locked: `download_track` checks the flag while holding
+    // the lock, so every download is either cancelled below or never starts.
+    begin_shutdown();
+    if EXIT_STARTED.swap(true, Ordering::SeqCst) {
+        return;
+    }
+
     {
         let cancellations = state.download_cancellations.lock().await;
         crate::logging::info(
@@ -16,14 +54,30 @@ pub async fn exit_app(
         }
     }
 
-    // Each download removes its registration only after its temporary/fallback
-    // files have been cleaned. Do not force-exit while cleanup is outstanding.
-    while !state.download_cancellations.lock().await.is_empty() {
-        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    // Each download removes its registration only after its temporary files
+    // have been cleaned, so wait for that, but not forever: one stuck download
+    // (a hung network read, say) must not make the app impossible to close.
+    let deadline = tokio::time::Instant::now() + EXIT_CLEANUP_TIMEOUT;
+    loop {
+        let remaining = state.download_cancellations.lock().await.len();
+        if remaining == 0 {
+            break;
+        }
+        if tokio::time::Instant::now() >= deadline {
+            crate::logging::warn(
+                "app",
+                format!(
+                    "Exiting with {} download(s) still running after {} s",
+                    remaining,
+                    EXIT_CLEANUP_TIMEOUT.as_secs()
+                ),
+            );
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
     }
 
     app.exit(0);
-    Ok(())
 }
 
 #[tauri::command]

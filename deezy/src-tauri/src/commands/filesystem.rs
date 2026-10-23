@@ -9,6 +9,8 @@ pub async fn show_in_folder(
 
     #[cfg(target_os = "windows")]
     {
+        use std::os::windows::process::CommandExt;
+
         // Open the parent directory directly; this is more reliable than /select
         // across path formats and still lands users in the song folder.
         let target_dir = path
@@ -29,18 +31,19 @@ pub async fn show_in_folder(
             windows_dir = stripped.to_string();
         }
 
-        Command::new("explorer")
-            .arg(windows_dir)
-            .spawn()
+        // Explorer splits its arguments on commas, so "D:\Music\AC,DC" would
+        // open the wrong folder unless the path is quoted. Windows paths can't
+        // contain a quote; refuse one anyway rather than let it end the quoting.
+        if windows_dir.contains('"') {
+            return Err("Invalid folder path".to_string());
+        }
+        spawn_and_reap(Command::new("explorer").raw_arg(format!("\"{}\"", windows_dir)))
             .map_err(|e| format!("Failed to open Explorer: {}", e))?;
     }
 
     #[cfg(target_os = "macos")]
     {
-        Command::new("open")
-            .arg("-R")
-            .arg(&path)
-            .spawn()
+        spawn_and_reap(Command::new("open").arg("-R").arg(&path))
             .map_err(|e| format!("Failed to reveal file in Finder: {}", e))?;
     }
 
@@ -50,9 +53,7 @@ pub async fn show_in_folder(
             .parent()
             .ok_or("Failed to resolve file parent directory")?;
 
-        Command::new("xdg-open")
-            .arg(parent)
-            .spawn()
+        spawn_and_reap(Command::new("xdg-open").arg(parent))
             .map_err(|e| format!("Failed to open file manager: {}", e))?;
     }
 
@@ -156,6 +157,14 @@ fn is_spotify_id(id: &str) -> bool {
     !id.is_empty() && id.chars().all(|c| c.is_ascii_alphanumeric())
 }
 
+fn is_supported_deezer_kind(segment: &str) -> bool {
+    matches!(segment, "track" | "album" | "artist" | "playlist")
+}
+
+fn is_locale_segment(segment: &str) -> bool {
+    segment.len() == 2 && segment.chars().all(|c| c.is_ascii_alphabetic())
+}
+
 #[cfg(test)]
 mod tests {
     use super::parse_deezer_url;
@@ -210,12 +219,4 @@ mod tests {
         assert!(parse_deezer_url("https://example.com/track/1".to_string()).await.is_err());
         assert!(parse_deezer_url("spotify:episode:abc".to_string()).await.is_err());
     }
-}
-
-fn is_supported_deezer_kind(segment: &str) -> bool {
-    matches!(segment, "track" | "album" | "artist" | "playlist")
-}
-
-fn is_locale_segment(segment: &str) -> bool {
-    segment.len() == 2 && segment.chars().all(|c| c.is_ascii_alphabetic())
 }

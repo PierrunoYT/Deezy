@@ -7,10 +7,23 @@
 use std::io::{self, ErrorKind};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::LazyLock;
 
 use crate::settings::FolderStructure;
 
 pub const IN_PROGRESS_SUFFIX: &str = ".wavekeep.part";
+/// Longest file or folder name we create, in bytes. Filesystems allow 255;
+/// the margin leaves room for a collision suffix such as " (12)".
+const MAX_COMPONENT_BYTES: usize = 180;
+/// How much of the final file name the temporary name keeps, in bytes.
+const TEMP_NAME_PREFIX_BYTES: usize = 64;
+
+static TEMPLATE_PLACEHOLDERS: LazyLock<regex::Regex> = LazyLock::new(|| {
+    regex::Regex::new(
+        r"\{(artist|album|title|track_number|track|disc_number|disc|release_date|release_year|year)\}",
+    )
+    .expect("template placeholder pattern is valid")
+});
 
 /// The metadata a folder template can reference, independent of provider.
 #[derive(Debug, Clone, Default)]
@@ -74,10 +87,10 @@ pub fn build_download_path(
             FolderStructure::Custom => unreachable!(),
         };
 
-        return Ok(download_dir.join(clean_filename(&format!(
-            "{} - {}{}",
-            meta.artist, meta.title, ext
-        ))));
+        return Ok(download_dir.join(file_name_with_ext(
+            &format!("{} - {}", meta.artist, meta.title),
+            ext,
+        )));
     }
 
     let release_date = meta
@@ -102,16 +115,12 @@ pub fn build_download_path(
         template
     };
 
-    let placeholders = regex::Regex::new(
-        r"\{(artist|album|title|track_number|track|disc_number|disc|release_date|release_year|year)\}",
-    )
-    .map_err(|e| e.to_string())?;
     // Only template separators create directories. Metadata is substituted once
     // so names containing slashes or other placeholders stay literal.
     let mut parts = template
         .split(['/', '\\'])
         .map(|segment| {
-            let rendered = placeholders.replace_all(segment, |capture: &regex::Captures<'_>| {
+            let rendered = TEMPLATE_PLACEHOLDERS.replace_all(segment, |capture: &regex::Captures<'_>| {
                 match &capture[1] {
                     "artist" => meta.artist.as_str(),
                     "album" => meta.album.as_str(),
@@ -140,12 +149,40 @@ pub fn build_download_path(
     }
 
     let file_name = if file_name.ends_with(ext) {
-        file_name
+        clean_filename(&file_name)
     } else {
-        format!("{}{}", file_name, ext)
+        file_name_with_ext(&file_name, ext)
     };
 
-    Ok(path.join(clean_filename(&file_name)))
+    Ok(path.join(file_name))
+}
+
+/// A sanitised `stem` + `ext` file name. Names that fit are unchanged (so
+/// existing downloads are still recognised); longer ones lose the end of the
+/// stem, never the extension.
+fn file_name_with_ext(stem: &str, ext: &str) -> String {
+    let full = sanitize_unbounded(&format!("{}{}", stem, ext));
+    if !full.is_empty() && full.len() <= MAX_COMPONENT_BYTES {
+        return full;
+    }
+
+    let stem = sanitize_unbounded(stem);
+    let stem = truncate_component(&stem, MAX_COMPONENT_BYTES.saturating_sub(ext.len()));
+    let stem = if stem.is_empty() { "_" } else { stem };
+    format!("{}{}", stem, ext)
+}
+
+/// The longest prefix of `name` within `max_bytes` that ends on a character
+/// boundary, without trailing spaces or dots (Windows drops those).
+fn truncate_component(name: &str, max_bytes: usize) -> &str {
+    if name.len() <= max_bytes {
+        return name;
+    }
+    let mut end = max_bytes;
+    while !name.is_char_boundary(end) {
+        end -= 1;
+    }
+    name[..end].trim_end_matches([' ', '.'])
 }
 
 /// Returns the path of a file already saved for this track, if any.
@@ -183,7 +220,12 @@ pub fn clean_filename(name: &str) -> String {
     }
 }
 
+/// One safe file or folder name, at most `MAX_COMPONENT_BYTES` long.
 pub fn sanitize_path_component(name: &str) -> String {
+    truncate_component(&sanitize_unbounded(name), MAX_COMPONENT_BYTES).to_string()
+}
+
+fn sanitize_unbounded(name: &str) -> String {
     let sanitized = name
         .chars()
         .filter(|c| !c.is_control())
@@ -224,24 +266,53 @@ pub fn parse_u32_from_value(val: &serde_json::Value) -> Option<u32> {
         .or_else(|| val.as_u64().and_then(|n| u32::try_from(n).ok()))
 }
 
+/// Removes a temporary download file when dropped, unless it was disarmed
+/// after the file was published. Covers early returns and panics alike.
+pub struct TempFileGuard {
+    path: Option<PathBuf>,
+}
+
+impl TempFileGuard {
+    pub fn path(&self) -> &Path {
+        self.path.as_deref().unwrap_or(Path::new(""))
+    }
+
+    /// Keeps the file: call once it has been moved to its final name.
+    pub fn disarm(&mut self) {
+        self.path = None;
+    }
+}
+
+impl Drop for TempFileGuard {
+    fn drop(&mut self) {
+        if let Some(path) = self.path.take() {
+            cleanup_temp_file(&path);
+        }
+    }
+}
+
+/// Creates a new, empty temporary file next to `download_path`. Its name is
+/// short whatever the final name is (a prefix of it, a hash of the track ID
+/// and a counter), so it never exceeds the filesystem's name limit.
 pub async fn create_temp_download_file(
     download_path: &Path,
     track_id: &str,
-) -> Result<(PathBuf, tokio::fs::File), String> {
+) -> Result<(TempFileGuard, tokio::fs::File), String> {
     let parent = download_path
         .parent()
         .ok_or("Cannot determine download directory")?;
     let file_name = download_path
         .file_name()
         .and_then(|name| name.to_str())
-        .unwrap_or("download");
-    let safe_track_id = sanitize_path_component(track_id);
+        .unwrap_or("");
+    // Sanitised again in case the cut leaves a device name such as "CON".
+    let prefix = sanitize_path_component(truncate_component(file_name, TEMP_NAME_PREFIX_BYTES));
+    let prefix = if prefix.is_empty() { "download" } else { prefix.as_str() };
+    let track_hash = format!("{:x}", md5::compute(track_id.as_bytes()));
+    let track_hash = &track_hash[..8];
 
     for counter in 0..1000 {
-        let temp_name = format!(
-            "{}.{}.{}{}",
-            file_name, safe_track_id, counter, IN_PROGRESS_SUFFIX
-        );
+        let temp_name = format!("{}.{}.{}{}", prefix, track_hash, counter, IN_PROGRESS_SUFFIX);
         let temp_path = parent.join(temp_name);
         match tokio::fs::OpenOptions::new()
             .write(true)
@@ -249,7 +320,7 @@ pub async fn create_temp_download_file(
             .open(&temp_path)
             .await
         {
-            Ok(file) => return Ok((temp_path, file)),
+            Ok(file) => return Ok((TempFileGuard { path: Some(temp_path) }, file)),
             Err(e) if e.kind() == ErrorKind::AlreadyExists => continue,
             Err(e) => return Err(format!("Cannot create temporary file: {}", e)),
         }
@@ -329,10 +400,21 @@ fn rename_noclobber(source_path: &Path, destination_path: &Path) -> io::Result<(
 
 /// Rename `source_path` to `destination_path`, failing with `AlreadyExists`
 /// instead of replacing an existing file. Only used where hard links are
-/// unsupported, which also rules out RENAME_NOREPLACE on most such volumes, so
-/// the existence check and rename are separate steps.
+/// unsupported. Linux tries an atomic RENAME_NOREPLACE first; elsewhere, or
+/// when the filesystem refuses it, the existence check and rename are separate
+/// steps, serialised so two downloads in this process cannot both pass the
+/// check for the same name.
 #[cfg(not(windows))]
 fn rename_noclobber(source_path: &Path, destination_path: &Path) -> io::Result<()> {
+    static RENAME_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    if let Some(result) = rename_noreplace(source_path, destination_path) {
+        return result;
+    }
+
+    let _guard = RENAME_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     if std::fs::symlink_metadata(destination_path).is_ok() {
         return Err(io::Error::new(
             ErrorKind::AlreadyExists,
@@ -340,6 +422,47 @@ fn rename_noclobber(source_path: &Path, destination_path: &Path) -> io::Result<(
         ));
     }
     std::fs::rename(source_path, destination_path)
+}
+
+/// Atomic no-replace rename. `None` when the kernel or filesystem does not
+/// support it, so the caller falls back.
+#[cfg(all(target_os = "linux", target_env = "gnu"))]
+fn rename_noreplace(source_path: &Path, destination_path: &Path) -> Option<io::Result<()>> {
+    use std::ffi::CString;
+    use std::os::unix::ffi::OsStrExt;
+
+    let (Ok(source), Ok(destination)) = (
+        CString::new(source_path.as_os_str().as_bytes()),
+        CString::new(destination_path.as_os_str().as_bytes()),
+    ) else {
+        return Some(Err(io::Error::new(
+            ErrorKind::InvalidInput,
+            "path contains a NUL byte",
+        )));
+    };
+    // SAFETY: both pointers are NUL-terminated strings that outlive the call.
+    let result = unsafe {
+        libc::renameat2(
+            libc::AT_FDCWD,
+            source.as_ptr(),
+            libc::AT_FDCWD,
+            destination.as_ptr(),
+            libc::RENAME_NOREPLACE,
+        )
+    };
+    if result == 0 {
+        return Some(Ok(()));
+    }
+    let error = io::Error::last_os_error();
+    match error.raw_os_error() {
+        Some(libc::EINVAL) | Some(libc::ENOSYS) | Some(libc::EOPNOTSUPP) => None,
+        _ => Some(Err(error)),
+    }
+}
+
+#[cfg(all(not(windows), not(all(target_os = "linux", target_env = "gnu"))))]
+fn rename_noreplace(_source_path: &Path, _destination_path: &Path) -> Option<io::Result<()>> {
+    None
 }
 
 pub fn cleanup_temp_file(path: &Path) {
@@ -353,8 +476,9 @@ pub async fn cleanup_temp_file_async(path: &Path) {
 #[cfg(test)]
 mod tests {
     use super::{
-        build_download_path, finalize_download_file, find_existing_download, parse_u32_from_value,
-        rename_noclobber, sanitize_path_component, TrackPathMeta,
+        build_download_path, create_temp_download_file, finalize_download_file,
+        find_existing_download, parse_u32_from_value, rename_noclobber, sanitize_path_component,
+        TrackPathMeta, IN_PROGRESS_SUFFIX, MAX_COMPONENT_BYTES,
     };
     use crate::settings::FolderStructure;
     use std::io::ErrorKind;
@@ -417,6 +541,84 @@ mod tests {
         }
         assert_eq!(sanitize_path_component(" Song\n\t. "), "Song");
         assert_eq!(sanitize_path_component("COM10"), "COM10");
+    }
+
+    #[test]
+    fn long_components_are_cut_at_a_character_boundary() {
+        // "a" then two-byte characters: byte 180 falls inside one of them.
+        let name = format!("a{}", "é".repeat(200));
+        let cut = sanitize_path_component(&name);
+        assert_eq!(cut.len(), 179);
+        assert!(name.starts_with(&cut));
+
+        // A cut that ends in a space or dot is trimmed again.
+        let name = format!("{} {}", "a".repeat(179), "b".repeat(50));
+        assert_eq!(sanitize_path_component(&name), "a".repeat(179));
+
+        assert_eq!(sanitize_path_component("Short name"), "Short name");
+    }
+
+    #[test]
+    fn long_file_names_keep_their_extension() {
+        let title = "論".repeat(150);
+        for structure in [FolderStructure::Flat, FolderStructure::Custom] {
+            let path = build_download_path(
+                "output",
+                &structure,
+                "{artist}/{title}",
+                &meta("Artist", "Album", &title),
+                ".flac",
+            )
+            .unwrap();
+            let file_name = path.file_name().unwrap().to_str().unwrap();
+            assert!(file_name.ends_with(".flac"), "{file_name}");
+            assert!(file_name.len() <= MAX_COMPONENT_BYTES, "{}", file_name.len());
+        }
+
+        // Names that already fit are unchanged, so existing files still match.
+        let path = build_download_path(
+            "output",
+            &FolderStructure::Flat,
+            "",
+            &meta("Artist", "Album", "Song."),
+            ".mp3",
+        )
+        .unwrap();
+        assert_eq!(path, PathBuf::from("output").join("Artist - Song..mp3"));
+    }
+
+    #[tokio::test]
+    async fn temp_names_stay_short_for_long_final_names() {
+        let dir = test_dir("temp-name");
+        let final_path = dir.join(format!("{}.flac", "é".repeat(122)));
+        let (guard, file) = create_temp_download_file(&final_path, "spotify:4uLU6hMCjMI75M1A2tKUQC")
+            .await
+            .expect("temp file should be created");
+        drop(file);
+
+        let temp_name = guard.path().file_name().unwrap().to_str().unwrap().to_string();
+        assert!(temp_name.ends_with(IN_PROGRESS_SUFFIX), "{temp_name}");
+        assert!(temp_name.len() <= 100, "{}", temp_name.len());
+        assert!(guard.path().exists());
+
+        let temp_path = guard.path().to_path_buf();
+        drop(guard);
+        assert!(!temp_path.exists(), "dropping the guard removes the file");
+        std::fs::remove_dir_all(dir).expect("test directory should be removed");
+    }
+
+    #[tokio::test]
+    async fn a_disarmed_temp_guard_keeps_the_file() {
+        let dir = test_dir("temp-disarm");
+        let (mut guard, file) = create_temp_download_file(&dir.join("Song.mp3"), "42")
+            .await
+            .expect("temp file should be created");
+        drop(file);
+        let temp_path = guard.path().to_path_buf();
+        guard.disarm();
+        drop(guard);
+        assert!(temp_path.exists());
+        std::fs::remove_dir_all(dir).expect("test directory should be removed");
     }
 
     #[test]

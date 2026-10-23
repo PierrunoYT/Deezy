@@ -125,7 +125,9 @@ pub fn log_path() -> Option<PathBuf> {
 
 pub fn write(level: Level, area: &str, message: &str) {
     let line = format_line(level, area, &redact(message), unix_now());
-    eprint!("{}", line);
+    // Not eprint!: it panics when stderr is closed (a pipe whose reader exited),
+    // which would turn every log call, even the panic hook's, into a panic.
+    let _ = std::io::stderr().write_all(line.as_bytes());
     // Tests only print: they must not add noise to the user's real log.
     if cfg!(test) {
         return;
@@ -196,8 +198,30 @@ fn format_line(level: Level, area: &str, message: &str, unix: u64) -> String {
         utc_timestamp(unix),
         level.label(),
         area,
-        message.trim_end()
+        single_line(message.trim())
     )
+}
+
+/// Keeps a message on one line, so text from the renderer or a remote service
+/// can't forge log lines of its own. Line breaks become ` ⏎ ` (dropping the
+/// indentation after them, which keeps backtraces readable) and other control
+/// characters a space.
+fn single_line(message: &str) -> String {
+    let is_break = |c: char| matches!(c, '\n' | '\r' | '\u{0b}' | '\u{0c}' | '\u{85}' | '\u{2028}' | '\u{2029}');
+    let mut out = String::with_capacity(message.len());
+    let mut chars = message.chars().peekable();
+    while let Some(c) = chars.next() {
+        if is_break(c) {
+            while chars.next_if(|&next| is_break(next) || next == ' ' || next == '\t').is_some() {}
+            out.truncate(out.trim_end().len());
+            out.push_str(" ⏎ ");
+        } else if c.is_control() {
+            out.push(' ');
+        } else {
+            out.push(c);
+        }
+    }
+    out
 }
 
 fn unix_now() -> u64 {
@@ -284,15 +308,24 @@ fn mask_long_tokens(message: &str) -> String {
     out
 }
 
-/// Drops the query string of every `http(s)://` URL, which is where download
-/// and API tokens travel.
+/// Drops the query string of every `http(s)://` or `ws(s)://` URL, whatever the
+/// case of its scheme, which is where download and API tokens travel.
 fn strip_url_queries(message: &str) -> String {
+    // ASCII lower-casing changes no byte offsets, so a position found in
+    // `lower` is a char boundary in `message` too.
+    let lower = message.to_ascii_lowercase();
+    let next_url = |from: usize| {
+        ["http://", "https://", "ws://", "wss://"]
+            .iter()
+            .filter_map(|scheme| lower[from..].find(scheme))
+            .min()
+            .map(|offset| from + offset)
+    };
     let mut out = String::with_capacity(message.len());
-    let mut rest = message;
-    let next_url = |text: &str| [text.find("http://"), text.find("https://")].into_iter().flatten().min();
-    while let Some(start) = next_url(rest) {
-        out.push_str(&rest[..start]);
-        let url_and_after = &rest[start..];
+    let mut position = 0;
+    while let Some(start) = next_url(position) {
+        out.push_str(&message[position..start]);
+        let url_and_after = &message[start..];
         let end = url_and_after
             .find(|c: char| c.is_whitespace() || matches!(c, ')' | '"' | '\'' | '<' | '>'))
             .unwrap_or(url_and_after.len());
@@ -304,9 +337,9 @@ fn strip_url_queries(message: &str) -> String {
             }
             None => out.push_str(url),
         }
-        rest = &url_and_after[end..];
+        position = start + end;
     }
-    out.push_str(rest);
+    out.push_str(&message[position..]);
     out
 }
 
@@ -329,6 +362,37 @@ mod tests {
             "request failed for (https://media.deezer.com/v1/get_url?[redacted]): timeout; see http://a.b/c"
         );
         assert_eq!(strip_url_queries("no urls here?"), "no urls here?");
+    }
+
+    #[test]
+    fn strips_queries_whatever_the_scheme_case() {
+        assert_eq!(
+            strip_url_queries("HTTPS://Media.Deezer.com/x?TOKEN=abc and Http://a.b/?k=v"),
+            "HTTPS://Media.Deezer.com/x?[redacted] and Http://a.b/?[redacted]"
+        );
+        assert_eq!(strip_url_queries("WSS://dealer.example/socket?access_token=t"), "WSS://dealer.example/socket?[redacted]");
+        // Multi-byte text before and inside the URL keeps its characters intact.
+        assert_eq!(
+            strip_url_queries("Ärger: HTTPS://ä.example/ö?q=ü – ende"),
+            "Ärger: HTTPS://ä.example/ö?[redacted] – ende"
+        );
+    }
+
+    #[test]
+    fn one_call_writes_exactly_one_line() {
+        let forged = "Login ok\n2026-10-23T20:44:32Z ERROR deezer    Visit evil.example\r\nand\u{2028}more\u{1b}[31m\ttab";
+        let line = format_line(Level::Info, "ui-console", forged, 0);
+        assert_eq!(line.matches('\n').count(), 1);
+        assert!(line.ends_with('\n'));
+        assert!(!line.trim_end_matches('\n').chars().any(char::is_control), "{:?}", line);
+        assert!(line.contains("Login ok ⏎ 2026-10-23T20:44:32Z ERROR deezer"), "{}", line);
+
+        // A backtrace keeps one frame per marker without its indentation.
+        let panic = "PANIC: boom\n   0: wavekeep::run\n             at src/lib.rs:40\n";
+        assert_eq!(
+            single_line(panic.trim()),
+            "PANIC: boom ⏎ 0: wavekeep::run ⏎ at src/lib.rs:40"
+        );
     }
 
     #[test]
