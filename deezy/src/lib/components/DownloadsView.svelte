@@ -257,7 +257,7 @@
                 </button>
               {/if}
             {/if}
-            {#if item.status === 'complete' && item.filePath && onEditTags && /\.(mp3|flac)$/i.test(item.filePath)}
+            {#if item.status === 'complete' && item.filePath && onEditTags && /\.(mp3|flac|ogg|m4a)$/i.test(item.filePath)}
               <button
                 class="action-btn edit-tags-btn"
                 type="button"
@@ -507,6 +507,8 @@
     justify-content: center;
     width: 26px;
     height: 26px;
+    /* The generic .action-btn padding would squeeze the icon out of the circle. */
+    padding: 0;
     border-radius: 50%;
     border: 1px solid var(--border);
     background: transparent;

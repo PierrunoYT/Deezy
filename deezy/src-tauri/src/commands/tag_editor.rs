@@ -5,7 +5,7 @@ const MAX_AUDIO_FILE_BYTES: u64 = 1024 * 1024 * 1024;
 
 // ── Tag Editor ────────────────────────────────────────────────────────────────
 
-/// Open a file picker limited to MP3 and FLAC files.
+/// Open a file picker limited to MP3, FLAC, OGG and M4A files.
 #[tauri::command]
 pub async fn pick_audio_file(
     state: tauri::State<'_, AppState>,
@@ -16,7 +16,7 @@ pub async fn pick_audio_file(
     app.dialog()
         .file()
         .set_title("Select Audio File")
-        .add_filter("Audio Files", &["mp3", "flac"])
+        .add_filter("Audio Files", &["mp3", "flac", "ogg", "m4a"])
         .pick_file(move |file_path| {
             let _ = tx.send(file_path.map(|p| p.to_string()));
         });
@@ -188,8 +188,158 @@ fn read_file_tags_blocking(filePath: String) -> Result<FileTagData, String> {
                 genre, label, comment, cover_data, cover_mime,
             })
         }
+        "ogg" | "m4a" => read_lofty_tags(path, filePath.clone(), &ext),
         _ => Err(format!("Unsupported file format: {}", ext)),
     }
+}
+
+/// Read tags from an OGG Vorbis or M4A file, the formats Spotify delivers that
+/// the `id3` and `metaflac` paths above cannot handle.
+fn read_lofty_tags(
+    path: &std::path::Path,
+    file_path: String,
+    format: &str,
+) -> Result<FileTagData, String> {
+    use base64::Engine as _;
+    use base64::engine::general_purpose::STANDARD as B64;
+    use lofty::file::TaggedFileExt;
+    use lofty::tag::{Accessor, ItemKey};
+
+    let tagged = lofty::read_from_path(path)
+        .map_err(|e| format!("Failed to read {} tags: {}", format.to_uppercase(), e))?;
+    let Some(tag) = tagged.primary_tag().or_else(|| tagged.first_tag()) else {
+        return Ok(FileTagData {
+            file_path,
+            format: format.to_string(),
+            title: None, artist: None, album: None, album_artist: None,
+            year: None, track: None, total_tracks: None, disc: None, total_discs: None,
+            genre: None, label: None, comment: None, cover_data: None, cover_mime: None,
+        });
+    };
+
+    let text = |key: ItemKey| tag.get_string(key).map(str::to_string);
+    let (cover_data, cover_mime) = lofty_shown_cover(tag)
+        .filter(|p| p.data().len() as u64 <= MAX_COVER_ART_BYTES)
+        .map(|p| (
+            Some(B64.encode(p.data())),
+            p.mime_type().map(|m| m.as_str().to_string()),
+        ))
+        .unwrap_or((None, None));
+
+    Ok(FileTagData {
+        file_path,
+        format: format.to_string(),
+        title: tag.title().map(|s| s.to_string()),
+        artist: tag.artist().map(|s| s.to_string()),
+        album: tag.album().map(|s| s.to_string()),
+        album_artist: text(ItemKey::AlbumArtist),
+        year: text(ItemKey::RecordingDate).as_deref().and_then(year_of_date),
+        track: tag.track(),
+        total_tracks: tag.track_total(),
+        disc: tag.disk(),
+        total_discs: tag.disk_total(),
+        genre: tag.genre().map(|s| s.to_string()),
+        label: text(ItemKey::Label),
+        comment: tag.comment().map(|s| s.to_string()),
+        cover_data,
+        cover_mime,
+    })
+}
+
+/// Write the editor's fields to an OGG Vorbis or M4A file.
+fn write_lofty_tags(
+    path: &std::path::Path,
+    ext: &str,
+    tags: &WriteTagData,
+    new_cover: Option<Vec<u8>>,
+) -> Result<(), String> {
+    use lofty::config::WriteOptions;
+    use lofty::file::{AudioFile, TaggedFileExt};
+    use lofty::picture::{MimeType, Picture, PictureType};
+    use lofty::tag::{Accessor, ItemKey, Tag, TagType};
+
+    // Never write over a file we couldn't parse.
+    let mut tagged = lofty::read_from_path(path)
+        .map_err(|e| format!("Failed to read existing tags; not saving to avoid data loss: {}", e))?;
+
+    let tag_type = if ext == "m4a" { TagType::Mp4Ilst } else { TagType::VorbisComments };
+    if tagged.primary_tag_mut().is_none() {
+        tagged.insert_tag(Tag::new(tag_type));
+    }
+    let tag = tagged
+        .primary_tag_mut()
+        .ok_or("Audio file does not accept tags")?;
+
+    match non_empty(&tags.title)  { Some(v) => tag.set_title(v.to_string()),   None => tag.remove_title() }
+    match non_empty(&tags.artist) { Some(v) => tag.set_artist(v.to_string()),  None => tag.remove_artist() }
+    match non_empty(&tags.album)  { Some(v) => tag.set_album(v.to_string()),   None => tag.remove_album() }
+    match non_empty(&tags.genre)  { Some(v) => tag.set_genre(v.to_string()),   None => tag.remove_genre() }
+    match non_empty(&tags.comment){ Some(v) => tag.set_comment(v.to_string()), None => tag.remove_comment() }
+
+    for (key, value) in [
+        (ItemKey::AlbumArtist, non_empty(&tags.album_artist)),
+        (ItemKey::Label, non_empty(&tags.label)),
+    ] {
+        tag.remove_key(key);
+        if let Some(v) = value {
+            tag.insert_text(key, v.to_string());
+        }
+    }
+
+    tag.remove_track();
+    tag.remove_track_total();
+    if let Some(n) = tags.track {
+        tag.set_track(n);
+        if let Some(total) = tags.total_tracks { tag.set_track_total(total); }
+    }
+    tag.remove_disk();
+    tag.remove_disk_total();
+    if let Some(n) = tags.disc {
+        tag.set_disk(n);
+        if let Some(total) = tags.total_discs { tag.set_disk_total(total); }
+    }
+
+    // The editor only exposes the year. Keep a full date such as "2023-05-01"
+    // when its year is unchanged.
+    let existing_year = tag
+        .get_string(ItemKey::RecordingDate)
+        .and_then(year_of_date);
+    if tags.year != existing_year {
+        tag.remove_key(ItemKey::RecordingDate);
+        if let Some(v) = tags.year {
+            tag.insert_text(ItemKey::RecordingDate, v.to_string());
+        }
+    }
+
+    let shown_type = lofty_shown_cover(tag).map(|p| p.pic_type());
+    if tags.remove_cover {
+        if let Some(t) = shown_type { tag.remove_picture_type(t); }
+    } else if let Some(cover_bytes) = new_cover {
+        let mime = match detect_image_mime(&cover_bytes)?.as_str() {
+            "image/png" => MimeType::Png,
+            _ => MimeType::Jpeg,
+        };
+        if let Some(t) = shown_type { tag.remove_picture_type(t); }
+        tag.push_picture(
+            Picture::unchecked(cover_bytes)
+                .pic_type(PictureType::CoverFront)
+                .mime_type(mime)
+                .build(),
+        );
+    }
+
+    tagged
+        .save_to_path(path, WriteOptions::default())
+        .map_err(|e| format!("Failed to write {} tags: {}", ext.to_uppercase(), e))
+}
+
+/// The picture the editor shows: the front cover, or else the first picture.
+fn lofty_shown_cover(tag: &lofty::tag::Tag) -> Option<&lofty::picture::Picture> {
+    use lofty::picture::PictureType;
+    tag.pictures()
+        .iter()
+        .find(|p| p.pic_type() == PictureType::CoverFront)
+        .or_else(|| tag.pictures().first())
 }
 
 /// Write metadata tags to an MP3 or FLAC file.
@@ -351,6 +501,7 @@ fn write_file_tags_blocking(filePath: String, tags: WriteTagData) -> Result<(), 
             tag.write_to_path(path)
                 .map_err(|e| format!("Failed to write FLAC tags: {}", e))?;
         }
+        "ogg" | "m4a" => write_lofty_tags(path, &ext, &tags, new_cover)?,
         _ => return Err(format!("Unsupported file format: {}", ext)),
     }
 

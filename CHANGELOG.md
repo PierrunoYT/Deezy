@@ -15,6 +15,10 @@ All notable changes to Deezy are documented here.
 
 ### Fixed
 
+- **Spotify audio was not decrypted** — Downloaded Spotify files were saved still encrypted (and with Spotify's header), so they could not be played or tagged, and every download showed a `Tag read error: failed to parse file` warning. Downloads now request the track's audio key, decrypt the stream, and drop Spotify's header. Files downloaded by earlier builds are unplayable: delete them and download again ("Skip existing files" would otherwise skip them).
+- **Spotify tags** — Tags are now sniffed from the file content instead of the temporary `.part` extension, so OGG and M4A downloads are tagged.
+- **Tag editor for Spotify files** — The Tag Editor now reads and writes OGG and M4A files, and the Downloads view offers it for them.
+- **Download action buttons** — The retry and edit-tags buttons rendered as empty circles because the generic button padding squeezed the icon out.
 - **Spotify downloads with a custom Client ID** — Downloads failed with `400 Bad Request` on track metadata once a custom Client ID was saved, because Spotify only accepts AP metadata requests from the default ID. The AP session (metadata and audio) now always uses the default ID, and the custom ID is used only for the Web API, so search uses your own quota while downloads keep working. Connecting with a custom ID opens the browser login twice. The second login waits briefly, and the success page no longer requests a favicon from the shared callback port; this prevented `Auth code param not found in URI …/favicon.ico` errors.
 - **Spotify token handling** — Concurrent Web API requests no longer refresh the same token at once, a stored token the AP rejects is refreshed once before asking for a new login, a rate limit with a non-JSON body is still reported as one, and a custom Client ID token that is missing or expired is logged instead of silently falling back to the shared default.
 - **Spotify downloads** — Each download now makes one AP metadata request instead of two, and `deezy-debug.log` restarts after 1 MB instead of growing forever.

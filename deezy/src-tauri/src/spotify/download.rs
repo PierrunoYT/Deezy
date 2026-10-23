@@ -2,8 +2,8 @@ use std::io::Read;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-use librespot_audio::AudioFile;
-use librespot_core::FileId;
+use librespot_audio::{AudioDecrypt, AudioFile};
+use librespot_core::{FileId, SpotifyId};
 use librespot_metadata::audio::file::{AudioFileFormat, AudioFiles};
 use tauri::Emitter;
 use tokio::io::AsyncWriteExt;
@@ -22,6 +22,9 @@ const READ_CHUNK: usize = 128 * 1024;
 /// Ask librespot to fetch well ahead of playback speed; we are not playing.
 const FETCH_RATE: usize = 10 * 1024 * 1024;
 const MAX_COVER_BYTES: usize = 20 * 1024 * 1024;
+/// Length of the header Spotify puts in front of the audio (librespot's
+/// `SPOTIFY_OGG_HEADER_END`).
+const SPOTIFY_HEADER_LEN: usize = 0xa7;
 /// Formats that count as "already downloaded" at the destination.
 const AUDIO_EXTENSIONS: [&str; 4] = [".ogg", ".flac", ".mp3", ".m4a"];
 
@@ -117,10 +120,24 @@ pub async fn download_track(
 
     emit_progress(app, track_key, &track.title, 5.0, "downloading");
 
+    // The CDN stream is AES-CTR encrypted; the key comes from the AP session.
+    let spotify_id = SpotifyId::from_base62(id)
+        .map_err(|e| format!("Invalid Spotify track id: {:?}", e))?;
+    let audio_key = client
+        .session
+        .audio_key()
+        .request(spotify_id, file_id)
+        .await
+        .map_err(|e| {
+            debug_log(&format!("audio key request failed: {:?}", e));
+            format!("Spotify audio key failed: {}", e)
+        })?;
+    debug_log("audio key received");
+
     let (temp_path, mut file) = create_temp_download_file(&download_path, track_key).await?;
     debug_log(&format!("opening audio file, temp: {}", temp_path.display()));
 
-    let mut audio = match AudioFile::open(&client.session, file_id, FETCH_RATE).await {
+    let encrypted = match AudioFile::open(&client.session, file_id, FETCH_RATE).await {
         Ok(audio) => audio,
         Err(e) => {
             debug_log(&format!("AudioFile::open failed: {:?}", e));
@@ -130,14 +147,38 @@ pub async fn download_track(
         }
     };
 
-    let total_size = audio
+    let total_size = encrypted
         .get_stream_loader_controller()
         .map(|controller| controller.len() as u64)
         .unwrap_or(0);
     debug_log(&format!("audio opened, total size: {} bytes", total_size));
+    let mut audio = AudioDecrypt::new(Some(audio_key), encrypted);
 
     let mut buffer = vec![0u8; READ_CHUNK];
     let mut downloaded = 0u64;
+
+    // Spotify prepends a short non-standard header to the decrypted stream
+    // (librespot skips the same number of bytes before decoding). Read enough
+    // to find where the real audio starts, then write from there.
+    let mut head = vec![0u8; SPOTIFY_HEADER_LEN + 4];
+    if let Err(e) = tokio::task::block_in_place(|| audio.read_exact(&mut head)) {
+        debug_log(&format!("stream header read failed: {:?}", e));
+        drop(file);
+        cleanup_temp_file_async(&temp_path).await;
+        return Err(format!("Spotify stream read failed: {}", e));
+    }
+    let start = audio_start(&head, ext);
+    debug_log(&format!(
+        "decrypted head: {:02x?}, audio starts at byte {}",
+        &head[..8],
+        start
+    ));
+    if let Err(e) = file.write_all(&head[start..]).await {
+        drop(file);
+        cleanup_temp_file_async(&temp_path).await;
+        return Err(e.to_string());
+    }
+    downloaded += (head.len() - start) as u64;
 
     loop {
         if cancel_flag.load(Ordering::Relaxed) {
@@ -146,7 +187,7 @@ pub async fn download_track(
             return Ok(canceled_result(quality, &actual_quality));
         }
 
-        // `AudioFile` is a blocking reader backed by librespot's stream loader.
+        // `AudioDecrypt` wraps a blocking `AudioFile` backed by librespot's stream loader.
         let read = tokio::task::block_in_place(|| audio.read(&mut buffer));
         let read = match read {
             Ok(0) => break,
@@ -261,6 +302,42 @@ pub async fn download_track(
         actual_quality,
         status: "complete".to_string(),
     })
+}
+
+/// Whether `bytes` begins like an OGG, FLAC, MP3 or MP4 stream.
+fn is_audio_magic(bytes: &[u8]) -> bool {
+    bytes.starts_with(b"OggS")
+        || bytes.starts_with(b"fLaC")
+        || bytes.starts_with(b"ID3")
+        || (bytes.len() >= 2 && bytes[0] == 0xff && bytes[1] & 0xe0 == 0xe0)
+        || (bytes.len() >= 8 && &bytes[4..8] == b"ftyp")
+}
+
+/// Where the real audio begins in `head` (the first bytes of the decrypted
+/// stream). OGG files carry Spotify's header first, so that offset is tried
+/// first there; other formats are tried at 0 first. Falls back by extension
+/// when neither offset looks like audio.
+fn audio_start(head: &[u8], ext: &str) -> usize {
+    let after_header = head
+        .get(SPOTIFY_HEADER_LEN..)
+        .is_some_and(is_audio_magic);
+    let at_start = is_audio_magic(head);
+
+    if ext == ".ogg" {
+        if after_header {
+            SPOTIFY_HEADER_LEN
+        } else if at_start {
+            0
+        } else {
+            SPOTIFY_HEADER_LEN
+        }
+    } else if at_start {
+        0
+    } else if after_header {
+        SPOTIFY_HEADER_LEN
+    } else {
+        0
+    }
 }
 
 fn canceled_result(quality: &str, actual_quality: &str) -> DownloadResult {
@@ -400,4 +477,49 @@ fn emit_progress(
             status: status.to_string(),
         },
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn head_with(at: usize, magic: &[u8]) -> Vec<u8> {
+        let mut head = vec![0x11u8; SPOTIFY_HEADER_LEN + 4];
+        head[at..at + magic.len()].copy_from_slice(magic);
+        head
+    }
+
+    #[test]
+    fn ogg_skips_the_spotify_header() {
+        let mut head = head_with(0, b"OggS");
+        head[SPOTIFY_HEADER_LEN..].copy_from_slice(b"OggS");
+        assert_eq!(audio_start(&head, ".ogg"), SPOTIFY_HEADER_LEN);
+    }
+
+    #[test]
+    fn ogg_without_the_header_starts_at_zero() {
+        assert_eq!(audio_start(&head_with(0, b"OggS"), ".ogg"), 0);
+    }
+
+    #[test]
+    fn unrecognised_ogg_falls_back_to_the_header_length() {
+        assert_eq!(audio_start(&vec![0x11u8; SPOTIFY_HEADER_LEN + 4], ".ogg"), SPOTIFY_HEADER_LEN);
+    }
+
+    #[test]
+    fn other_formats_prefer_zero_and_then_the_header() {
+        assert_eq!(audio_start(&head_with(0, b"fLaC"), ".flac"), 0);
+        assert_eq!(audio_start(&head_with(0, b"ID3\x04"), ".mp3"), 0);
+        let mut head = vec![0x11u8; SPOTIFY_HEADER_LEN + 4];
+        head[SPOTIFY_HEADER_LEN..].copy_from_slice(b"fLaC");
+        assert_eq!(audio_start(&head, ".flac"), SPOTIFY_HEADER_LEN);
+        assert_eq!(audio_start(&vec![0x11u8; SPOTIFY_HEADER_LEN + 4], ".m4a"), 0);
+    }
+
+    #[test]
+    fn recognises_mp4_and_mp3_frames() {
+        assert!(is_audio_magic(b"\x00\x00\x00\x20ftypM4A "));
+        assert!(is_audio_magic(&[0xff, 0xfb, 0x90, 0x00]));
+        assert!(!is_audio_magic(&[0x1a, 0xec, 0xe8, 0x3b]));
+    }
 }

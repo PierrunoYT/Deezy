@@ -43,7 +43,7 @@ A modern desktop Deezer and Spotify downloader. Search for tracks, albums, artis
 - **Quality options** – Deezer MP3 128, MP3 320, or FLAC; Spotify 96/160/320 kbps or lossless FLAC, with format fallback
 - **Full metadata** – Title, artist, album, album artist, year, track and disc number, and high-resolution cover art embedded
 - **Folder structure** – Organize downloads as Flat, Artist/Track, Artist/Album/Track, Album/Track, or with a custom template
-- **Tag editor** – Edit metadata and cover art on any local MP3 or FLAC file; files with an unreadable tag are reported and left untouched instead of being overwritten
+- **Tag editor** – Edit metadata and cover art on any local MP3, FLAC, OGG, or M4A file (including Spotify downloads); files with an unreadable tag are reported and left untouched instead of being overwritten
 - **Download history** – Persistent history with CSV/JSON export and open-in-file-manager
 - **Themes** – Light, Dark, System, and fully custom JSON themes
 - **Internationalization** – English, Spanish, French, German, Portuguese, and Italian
