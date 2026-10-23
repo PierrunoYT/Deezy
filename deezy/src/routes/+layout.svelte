@@ -16,6 +16,8 @@
     type DownloadStatus,
     notificationsEnabled,
     downloadDelaySeconds,
+    maxConcurrentDownloads,
+    DEFAULT_MAX_CONCURRENT_DOWNLOADS,
     type Theme,
     type AppSettings
   } from '$lib/stores';
@@ -143,6 +145,7 @@
       notificationManager.setEnabled(notificationsOn);
 
       downloadDelaySeconds.set(settings.download_delay_seconds ?? 0);
+      maxConcurrentDownloads.set(settings.max_concurrent_downloads ?? DEFAULT_MAX_CONCURRENT_DOWNLOADS);
 
       const savedLocale = settings.locale || 'en';
       await initI18n(savedLocale);

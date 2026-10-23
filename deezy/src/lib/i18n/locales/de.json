@@ -21,7 +21,9 @@
       "tracks": "Titel",
       "albums": "Alben",
       "artists": "Künstler",
-      "playlists": "Playlists"
+      "playlists": "Playlists",
+      "loved": "Lieblingssongs",
+      "myPlaylists": "Meine Playlists"
     },
     "status": {
       "searching": "Suche läuft...",
@@ -63,6 +65,11 @@
       "loadingTracks": "Playlist-Titel werden geladen...",
       "noTracks": "Keine Titel in dieser Playlist gefunden.",
       "back": "Zurück zu Ergebnissen"
+    },
+    "library": {
+      "loading": "Ihre Bibliothek wird geladen...",
+      "noLovedTracks": "Sie haben noch keine Lieblingssongs.",
+      "noPlaylists": "Sie haben noch keine Playlists."
     },
     "artistCard": {
       "albums": "{count, plural, =1 {1 Album} other {# Alben}}",
@@ -212,6 +219,11 @@
       "hint": "Vor jedem Download wird im Download-Ordner nach einer Datei mit gleichem Namen (MP3 oder FLAC) gesucht. Wird sie gefunden, wird der Titel übersprungen – auch nachdem der Download-Verlauf gelöscht wurde.",
       "enabled": "Vorhandene Dateien überspringen",
       "disabled": "Immer herunterladen"
+    },
+    "concurrentDownloads": {
+      "label": "Gleichzeitige Downloads",
+      "hint": "Wie viele Titel gleichzeitig heruntergeladen werden. Niedrigere Werte schonen Ihre Verbindung; das Geschwindigkeitslimit unten gilt für alle zusammen.",
+      "count": "{count, plural, =1 {1 gleichzeitig} other {# gleichzeitig}}"
     },
     "downloadDelay": {
       "label": "Pause zwischen Downloads",

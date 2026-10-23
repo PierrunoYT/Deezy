@@ -2,7 +2,7 @@
   import { _ } from 'svelte-i18n';
   import { formatDuration, formatFans } from '$lib/i18n/formatters';
   import type { Track } from '$lib/stores';
-  import type { AlbumResult, ArtistResult, PlaylistResult, SearchType, SelectedArtist, SelectedPlaylist } from './types';
+  import { isLibraryType, type AlbumResult, type ArtistResult, type PlaylistResult, type SearchType, type SelectedArtist, type SelectedPlaylist } from './types';
 
   interface Props {
     selectedArtist: SelectedArtist | null;
@@ -36,6 +36,8 @@
     playlistResults: PlaylistResult[];
     openPlaylist: (playlist: PlaylistResult) => Promise<void>;
     downloadPlaylistFromResult: (playlist: PlaylistResult) => Promise<void>;
+    downloadingLovedTracks: boolean;
+    downloadLovedTracks: () => Promise<void>;
   }
 
   let { selectedArtist, artistAlbums, loadingDiscography, discographyError, downloadingAlbums,
@@ -43,7 +45,8 @@
     selectedPlaylist, downloadingPlaylists, downloadPlaylist, loadingPlaylist,
     playlistError, playlistTracks, isTrackPlaying, playTrack, openArtist, downloadTrack,
     downloadStates, searching, errorMsg, searchType, results, albumResults, artistResults,
-    playlistResults, openPlaylist, downloadPlaylistFromResult }: Props = $props();
+    playlistResults, openPlaylist, downloadPlaylistFromResult, downloadingLovedTracks,
+    downloadLovedTracks }: Props = $props();
 </script>
 
 {#snippet downloadIcon()}
@@ -217,12 +220,34 @@
   <!-- Normal search results -->
   {:else}
     {#if searching}
-      <div class="status-message info"><span class="spinner"></span> {$_('search.status.searching')}</div>
+      <div class="status-message info">
+        <span class="spinner"></span>
+        {isLibraryType(searchType) ? $_('search.library.loading') : $_('search.status.searching')}
+      </div>
     {:else if errorMsg}
       <div class="status-message error">{errorMsg}</div>
     {/if}
 
     {#if searchType === 'tracks' && results.length > 0}
+      {@render trackList(results)}
+    {/if}
+
+    {#if searchType === 'loved' && !searching && results.length > 0}
+      <div class="playlist-header-actions">
+        <button
+          class="btn-download-all"
+          class:downloading={downloadingLovedTracks}
+          onclick={downloadLovedTracks}
+          disabled={downloadingLovedTracks}
+        >
+          {#if downloadingLovedTracks}
+            <span class="spinner"></span> {$_('search.playlist.adding')}
+          {:else}
+            {@render downloadIcon()}
+            {$_('search.playlist.downloadAll')} ({results.length})
+          {/if}
+        </button>
+      </div>
       {@render trackList(results)}
     {/if}
 
@@ -276,7 +301,7 @@
       </div>
     {/if}
 
-    {#if searchType === 'playlists' && playlistResults.length > 0}
+    {#if (searchType === 'playlists' || searchType === 'myPlaylists') && playlistResults.length > 0}
       <div class="results-list">
         {#each playlistResults as playlist (playlist.id)}
           <div class="album-item">

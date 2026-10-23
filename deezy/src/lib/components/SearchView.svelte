@@ -8,13 +8,15 @@
   import { audioPlayerManager } from '$lib/audioPlayer';
   import { _ } from 'svelte-i18n';
   import SearchResults from './search/SearchResults.svelte';
-  import type {
-    AlbumResult,
-    ArtistResult,
-    PlaylistResult,
-    SearchType,
-    SelectedArtist,
-    SelectedPlaylist
+  import {
+    isLibraryType,
+    type AlbumResult,
+    type ArtistResult,
+    type LibraryType,
+    type PlaylistResult,
+    type SearchType,
+    type SelectedArtist,
+    type SelectedPlaylist
   } from './search/types';
   import './search/SearchView.css';
 
@@ -30,6 +32,7 @@
   let downloadStates = $state<Map<string, string>>(new Map());
   let downloadingAlbums = $state<Set<number>>(new Set());
   let downloadingPlaylists = $state<Set<number>>(new Set());
+  let downloadingLovedTracks = $state<boolean>(false);
   let showSearchHistory = $state<boolean>(false);
   let history = $state<string[]>([]);
   let searchInputRef = $state<HTMLInputElement | undefined>(undefined);
@@ -136,7 +139,7 @@
       closePlaylist();
     } else if (selectedArtist) {
       closeArtist();
-    } else if (searchQuery) {
+    } else if (searchQuery && !isLibraryType(searchType)) {
       clearSearch();
     }
   }
@@ -226,8 +229,56 @@
     errorMsg = '';
     selectedArtist = null;
     selectedPlaylist = null;
-    if (searchQuery.trim().length >= 2) {
+    if (isLibraryType(type)) {
+      loadLibrary(type);
+    } else if (searchQuery.trim().length >= 2) {
       doSearch();
+    }
+  }
+
+  async function loadLibrary(type: LibraryType): Promise<void> {
+    if (!isLoggedIn) {
+      errorMsg = $_('search.status.loginRequired');
+      return;
+    }
+
+    const requestToken = ++activeSearchToken;
+    searching = true;
+    errorMsg = '';
+    resetResults();
+
+    try {
+      let count: number;
+      if (type === 'loved') {
+        const data = await invoke<Track[]>('get_loved_tracks');
+        if (requestToken !== activeSearchToken) return;
+        results = data;
+        count = data.length;
+      } else {
+        const data = await invoke<PlaylistResult[]>('get_user_playlists');
+        if (requestToken !== activeSearchToken) return;
+        playlistResults = data;
+        count = data.length;
+      }
+      if (count === 0) {
+        errorMsg = $_(type === 'loved' ? 'search.library.noLovedTracks' : 'search.library.noPlaylists');
+      }
+    } catch (err) {
+      if (requestToken === activeSearchToken) errorMsg = String(err);
+    } finally {
+      if (requestToken === activeSearchToken) searching = false;
+    }
+  }
+
+  async function downloadLovedTracks(): Promise<void> {
+    if (downloadingLovedTracks) return;
+    downloadingLovedTracks = true;
+    try {
+      for (const track of results) {
+        await downloadQueueManager.addToQueue(track);
+      }
+    } finally {
+      downloadingLovedTracks = false;
     }
   }
   
@@ -239,10 +290,10 @@
     }
 
     const query = searchQuery.trim();
-    if (!query) return;
+    const requestedType = searchType;
+    if (!query || isLibraryType(requestedType)) return;
 
     const requestToken = ++activeSearchToken;
-    const requestedType = searchType;
     searching = true;
     errorMsg = '';
     resetResults();
@@ -289,7 +340,7 @@
         }
       };
 
-      const resultCount = await searchHandlers[searchType]();
+      const resultCount = await searchHandlers[requestedType]();
       if (resultCount === null) {
         return;
       }
@@ -631,7 +682,16 @@
         <button class="tab-btn" class:active={searchType === 'albums'} onclick={() => switchSearchType('albums')}>{$_('search.tabs.albums')}</button>
         <button class="tab-btn" class:active={searchType === 'artists'} onclick={() => switchSearchType('artists')}>{$_('search.tabs.artists')}</button>
         <button class="tab-btn" class:active={searchType === 'playlists'} onclick={() => switchSearchType('playlists')}>{$_('search.tabs.playlists')}</button>
+        <span class="tab-divider" aria-hidden="true"></span>
+        <button class="tab-btn" class:active={searchType === 'loved'} onclick={() => switchSearchType('loved')}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 21s-7.5-4.6-9.6-9.3C.9 8.3 3 4.5 6.7 4.5c2.1 0 3.6 1.2 5.3 3.1 1.7-1.9 3.2-3.1 5.3-3.1 3.7 0 5.8 3.8 4.3 7.2C19.5 16.4 12 21 12 21z"/>
+          </svg>
+          {$_('search.tabs.loved')}
+        </button>
+        <button class="tab-btn" class:active={searchType === 'myPlaylists'} onclick={() => switchSearchType('myPlaylists')}>{$_('search.tabs.myPlaylists')}</button>
       </div>
+      {#if !isLibraryType(searchType)}
       <div class="search-bar-container">
         <div class="search-bar">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -665,7 +725,8 @@
           </div>
         {/if}
       </div>
-      
+      {/if}
+
       <!-- URL Input Section -->
       <div class="url-input-container">
         <div class="url-input-header">
@@ -739,5 +800,7 @@
     {playlistResults}
     {openPlaylist}
     {downloadPlaylistFromResult}
+    {downloadingLovedTracks}
+    {downloadLovedTracks}
   />
 </div>

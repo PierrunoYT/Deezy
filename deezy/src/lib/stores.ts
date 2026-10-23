@@ -21,6 +21,7 @@ export interface AppSettings {
   skip_existing_files: boolean;
   download_delay_seconds: number;
   download_speed_limit_kbps: number;
+  max_concurrent_downloads: number;
 }
 
 export interface ArlStorageStatus {
@@ -88,7 +89,9 @@ export interface AudioPlayerState {
   volume: number;
 }
 
-export const MAX_CONCURRENT_DOWNLOADS = 3;
+export const DEFAULT_MAX_CONCURRENT_DOWNLOADS = 3;
+/** Matches MAX_CONCURRENT_DOWNLOADS in settings.rs, which rejects larger values. */
+export const MAX_CONCURRENT_DOWNLOADS_LIMIT = 10;
 /** Matches MAX_HISTORY_ENTRIES in commands/history.rs, which rejects larger saves. */
 export const MAX_HISTORY_ENTRIES = 10_000;
 export const DEFAULT_VOLUME = 0.7;
@@ -107,6 +110,8 @@ export const theme: Writable<Theme> = writable(DEFAULT_THEME);
 export const notificationsEnabled: Writable<boolean> = writable(false);
 /** Minimum pause between the start of consecutive downloads, mirrored from settings. */
 export const downloadDelaySeconds: Writable<number> = writable(0);
+/** How many tracks may download at the same time, mirrored from settings. */
+export const maxConcurrentDownloads: Writable<number> = writable(DEFAULT_MAX_CONCURRENT_DOWNLOADS);
 export const searchHistory: Writable<string[]> = writable([]);
 export const currentLocale: Writable<string> = writable(DEFAULT_LOCALE);
 export const settingsArlDraft: Writable<string> = writable('');

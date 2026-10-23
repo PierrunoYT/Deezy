@@ -21,7 +21,9 @@
             "tracks": "Faixas",
             "albums": "Álbuns",
             "artists": "Artistas",
-            "playlists": "Playlists"
+            "playlists": "Playlists",
+            "loved": "Músicas favoritas",
+            "myPlaylists": "As minhas playlists"
         },
         "status": {
             "searching": "A pesquisar...",
@@ -63,6 +65,11 @@
             "loadingTracks": "A carregar faixas da playlist...",
             "noTracks": "Nenhuma faixa encontrada nesta playlist.",
             "back": "Voltar aos resultados"
+        },
+        "library": {
+            "loading": "A carregar a sua biblioteca...",
+            "noLovedTracks": "Ainda não tem músicas favoritas.",
+            "noPlaylists": "Ainda não tem playlists."
         },
         "artistCard": {
             "albums": "{count, plural, =1 {1 álbum} other {# álbuns}}",
@@ -212,6 +219,11 @@
             "hint": "Antes de cada transferência, procura na pasta de transferências um ficheiro com o mesmo nome (MP3 ou FLAC). Se existir, a faixa é ignorada, mesmo depois de limpar o histórico de transferências.",
             "enabled": "Ignorar ficheiros já presentes",
             "disabled": "Transferir sempre"
+        },
+        "concurrentDownloads": {
+            "label": "Transferências simultâneas",
+            "hint": "Quantas faixas são transferidas ao mesmo tempo. Valores mais baixos poupam a sua ligação; o limite de velocidade abaixo é partilhado por todas.",
+            "count": "{count, plural, =1 {1 de cada vez} other {# de cada vez}}"
         },
         "downloadDelay": {
             "label": "Pausa entre transferências",

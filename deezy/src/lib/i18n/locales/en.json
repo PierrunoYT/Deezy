@@ -21,7 +21,9 @@
       "tracks": "Tracks",
       "albums": "Albums",
       "artists": "Artists",
-      "playlists": "Playlists"
+      "playlists": "Playlists",
+      "loved": "Loved Tracks",
+      "myPlaylists": "My Playlists"
     },
     "status": {
       "searching": "Searching...",
@@ -63,6 +65,11 @@
       "loadingTracks": "Loading playlist tracks...",
       "noTracks": "No tracks found in this playlist.",
       "back": "Back to results"
+    },
+    "library": {
+      "loading": "Loading your library...",
+      "noLovedTracks": "You have no Loved Tracks yet.",
+      "noPlaylists": "You have no playlists yet."
     },
     "artistCard": {
       "albums": "{count, plural, =1 {1 album} other {# albums}}",
@@ -212,6 +219,11 @@
       "hint": "Before downloading, check the download folder for a file with the same name (MP3 or FLAC). If one is found, the track is skipped, even after the download history was cleared.",
       "enabled": "Skip files already on disk",
       "disabled": "Always download"
+    },
+    "concurrentDownloads": {
+      "label": "Simultaneous Downloads",
+      "hint": "How many tracks download at the same time. Lower values are gentler on your connection; the speed limit below is shared by all of them.",
+      "count": "{count, plural, =1 {1 at a time} other {# at a time}}"
     },
     "downloadDelay": {
       "label": "Pause Between Downloads",

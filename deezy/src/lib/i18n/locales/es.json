@@ -21,7 +21,9 @@
       "tracks": "Canciones",
       "albums": "Álbumes",
       "artists": "Artistas",
-      "playlists": "Playlists"
+      "playlists": "Playlists",
+      "loved": "Canciones favoritas",
+      "myPlaylists": "Mis playlists"
     },
     "status": {
       "searching": "Buscando...",
@@ -63,6 +65,11 @@
       "loadingTracks": "Cargando canciones de la playlist...",
       "noTracks": "No se encontraron canciones en esta playlist.",
       "back": "Volver a resultados"
+    },
+    "library": {
+      "loading": "Cargando tu biblioteca...",
+      "noLovedTracks": "Aún no tienes canciones favoritas.",
+      "noPlaylists": "Aún no tienes playlists."
     },
     "artistCard": {
       "albums": "{count, plural, =1 {1 álbum} other {# álbumes}}",
@@ -212,6 +219,11 @@
       "hint": "Antes de cada descarga, busca en la carpeta de descargas un archivo con el mismo nombre (MP3 o FLAC). Si existe, la canción se omite, incluso después de borrar el historial de descargas.",
       "enabled": "Omitir archivos ya presentes",
       "disabled": "Descargar siempre"
+    },
+    "concurrentDownloads": {
+      "label": "Descargas simultáneas",
+      "hint": "Cuántas canciones se descargan a la vez. Los valores más bajos cuidan tu conexión; el límite de velocidad de abajo se reparte entre todas.",
+      "count": "{count, plural, =1 {1 a la vez} other {# a la vez}}"
     },
     "downloadDelay": {
       "label": "Pausa entre descargas",

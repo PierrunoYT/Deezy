@@ -7,6 +7,8 @@
     theme,
     notificationsEnabled,
     downloadDelaySeconds,
+    maxConcurrentDownloads,
+    MAX_CONCURRENT_DOWNLOADS_LIMIT,
     searchHistory,
     currentLocale,
     settingsArlDraft,
@@ -43,6 +45,7 @@
   let skipExistingFiles = $state(true);
   let downloadDelay = $state($downloadDelaySeconds);
   let speedLimitKbps = $state(0);
+  let concurrentDownloads = $state($maxConcurrentDownloads);
   let selectedLocale = $state('en');
   let showArl = $state(false);
   let saving = $state(false);
@@ -57,6 +60,7 @@
   const DELAY_PRESETS = [0, 2, 5, 10, 30, 60];
   // Kilobits per second. 1411 and 320 match FLAC and MP3 320 playback speed.
   const SPEED_LIMIT_PRESETS = [0, 10000, 5000, 2000, 1411, 320];
+  const CONCURRENT_DOWNLOAD_OPTIONS = Array.from({ length: MAX_CONCURRENT_DOWNLOADS_LIMIT }, (_, i) => i + 1);
   const FLAC_PLAYBACK_KBPS = 1411;
   const MP3_PLAYBACK_KBPS = 320;
 
@@ -114,6 +118,7 @@
         skipExistingFiles = settings.skip_existing_files ?? true;
         downloadDelay = settings.download_delay_seconds ?? 0;
         speedLimitKbps = settings.download_speed_limit_kbps ?? 0;
+        concurrentDownloads = settings.max_concurrent_downloads ?? concurrentDownloads;
       } catch {
         // First run
       }
@@ -306,6 +311,15 @@
     }
   }
 
+  async function saveConcurrentDownloads(): Promise<void> {
+    maxConcurrentDownloads.set(concurrentDownloads);
+    try {
+      await updateSetting('max_concurrent_downloads', concurrentDownloads);
+    } catch (err) {
+      console.error('Failed to save simultaneous downloads setting:', err);
+    }
+  }
+
   async function saveSpeedLimit(): Promise<void> {
     try {
       await updateSetting('download_speed_limit_kbps', speedLimitKbps);
@@ -481,6 +495,18 @@
           {skipExistingFiles ? $_('settings.skipExisting.enabled') : $_('settings.skipExisting.disabled')}
         </span>
       </label>
+    </div>
+
+    <div class="form-group">
+      <label for="concurrent-downloads-select">{$_('settings.concurrentDownloads.label')}</label>
+      <p class="form-hint">
+        {$_('settings.concurrentDownloads.hint')}
+      </p>
+      <select id="concurrent-downloads-select" bind:value={concurrentDownloads} onchange={saveConcurrentDownloads}>
+        {#each CONCURRENT_DOWNLOAD_OPTIONS as count (count)}
+          <option value={count}>{$_('settings.concurrentDownloads.count', { values: { count } })}</option>
+        {/each}
+      </select>
     </div>
 
     <div class="form-group">

@@ -39,5 +39,12 @@ export interface SelectedPlaylist {
   creator: string;
 }
 
-export type SearchType = 'tracks' | 'albums' | 'artists' | 'playlists';
+export type CatalogSearchType = 'tracks' | 'albums' | 'artists' | 'playlists';
+/** Tabs that list the logged-in user's own library instead of search results. */
+export type LibraryType = 'loved' | 'myPlaylists';
+export type SearchType = CatalogSearchType | LibraryType;
+
+export function isLibraryType(type: SearchType): type is LibraryType {
+  return type === 'loved' || type === 'myPlaylists';
+}
 

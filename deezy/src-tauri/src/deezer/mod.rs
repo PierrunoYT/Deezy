@@ -29,6 +29,7 @@ pub struct DeezerClient {
 mod auth;
 mod catalog;
 mod gateway;
+mod library;
 mod media;
 
 

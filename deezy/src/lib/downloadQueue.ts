@@ -7,7 +7,7 @@ import {
   activeDownloads,
   pausedDownloads,
   downloadDelaySeconds,
-  MAX_CONCURRENT_DOWNLOADS,
+  maxConcurrentDownloads,
   MAX_HISTORY_ENTRIES,
   type Track,
   type QueuedDownload,
@@ -95,7 +95,9 @@ class DownloadQueueManager {
           break;
         }
 
-        if (this.activeCount >= MAX_CONCURRENT_DOWNLOADS) {
+        // Read on every pass so a lower limit lets active downloads finish
+        // and a higher one starts queued tracks right away.
+        if (this.activeCount >= get(maxConcurrentDownloads)) {
           await this.waitForSlot();
           continue;
         }

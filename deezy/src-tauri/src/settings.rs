@@ -8,6 +8,7 @@ const KEYRING_SERVICE: &str = "com.pierr.deezy";
 const KEYRING_USER: &str = "arl_token";
 const MAX_SETTINGS_BYTES: u64 = 1024 * 1024;
 const MAX_DOWNLOAD_DELAY_SECONDS: u32 = 3600;
+pub const MAX_CONCURRENT_DOWNLOADS: u32 = 10;
 static TEMP_FILE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -54,6 +55,9 @@ pub struct Settings {
     /// Total download bandwidth across all downloads, in kilobits per second. 0 means unlimited.
     #[serde(default)]
     pub download_speed_limit_kbps: u32,
+    /// How many tracks may download at the same time.
+    #[serde(default = "default_max_concurrent_downloads")]
+    pub max_concurrent_downloads: u32,
     /// Set on disk only when the plaintext ARL was saved with the keyring
     /// disabled (`DEEZY_NO_KEYRING`). Such a credential is newer than whatever
     /// the keyring holds; other plaintext may be stale and loses to the keyring.
@@ -63,6 +67,10 @@ pub struct Settings {
 
 fn default_true() -> bool {
     true
+}
+
+fn default_max_concurrent_downloads() -> u32 {
+    3
 }
 
 fn default_locale() -> String {
@@ -99,6 +107,7 @@ impl Default for Settings {
             skip_existing_files: true,
             download_delay_seconds: 0,
             download_speed_limit_kbps: 0,
+            max_concurrent_downloads: default_max_concurrent_downloads(),
             arl_saved_without_keyring: false,
         }
     }
@@ -461,6 +470,13 @@ impl Settings {
             return Err(format!(
                 "Pause between downloads cannot exceed {} seconds",
                 MAX_DOWNLOAD_DELAY_SECONDS
+            ));
+        }
+
+        if !(1..=MAX_CONCURRENT_DOWNLOADS).contains(&self.max_concurrent_downloads) {
+            return Err(format!(
+                "Simultaneous downloads must be between 1 and {}",
+                MAX_CONCURRENT_DOWNLOADS
             ));
         }
 

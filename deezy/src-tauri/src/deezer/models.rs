@@ -6,6 +6,9 @@ pub struct UserInfo {
     pub name: String,
     pub image: Option<String>,
     pub is_free_account: bool,
+    /// ID of the private playlist that holds the user's Loved Tracks.
+    #[serde(skip)]
+    pub loved_tracks_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

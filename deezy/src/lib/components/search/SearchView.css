@@ -13,11 +13,21 @@
   
   .search-tabs {
     display: flex;
+    flex-wrap: wrap;
     gap: 4px;
     margin-bottom: 12px;
   }
-  
+
+  .tab-divider {
+    width: 1px;
+    margin: 4px 6px;
+    background: var(--border);
+  }
+
   .tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     padding: 6px 16px;
     border: 1px solid var(--border);
     border-radius: 16px;

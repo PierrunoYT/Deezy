@@ -21,7 +21,9 @@
       "tracks": "Morceaux",
       "albums": "Albums",
       "artists": "Artistes",
-      "playlists": "Playlists"
+      "playlists": "Playlists",
+      "loved": "Coups de cœur",
+      "myPlaylists": "Mes playlists"
     },
     "status": {
       "searching": "Recherche en cours...",
@@ -63,6 +65,11 @@
       "loadingTracks": "Chargement des morceaux de la playlist...",
       "noTracks": "Aucun morceau trouvé dans cette playlist.",
       "back": "Retour aux résultats"
+    },
+    "library": {
+      "loading": "Chargement de votre bibliothèque...",
+      "noLovedTracks": "Vous n'avez encore aucun coup de cœur.",
+      "noPlaylists": "Vous n'avez encore aucune playlist."
     },
     "artistCard": {
       "albums": "{count, plural, =1 {1 album} other {# albums}}",
@@ -212,6 +219,11 @@
       "hint": "Avant chaque téléchargement, vérifie si un fichier du même nom (MP3 ou FLAC) existe déjà dans le dossier de téléchargement. Si c'est le cas, le titre est ignoré, même après l'effacement de l'historique.",
       "enabled": "Ignorer les fichiers déjà présents",
       "disabled": "Toujours télécharger"
+    },
+    "concurrentDownloads": {
+      "label": "Téléchargements simultanés",
+      "hint": "Nombre de morceaux téléchargés en même temps. Une valeur plus faible ménage votre connexion ; la limite de vitesse ci-dessous est partagée entre tous.",
+      "count": "{count, plural, =1 {1 à la fois} other {# à la fois}}"
     },
     "downloadDelay": {
       "label": "Pause entre les téléchargements",

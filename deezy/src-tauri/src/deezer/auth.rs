@@ -120,11 +120,15 @@ impl DeezerClient {
             || offer_name.contains("kostenlos")
             || (offer_name.is_empty() && has_ads);
 
+        let loved_tracks_id = extract_string_or_u64(&results["USER"]["LOVEDTRACKS_ID"])
+            .filter(|id| !id.is_empty() && id != "0");
+
         self.user = Some(UserInfo {
             id: user_id,
             name,
             image,
             is_free_account,
+            loved_tracks_id,
         });
 
         Ok(())
