@@ -285,3 +285,28 @@ fn clear_token() -> Result<(), String> {
         Err(e) => Err(format!("Failed to remove Spotify credential: {}", e)),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn setting_wins_and_is_trimmed() {
+        assert_eq!(configured_client_id("  my-client  "), "my-client");
+    }
+
+    // One test owns the environment variable so parallel tests never race on it.
+    #[test]
+    fn env_override_then_default_when_setting_is_blank() {
+        std::env::set_var("DEEZY_SPOTIFY_CLIENT_ID", " env-client ");
+        assert_eq!(configured_client_id(""), "env-client");
+        assert_eq!(configured_client_id("   "), "env-client");
+        assert_eq!(configured_client_id("setting"), "setting");
+
+        std::env::set_var("DEEZY_SPOTIFY_CLIENT_ID", "  ");
+        assert_eq!(configured_client_id(""), DEFAULT_CLIENT_ID);
+
+        std::env::remove_var("DEEZY_SPOTIFY_CLIENT_ID");
+        assert_eq!(configured_client_id(""), DEFAULT_CLIENT_ID);
+    }
+}
