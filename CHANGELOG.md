@@ -4,6 +4,10 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+---
+
+## [0.2.25] - 2026-10-23
+
 ### Added
 
 - **Loved Tracks and My Playlists** — Two new tabs next to Tracks, Albums, Artists, and Playlists list your Loved Tracks (with **Download All**) and the playlists on your profile. Private playlists can now be opened and downloaded, including from pasted links.
