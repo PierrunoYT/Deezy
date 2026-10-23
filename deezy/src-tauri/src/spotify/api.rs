@@ -155,7 +155,7 @@ impl SpotifyClient {
             Err(error) if is_rate_limited(&error) => {
                 match pathfinder::search_track_uris(self, query, limit).await {
                     Ok(uris) => ap::load_tracks(&self.session, uris).await,
-                    Err(_) => Err(error),
+                    Err(fallback) => Err(format!("{} Fallback: {}", error, fallback)),
                 }
             }
             result => result,
@@ -191,7 +191,7 @@ impl SpotifyClient {
             Err(error) if is_rate_limited(&error) => {
                 match pathfinder::search_album_uris(self, query, limit).await {
                     Ok(uris) => Ok(ap::albums_from_uris(&self.session, uris).await),
-                    Err(_) => Err(error),
+                    Err(fallback) => Err(format!("{} Fallback: {}", error, fallback)),
                 }
             }
             result => result,
@@ -231,7 +231,7 @@ impl SpotifyClient {
             Err(error) if is_rate_limited(&error) => {
                 match pathfinder::search_artist_uris(self, query, limit).await {
                     Ok(uris) => Ok(ap::artists_from_uris(&self.session, uris).await),
-                    Err(_) => Err(error),
+                    Err(fallback) => Err(format!("{} Fallback: {}", error, fallback)),
                 }
             }
             result => result,

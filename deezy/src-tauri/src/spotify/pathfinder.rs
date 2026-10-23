@@ -85,7 +85,10 @@ async fn search_uris(
         for hash in hashes {
             match query_once(client, name, hash, query, limit).await {
                 Ok(body) => return Ok(parse_uris(&body, section, kind, limit as usize)),
-                Err(error) => last_error = error,
+                Err(error) => {
+                    eprintln!("Pathfinder {} ({}…): {}", name, &hash[..8], error);
+                    last_error = error;
+                }
             }
         }
     }
@@ -142,14 +145,24 @@ async fn query_once(
         .await
         .map_err(|e| format!("request failed: {}", e))?;
     let status = response.status();
-    let value: Value = response
-        .json()
+    let text = response
+        .text()
         .await
         .map_err(|e| format!("{} (HTTP {})", e, status.as_u16()))?;
+    let value: Value = serde_json::from_str(&text).map_err(|_| {
+        let snippet: String = text.chars().take(120).collect();
+        format!("{} returned HTTP {}: {}", operation, status.as_u16(), snippet)
+    })?;
 
     // A stale hash answers 412 or a GraphQL `PersistedQueryNotFound` error.
     if !status.is_success() || value.get("errors").is_some() {
-        return Err(format!("{} rejected (HTTP {})", operation, status.as_u16()));
+        let detail = value["errors"][0]["message"].as_str().unwrap_or("no details");
+        return Err(format!(
+            "{} rejected (HTTP {}: {})",
+            operation,
+            status.as_u16(),
+            detail
+        ));
     }
     Ok(value)
 }
