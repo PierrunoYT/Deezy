@@ -8,6 +8,9 @@ use super::track_key;
 
 const API: &str = "https://api.spotify.com/v1";
 
+/// Longest `Retry-After` worth sleeping through before giving up.
+const MAX_RETRY_WAIT_SECS: u64 = 5;
+
 #[derive(Debug, Clone, Serialize)]
 pub struct SpotifyTrack {
     /// `spotify:<base62>` so the download queue can route it without a flag.
@@ -85,15 +88,15 @@ impl SpotifyClient {
                 .map_err(|e| format!("Spotify request failed: {}", e))?;
 
             let status = response.status();
-            // Spotify's 429 carries the wait in seconds; cap it so a huge
-            // Retry-After cannot freeze the UI for minutes.
+            // Spotify's 429 carries the wait in seconds. Short waits are worth
+            // retrying; a long one would freeze the UI, so it fails at once.
             let retry_after = response
                 .headers()
                 .get("retry-after")
                 .and_then(|value| value.to_str().ok())
                 .and_then(|value| value.parse::<u64>().ok())
                 .unwrap_or(1)
-                .clamp(1, 5);
+                .max(1);
             let body: Value = response
                 .json()
                 .await
@@ -105,7 +108,7 @@ impl SpotifyClient {
             }
 
             if status.as_u16() == 429 {
-                if throttled < 2 {
+                if throttled < 2 && retry_after <= MAX_RETRY_WAIT_SECS {
                     throttled += 1;
                     tokio::time::sleep(Duration::from_secs(retry_after)).await;
                     continue;
