@@ -3,9 +3,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use librespot_audio::AudioFile;
-use librespot_core::{FileId, SpotifyUri};
+use librespot_core::FileId;
 use librespot_metadata::audio::file::{AudioFileFormat, AudioFiles};
-use librespot_metadata::{Metadata, Track as ApTrack};
 use tauri::Emitter;
 use tokio::io::AsyncWriteExt;
 
@@ -42,24 +41,18 @@ pub async fn download_track(
 ) -> Result<DownloadResult, String> {
     let id = bare_track_id(track_key);
     debug_log(&format!("download start: {}", track_key));
-    let track = super::ap::track(&client.session, id).await.map_err(|e| {
-        debug_log(&format!("ap::track failed: {}", e));
-        e
-    })?;
+    // One AP request gives both the catalog metadata and the file IDs; the AP
+    // session also holds the AES key librespot uses to decrypt the stream.
+    let (track, ap_track) = super::ap::track_with_files(&client.session, id)
+        .await
+        .map_err(|e| {
+            debug_log(&format!("track metadata failed: {}", e));
+            e
+        })?;
     debug_log(&format!("track metadata ok: {} - {}", track.artist, track.title));
 
     emit_progress(app, track_key, &track.title, 0.0, "resolving");
 
-    // The Web API gives catalog metadata; the AP session gives the file IDs
-    // and the AES key used by librespot to decrypt the stream.
-    let uri = SpotifyUri::from_uri(&format!("spotify:track:{}", id))
-        .map_err(|e| format!("Invalid Spotify track id: {}", e))?;
-    let ap_track = ApTrack::get(&client.session, &uri)
-        .await
-        .map_err(|e| {
-            debug_log(&format!("ApTrack::get failed: {:?}", e));
-            format!("Spotify metadata failed: {}", e)
-        })?;
     debug_log(&format!(
         "available formats: {:?}",
         ap_track.files.iter().map(|(f, _)| *f).collect::<Vec<_>>()

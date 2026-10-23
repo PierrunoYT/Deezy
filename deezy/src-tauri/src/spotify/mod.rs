@@ -19,16 +19,23 @@ pub use auth::SpotifyClient;
 /// never collide with a numeric Deezer ID (or with a Deezer download in flight).
 pub const KEY_PREFIX: &str = "spotify:";
 
+const MAX_LOG_BYTES: u64 = 1024 * 1024;
+
 /// Prints to stderr and appends to `deezy-debug.log` in the temp dir, so the
 /// trail survives a crash that closes the console.
 pub fn debug_log(message: &str) {
     use std::io::Write;
 
     eprintln!("[deezy] {}", message);
+    let path = std::env::temp_dir().join("deezy-debug.log");
+    // Start over rather than grow forever.
+    if std::fs::metadata(&path).is_ok_and(|meta| meta.len() > MAX_LOG_BYTES) {
+        let _ = std::fs::remove_file(&path);
+    }
     if let Ok(mut file) = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
-        .open(std::env::temp_dir().join("deezy-debug.log"))
+        .open(&path)
     {
         let secs = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)

@@ -170,6 +170,20 @@ pub async fn track(session: &Session, id: &str) -> Result<SpotifyTrack, String> 
     track_from_metadata(&track)
 }
 
+/// Like `track`, but also returns the raw AP metadata, whose file IDs a download
+/// needs, so the track is fetched from the AP only once.
+pub async fn track_with_files(
+    session: &Session,
+    id: &str,
+) -> Result<(SpotifyTrack, Track), String> {
+    let uri = track_uri(id)?;
+    let raw = Track::get(session, &uri)
+        .await
+        .map_err(|e| format!("Spotify track metadata failed: {}", e))?;
+    let track = track_from_metadata(&raw)?;
+    Ok((track, raw))
+}
+
 async fn load_track(session: &Session, uri: &SpotifyUri) -> Result<SpotifyTrack, String> {
     let track = Track::get(session, uri)
         .await

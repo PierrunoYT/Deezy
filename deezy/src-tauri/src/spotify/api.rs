@@ -98,10 +98,19 @@ impl SpotifyClient {
                 .and_then(|value| value.parse::<u64>().ok())
                 .unwrap_or(1)
                 .max(1);
-            let body: Value = response
-                .json()
+            // Spotify's 429 body can be plain text; parse it leniently so a
+            // rate limit is still reported as one instead of a parse error.
+            let text = response
+                .text()
                 .await
-                .map_err(|e| format!("Spotify response parse failed: {}", e))?;
+                .map_err(|e| format!("Spotify response read failed: {}", e))?;
+            let body: Value = match serde_json::from_str(&text) {
+                Ok(value) => value,
+                Err(e) if status.is_success() => {
+                    return Err(format!("Spotify response parse failed: {}", e));
+                }
+                Err(_) => Value::Null,
+            };
 
             if status.as_u16() == 401 && !refreshed {
                 refreshed = true;

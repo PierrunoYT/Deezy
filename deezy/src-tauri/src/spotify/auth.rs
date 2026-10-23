@@ -74,6 +74,9 @@ pub struct SpotifyClient {
     pub http: reqwest::Client,
     token: RwLock<OAuthToken>,
     web: Option<WebAuth>,
+    /// Serialises refreshes: Spotify may rotate refresh tokens, so concurrent
+    /// requests must not each spend the same one.
+    refresh_gate: tokio::sync::Mutex<()>,
     pub profile: Profile,
 }
 
@@ -100,6 +103,16 @@ impl SpotifyClient {
             Some(web) => (&web.oauth, &web.token),
             None => (&self.oauth, &self.token),
         };
+        let seen_access_token = lock.read().await.access_token.clone();
+        let _gate = self.refresh_gate.lock().await;
+        {
+            // Another request refreshed while this one waited for the gate.
+            let token = lock.read().await;
+            if token.access_token != seen_access_token {
+                return Ok(token.access_token.clone());
+            }
+        }
+
         let refresh_token = lock.read().await.refresh_token.clone();
         let fresh = oauth
             .refresh_token_async(&refresh_token)
@@ -210,7 +223,31 @@ pub async fn restore(
         Some(stored.profile)
     };
     let web = restore_web(web_client_id).await;
-    connect_with_profile(oauth, token, device_id, web, profile).await.map(Some)
+
+    // A stored token that the AP rejects (for example one issued to another
+    // client ID by an older build) gets one refresh with the default client
+    // before giving up, instead of failing on every start.
+    let session = match open_session(device_id, &token.access_token).await {
+        Ok(session) => session,
+        Err(first_error) => {
+            super::debug_log(&format!(
+                "stored token rejected, trying a refresh: {}",
+                first_error
+            ));
+            match oauth.refresh_token_async(&token.refresh_token).await {
+                Ok(fresh) => {
+                    token = fresh;
+                    open_session(device_id, &token.access_token).await?
+                }
+                Err(_) => {
+                    // Not usable with the default client: ask for a fresh login.
+                    let _ = clear_token();
+                    return Ok(None);
+                }
+            }
+        }
+    };
+    finish_connect(session, oauth, token, web, profile).map(Some)
 }
 
 /// Restores the Web API credential for the user's own client ID. Without one
@@ -220,8 +257,12 @@ async fn restore_web(web_client_id: &str) -> Option<WebAuth> {
     if web_client_id == DEFAULT_CLIENT_ID {
         return None;
     }
-    let stored = load_web_token().ok().flatten()?;
+    let Some(stored) = load_web_token().ok().flatten() else {
+        super::debug_log("no stored credential for the custom Client ID; reconnect to use it");
+        return None;
+    };
     if stored.client_id != web_client_id {
+        super::debug_log("stored credential belongs to another Client ID; reconnect to use the new one");
         return None;
     }
 
@@ -234,7 +275,13 @@ async fn restore_web(web_client_id: &str) -> Option<WebAuth> {
         scopes: SCOPES.iter().map(|scope| scope.to_string()).collect(),
     };
     if token.expires_at <= Instant::now() + Duration::from_secs(60) {
-        token = oauth.refresh_token_async(&token.refresh_token).await.ok()?;
+        token = match oauth.refresh_token_async(&token.refresh_token).await {
+            Ok(fresh) => fresh,
+            Err(e) => {
+                super::debug_log(&format!("custom Client ID token refresh failed: {}", e));
+                return None;
+            }
+        };
     }
 
     Some(WebAuth {
@@ -287,21 +334,36 @@ async fn connect_with_profile(
     web: Option<WebAuth>,
     cached_profile: Option<Profile>,
 ) -> Result<Arc<SpotifyClient>, String> {
-    let http = reqwest::Client::builder()
-        .user_agent(concat!("Deezy/", env!("CARGO_PKG_VERSION")))
-        .build()
-        .map_err(|e| format!("HTTP client error: {}", e))?;
+    let session = open_session(device_id, &token.access_token).await?;
+    finish_connect(session, oauth, token, web, cached_profile)
+}
 
-    // The AP session and the Web API share the same access token.
+/// The AP session always uses the default client ID; a custom ID is only valid
+/// for the Web API (see `WebAuth`).
+async fn open_session(device_id: &str, access_token: &str) -> Result<Session, String> {
     let mut config = SessionConfig::default();
     config.device_id = device_id.to_string();
     config.client_id = DEFAULT_CLIENT_ID.to_string();
 
     let session = Session::new(config, None);
     session
-        .connect(Credentials::with_access_token(token.access_token.clone()), false)
+        .connect(Credentials::with_access_token(access_token.to_string()), false)
         .await
         .map_err(|e| format!("Spotify session failed: {}", e))?;
+    Ok(session)
+}
+
+fn finish_connect(
+    session: Session,
+    oauth: OAuthClient,
+    token: OAuthToken,
+    web: Option<WebAuth>,
+    cached_profile: Option<Profile>,
+) -> Result<Arc<SpotifyClient>, String> {
+    let http = reqwest::Client::builder()
+        .user_agent(concat!("Deezy/", env!("CARGO_PKG_VERSION")))
+        .build()
+        .map_err(|e| format!("HTTP client error: {}", e))?;
 
     // The AP already knows the account type and country, so a Web API call is
     // only needed for a display name we may have cached earlier.
@@ -336,6 +398,7 @@ async fn connect_with_profile(
         http,
         token: RwLock::new(token),
         web,
+        refresh_gate: tokio::sync::Mutex::new(()),
         profile,
     }))
 }
