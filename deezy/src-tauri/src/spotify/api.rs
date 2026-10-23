@@ -5,6 +5,7 @@ use serde_json::Value;
 
 use super::auth::SpotifyClient;
 use super::track_key;
+use super::{ap, pathfinder};
 
 const API: &str = "https://api.spotify.com/v1";
 
@@ -150,9 +151,15 @@ impl SpotifyClient {
     }
 
     pub async fn search_tracks(&self, query: &str, limit: u32) -> Result<Vec<SpotifyTrack>, String> {
-        // The AP search context ignores the query terms, so a rate-limited Web
-        // API is reported instead of answered with unrelated tracks.
-        self.search_tracks_web(query, limit).await
+        match self.search_tracks_web(query, limit).await {
+            Err(error) if is_rate_limited(&error) => {
+                match pathfinder::search_track_uris(self, query, limit).await {
+                    Ok(uris) => ap::load_tracks(&self.session, uris).await,
+                    Err(_) => Err(error),
+                }
+            }
+            result => result,
+        }
     }
 
     async fn search_tracks_web(
@@ -180,6 +187,22 @@ impl SpotifyClient {
     }
 
     pub async fn search_albums(&self, query: &str, limit: u32) -> Result<Vec<SpotifyAlbum>, String> {
+        match self.search_albums_web(query, limit).await {
+            Err(error) if is_rate_limited(&error) => {
+                match pathfinder::search_album_uris(self, query, limit).await {
+                    Ok(uris) => Ok(ap::albums_from_uris(&self.session, uris).await),
+                    Err(_) => Err(error),
+                }
+            }
+            result => result,
+        }
+    }
+
+    async fn search_albums_web(
+        &self,
+        query: &str,
+        limit: u32,
+    ) -> Result<Vec<SpotifyAlbum>, String> {
         let body = self
             .get_json(
                 &format!("{}/search", API),
@@ -200,6 +223,22 @@ impl SpotifyClient {
     }
 
     pub async fn search_artists(
+        &self,
+        query: &str,
+        limit: u32,
+    ) -> Result<Vec<SpotifyArtist>, String> {
+        match self.search_artists_web(query, limit).await {
+            Err(error) if is_rate_limited(&error) => {
+                match pathfinder::search_artist_uris(self, query, limit).await {
+                    Ok(uris) => Ok(ap::artists_from_uris(&self.session, uris).await),
+                    Err(_) => Err(error),
+                }
+            }
+            result => result,
+        }
+    }
+
+    async fn search_artists_web(
         &self,
         query: &str,
         limit: u32,
@@ -256,11 +295,28 @@ impl SpotifyClient {
     }
 }
 
+const RATE_LIMIT_MARKER: &str = "rate limit reached (429)";
+
+fn is_rate_limited(error: &str) -> bool {
+    error.contains(RATE_LIMIT_MARKER)
+}
+
 fn rate_limit_message() -> String {
     "Spotify rate limit reached (429). The default client ID is shared by every \
      librespot install, so its Web API quota can be exhausted. Wait a moment \
      and try again."
         .to_string()
+}
+
+#[cfg(test)]
+mod rate_limit_tests {
+    use super::*;
+
+    #[test]
+    fn detects_its_own_rate_limit_message_only() {
+        assert!(is_rate_limited(&rate_limit_message()));
+        assert!(!is_rate_limited("Spotify API error (500): boom"));
+    }
 }
 
 fn api_error(body: &Value) -> String {

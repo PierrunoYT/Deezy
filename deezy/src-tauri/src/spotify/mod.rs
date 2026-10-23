@@ -8,6 +8,7 @@ pub mod api;
 pub mod ap;
 pub mod auth;
 pub mod download;
+pub mod pathfinder;
 pub mod tags;
 
 pub use api::{SpotifyAlbum, SpotifyArtist, SpotifyPlaylist, SpotifyTrack};

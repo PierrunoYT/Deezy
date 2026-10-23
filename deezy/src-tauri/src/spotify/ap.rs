@@ -11,7 +11,7 @@ use librespot_metadata::external_id::ExternalIds;
 use librespot_metadata::image::Images;
 use librespot_metadata::{Album, Artist, Metadata, Playlist, Track};
 
-use super::api::{SpotifyAlbum, SpotifyTrack};
+use super::api::{SpotifyAlbum, SpotifyArtist, SpotifyTrack};
 use super::track_key;
 
 /// Refuse artist discographies that would need an unbounded number of calls.
@@ -148,6 +148,20 @@ pub fn album_from_metadata(album: &Album) -> SpotifyAlbum {
     }
 }
 
+fn artist_from_metadata(artist: &Artist) -> SpotifyArtist {
+    let (picture_small, picture_medium) = cover_urls(&artist.portrait_group);
+
+    SpotifyArtist {
+        id: id_of(&artist.id),
+        name: artist.name.clone(),
+        picture_small,
+        picture_medium,
+        nb_album: 0,
+        nb_fan: artist.popularity.max(0) as u64,
+        provider: "spotify".to_string(),
+    }
+}
+
 pub async fn track(session: &Session, id: &str) -> Result<SpotifyTrack, String> {
     let uri = track_uri(id)?;
     let track = Track::get(session, &uri)
@@ -167,7 +181,7 @@ async fn load_track(session: &Session, uri: &SpotifyUri) -> Result<SpotifyTrack,
 /// flight, keeping the original order. Individual failures are skipped
 /// (unavailable tracks are normal) but logged; if nothing loads at all, the
 /// first error is returned so a broken session is not shown as an empty list.
-async fn load_tracks(
+pub async fn load_tracks(
     session: &Session,
     uris: Vec<SpotifyUri>,
 ) -> Result<Vec<SpotifyTrack>, String> {
@@ -243,7 +257,12 @@ pub async fn artist_albums(
         }
     }
 
-    let albums = stream::iter(uris)
+    Ok(albums_from_uris(session, uris).await)
+}
+
+/// Album metadata for many URIs, with the same bounded concurrency as tracks.
+pub async fn albums_from_uris(session: &Session, uris: Vec<SpotifyUri>) -> Vec<SpotifyAlbum> {
+    stream::iter(uris)
         .map(|album_uri| async move {
             Album::get(session, &album_uri)
                 .await
@@ -253,8 +272,21 @@ pub async fn artist_albums(
         .buffered(METADATA_CONCURRENCY)
         .filter_map(|album| async move { album })
         .collect()
-        .await;
-    Ok(albums)
+        .await
+}
+
+pub async fn artists_from_uris(session: &Session, uris: Vec<SpotifyUri>) -> Vec<SpotifyArtist> {
+    stream::iter(uris)
+        .map(|artist_uri| async move {
+            Artist::get(session, &artist_uri)
+                .await
+                .ok()
+                .map(|artist| artist_from_metadata(&artist))
+        })
+        .buffered(METADATA_CONCURRENCY)
+        .filter_map(|artist| async move { artist })
+        .collect()
+        .await
 }
 
 /// The user's Liked Songs, exposed by the AP as a collection context.
