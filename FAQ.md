@@ -75,9 +75,13 @@ Custom templates support `{artist}`, `{album}`, `{title}`, `{track_number}`, `{d
 
 ### Can I download entire albums or playlists?
 
-Yes. Click **Download All** on an album or playlist to add all its available tracks to the download queue. Deezy runs up to three downloads concurrently.
+Yes. Click **Download All** on an album or playlist to add all its available tracks to the download queue. Deezy runs three downloads at the same time by default; change this with **Simultaneous Downloads** in Settings (1 to 10).
 
 To choose individual tracks instead, click the album or playlist title. This also works for albums in an artist's discography.
+
+### Can I download my Loved Tracks or my own playlists?
+
+Yes. In Search, the **Loved Tracks** tab lists your favorite tracks with a **Download All** button, and **My Playlists** lists the playlists on your profile, including private ones. Click a playlist title to see its tracks. Pasted links to your private playlists also work.
 
 ### Will Deezy download a track again if I already have it?
 

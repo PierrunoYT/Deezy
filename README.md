@@ -32,7 +32,8 @@ A modern desktop Deezer downloader. Search for tracks, albums, artists, and play
 - **Search** – Find tracks, albums, artists, and playlists with debounced search
 - **URL download** – Paste full `deezer.com` track, album, artist, or playlist URLs to add their content to the queue
 - **Audio preview** – Play 30-second previews before downloading
-- **Smart queue** – Up to 3 concurrent downloads with drag-and-drop reordering, pause/resume, and retry
+- **Smart queue** – 1 to 10 simultaneous downloads (3 by default) with drag-and-drop reordering, pause/resume, and retry
+- **Your library** – Open your Loved Tracks and your own playlists, including private ones, next to the search tabs
 - **Album & playlist download** – Download all tracks with one click, or open an album or playlist to pick individual tracks
 - **Skip existing files** – Tracks whose MP3 or FLAC file is already in the download folder are skipped, even after clearing history
 - **Download pacing** – Optional pause between downloads and a total speed limit, including presets that match playback speed
@@ -95,13 +96,13 @@ Amp automatically runs the executable `.agents/setup` script when creating a fre
 ## Usage
 
 1. **Setup** – Paste your ARL token, choose a download folder and quality, then click **Save & Login**
-2. **Search** – Switch to Search (Ctrl+1), type a query, and press Enter
+2. **Search** – Switch to Search (Ctrl+1), type a query, and press Enter. The **Loved Tracks** and **My Playlists** tabs list your own library
 3. **Paste URLs** – Paste a full `deezer.com` track, album, artist, or playlist URL to add its content to the queue
 4. **Preview** – Click ▶ to preview a track; Space bar to play/pause
 5. **Download** – Click the download button on a track, or **Download All** on an album or playlist. Click an album or playlist title, including albums in an artist's discography, to see its tracks
 6. **Manage Queue** – Drag to reorder, pause/resume, or remove pending downloads (Ctrl+2)
 7. **History** – View completed downloads, open files in Explorer/Finder, or export history
-8. **Customize** – Change theme, language, folder structure, notifications, skipping of existing files, and download pacing in Settings (Ctrl+3)
+8. **Customize** – Change theme, language, folder structure, notifications, skipping of existing files, simultaneous downloads, and download pacing in Settings (Ctrl+3)
 9. **Updates** – Download the latest Windows installer from GitHub Releases, or pull and rebuild on macOS and Linux
 10. **Tray** – Minimize to tray (Ctrl+H); left-click the icon to show or hide the window
 

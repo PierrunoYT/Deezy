@@ -47,10 +47,10 @@ Paths below are relative to `deezy/`.
 | `src/lib/downloadHistory.ts` | Recover interrupted history entries as paused |
 | `src/lib/audioPlayer.ts` | Preview playback and playback-request lifetime |
 | `src/lib/tray.ts` | Tray event listener and status subscriptions |
-| `src/lib/components/search/` | Search result rendering, types, and styles |
+| `src/lib/components/search/` | Search and library (Loved Tracks, My Playlists) result rendering, types, and styles |
 | `src-tauri/src/lib.rs` | Managed application state, command registration, window events |
 | `src-tauri/src/commands/` | IPC handlers grouped by account, catalog, downloads, filesystem, history, settings, tags, themes, and tray |
-| `src-tauri/src/deezer/` | Authentication, gateway and catalog requests, media resolution, crypto, downloads, and models |
+| `src-tauri/src/deezer/` | Authentication, gateway and catalog requests, user library (Loved Tracks, profile playlists), media resolution, crypto, downloads, and models |
 | `src-tauri/src/settings.rs` | Validated settings, credential storage, atomic private-file writes |
 | `src-tauri/src/themes.rs` | Custom theme validation and persistence |
 
@@ -59,8 +59,9 @@ handlers and client methods are split into their respective submodules.
 
 ## Download and persistence behavior
 
-`DownloadQueueManager` owns the active count and limits concurrency to three
-downloads. UI progress events update statuses without changing that count.
+`DownloadQueueManager` owns the active count and limits concurrency to the
+simultaneous downloads setting (1–10, default 3, read from the
+`maxConcurrentDownloads` store on every pass, so changes apply right away). UI progress events update statuses without changing that count.
 Notification delivery does not hold a download slot. When the pause-between-
 downloads setting is set, starts are spaced at least that far apart (read from
 the `downloadDelaySeconds` store); a skipped track releases its spacing.

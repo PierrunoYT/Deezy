@@ -60,6 +60,7 @@ deezy/                          # All source lives here
         mod.rs                  # DeezerClient (HTTP, login, search, URL resolution)
         download.rs             # streaming download + BF decryption + tagging
         bandwidth.rs            # shared download speed limiter
+        library.rs              # user library (Loved Tracks, profile playlists, private playlist tracks) via GW
         crypto.rs               # Blowfish/AES key derivation and URL encryption
         models.rs               # shared Rust structs (Serialize/Deserialize)
       settings.rs               # Settings struct, load/save, keyring integration
@@ -78,7 +79,7 @@ deezy/                          # All source lives here
 `+layout.svelte` mounts → loads download history → loads settings (calls `get_settings`) → initialises i18n → applies theme → calls `auto_login` (reads ARL from OS keyring via Rust) → sets `loggedIn` store → shows the app shell (2.2 s minimum splash).
 
 ### Download pipeline
-1. Frontend calls `downloadQueueManager.addToQueue(track)` — queued if 3 downloads already active. Starts are spaced at least `download_delay_seconds` apart (mirrored in the `downloadDelaySeconds` store); skipped tracks don't count.
+1. Frontend calls `downloadQueueManager.addToQueue(track)` — queued if `max_concurrent_downloads` (1–10, default 3, mirrored in the `maxConcurrentDownloads` store) are already active. Starts are spaced at least `download_delay_seconds` apart (mirrored in the `downloadDelaySeconds` store); skipped tracks don't count.
 2. Queue pops the next item and calls `invoke('download_track', { trackId })`.
 3. Rust: resolves track metadata via `song.getData` (private Deezer API), gets a CDN URL, streams the encrypted audio.
    If `skip_existing_files` is on and a non-empty `.mp3` or `.flac` already exists at the destination path, Rust returns `status: "skipped"` without fetching a download URL; the frontend marks the row complete with `skipped: true`.
@@ -127,7 +128,7 @@ If `write_mp3_tags` / `write_flac_tags` fails, a `tag-writing-error` event is em
 `tauri.conf.json` CSP allows images only from `*.dzcdn.net` and `api.deezer.com`; media only from `*.dzcdn.net`. Adding new external image or media sources requires updating the CSP.
 
 ### Deezer uses two separate API surfaces
-- **Private GW API** (`https://www.deezer.com/ajax/gw-light.php`) — used for auth (`deezer.getUserData`) and track data (`song.getData`). Requires the ARL cookie and a CSRF token (`checkForm`).
+- **Private GW API** (`https://www.deezer.com/ajax/gw-light.php`) — used for auth (`deezer.getUserData`), track data (`song.getData`), and the user library (`deezer.pageProfile` for playlists, `playlist.getSongs` for Loved Tracks via `USER.LOVEDTRACKS_ID` and private playlists). `get_playlist_tracks` tries the public API first and falls back to `playlist.getSongs`, since the public API refuses private playlists. Requires the ARL cookie and a CSRF token (`checkForm`).
 - **Legacy public API** (`https://api.deezer.com`) — used for search, album/artist/playlist metadata. No auth required for search results.
 
 ### Download URL generation (legacy fallback)
