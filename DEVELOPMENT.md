@@ -176,7 +176,8 @@ that review. Test these separately when changes affect those paths.
 
 ## Release checklist
 
-1. Update the version together in `deezy/package.json`,
+1. Pick the version number with the semantic-versioning rules in `AGENTS.md`
+   (patch for fixes only, minor for any new feature). Update it together in `deezy/package.json`,
    `deezy/src-tauri/Cargo.toml`, and `deezy/src-tauri/tauri.conf.json`. Refresh any
    affected metadata in the committed frontend lockfile. `Cargo.lock` is currently
    ignored by this repository.

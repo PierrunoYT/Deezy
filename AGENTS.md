@@ -125,6 +125,16 @@ If `user.is_free_account` is true, the effective quality is silently overridden 
 ### Version must be bumped in three places simultaneously
 `deezy/package.json` → `version`, `deezy/src-tauri/Cargo.toml` → `version`, `deezy/src-tauri/tauri.conf.json` → `version`. All three must match.
 
+### Release versioning rules
+Versions follow semantic versioning (`MAJOR.MINOR.PATCH`) as of the next release; earlier releases bumped only the patch number, even for features, so do not copy that.
+
+- **Patch** (`0.3.0` → `0.3.1`): bug fixes, documentation, and internal changes only. No new user-visible feature, setting, source, or screen.
+- **Minor** (`0.3.x` → `0.4.0`): any new user-visible feature, setting, or music source, even if it ships with fixes. A release containing a feature is never a patch release.
+- **Major** (`1.0.0` and later): breaking changes, such as dropping support for existing settings or files or changing the on-disk format in a way that needs migration. While the version is `0.x`, breaking changes bump the minor number and are called out at the top of the changelog entry.
+- Do not bump the version, edit the changelog's version heading, or create a tag unless the user asks for a release. Ordinary commits add entries under `## [Unreleased]` in `CHANGELOG.md` and leave the version files alone.
+- When asked to release: choose the number from the rules above and state it with a one-line reason before changing anything. If the user names a number that breaks the rules, say so once and follow their choice.
+- The release itself follows the checklist in `DEVELOPMENT.md`: bump all three files, turn the Unreleased entries into a dated `## [X.Y.Z] - YYYY-MM-DD` section (leaving a new empty Unreleased above it), run the tests and checks, then make one commit `chore: prepare version X.Y.Z release` and an annotated tag `vX.Y.Z` with the message `Deezy vX.Y.Z`. Do not push the commit or tag unless the user asks.
+
 ### Svelte 5 runes syntax
 The project uses Svelte 5. Components use `$state(...)`, `$props()`, and `$derived(...)` — not Svelte 4 `let`/`$:` reactive declarations. Do not introduce Svelte 4 patterns.
 
