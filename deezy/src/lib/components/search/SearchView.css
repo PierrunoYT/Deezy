@@ -5,7 +5,9 @@
   
   .search-header {
     position: sticky;
-    top: 0;
+    top: -28px;
+    margin-top: -28px;
+    padding-top: 28px;
     background: var(--bg-dark);
     padding-bottom: 20px;
     z-index: 10;

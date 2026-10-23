@@ -110,7 +110,7 @@ pub fn track_from_metadata(track: &Track) -> Result<SpotifyTrack, String> {
         artist_id,
         album: track.album.name.clone(),
         album_id: id_of(&track.album.id),
-        duration: track.duration.max(0) as u64,
+        duration: (track.duration.max(0) / 1000) as u64,
         cover_small,
         cover_medium,
         preview: None,
