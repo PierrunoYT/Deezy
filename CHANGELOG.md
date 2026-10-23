@@ -4,6 +4,11 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **Loved Tracks and My Playlists** — Two new tabs next to Tracks, Albums, Artists, and Playlists list your Loved Tracks (with **Download All**) and the playlists on your profile. Private playlists can now be opened and downloaded, including from pasted links.
+- **Simultaneous downloads** — A new setting chooses how many tracks download at the same time, from 1 to 10 (default 3). Changes apply to the running queue.
+
 ---
 
 ## [0.2.24] - 2026-10-19
