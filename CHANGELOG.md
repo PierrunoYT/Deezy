@@ -4,13 +4,27 @@ All notable changes to Deezy are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **Custom Spotify Client ID** — Settings now accepts an optional Client ID from your own Spotify developer app, with the loopback redirect URI shown alongside it. Changing the ID disconnects the existing token so the next login uses the new app. The saved setting takes precedence over `DEEZY_SPOTIFY_CLIENT_ID`.
+
+### Changed
+
+- **Spotify catalog metadata** — Track, album, artist, playlist, download, and Loved Tracks metadata now comes from the librespot AP session rather than relying entirely on the Web API. Track lists load with bounded concurrency, unavailable individual tracks are skipped, and a complete metadata failure is reported instead of appearing as an empty list.
+- **Spotify rate-limit fallback** — Track, album, and artist searches automatically retry through Spotify Pathfinder when the Web API is rate-limited, then resolve the results through AP. Fallback failures now include the underlying error.
+
+### Fixed
+
+- **Spotify rate-limit waits** — Web API 429 responses are retried at most twice and only for `Retry-After` waits of five seconds or less, avoiding long UI stalls.
+- **Spotify search and settings UI** — AP durations are converted to seconds, the sticky search header stays opaque, and long Spotify account names no longer disrupt the Settings layout.
+
 ---
 
 ## [0.2.26] - 2026-10-23
 
 ### Added
 
-- **Spotify source** — Deezy can now search Spotify and download from pasted Spotify track, album, artist, or playlist links. Audio comes straight from Spotify through librespot (OGG Vorbis, or FLAC on Premium), decrypted with the track's own key, with the same metadata and cover art as Deezer downloads. Connect once through a browser login; the credential stays in the OS keyring, separate from the ARL.
+- **Spotify source** — Deezy can now search Spotify and download from pasted Spotify track, album, artist, or playlist links. Audio comes straight from Spotify through librespot, decrypted with the track's own key, with metadata and cover art. OGG Vorbis and FLAC are preferred, with MP3 or M4A/AAC fallback when supplied. Connect once through a browser login; the credential is normally stored in the OS keyring, separate from the ARL.
 - **Spotify quality** — Normal (96 kbps), High (160 kbps), Very high (320 kbps), or Lossless (FLAC, Premium).
 
 ### Changed

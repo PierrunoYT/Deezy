@@ -4,7 +4,7 @@
   <img src="deezy/static/logodeezy.svg" alt="Deezy Logo" width="200"/>
 </p>
 
-A modern desktop Deezer downloader. Search for tracks, albums, artists, and playlists, paste Deezer URLs for direct download, and save music as high-quality MP3 or FLAC with full metadata and cover art.
+A modern desktop Deezer and Spotify downloader. Search for tracks, albums, artists, and playlists, paste music URLs for direct download, and save audio with full metadata and cover art.
 
 [![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/dvuWBeXSf3)
 [![Release](https://img.shields.io/github/v/release/PierrunoYT/Deezy?label=latest)](https://github.com/PierrunoYT/Deezy/releases/latest)
@@ -19,8 +19,8 @@ A modern desktop Deezer downloader. Search for tracks, albums, artists, and play
   - **Free accounts** are limited to MP3 128 kbps downloads
   - **Premium accounts** can download MP3 320 kbps or FLAC
   - The **Spotify source** needs its own account (Free works; Premium unlocks 320 kbps and lossless FLAC). It uses a browser OAuth login and does not need an ARL.
-- **Terms of Service** – Downloading music from Deezer may violate their [Terms of Service](https://www.deezer.com/legal/cgu). Use at your own risk.
-- **Account Blocking Risk** – Your account may get suspended. Deezer can detect unusual download activity.
+- **Terms of Service** – Downloading music may violate the [Deezer](https://www.deezer.com/legal/cgu) or [Spotify](https://www.spotify.com/legal/end-user-agreement/) terms of service. Use at your own risk.
+- **Account Blocking Risk** – Your account may get suspended. Deezer and Spotify can detect unusual download activity.
 - **Copyright Laws** – Respect copyright laws in your jurisdiction. Downloaded content is for personal use only and must not be redistributed.
 - **No Warranty** – This software is provided "as is". The authors are not responsible for any misuse or legal consequences.
 
@@ -30,17 +30,17 @@ A modern desktop Deezer downloader. Search for tracks, albums, artists, and play
 
 ## Features
 
-- **Search** – Find tracks, albums, artists, and playlists with debounced search
-- **Spotify source** – Search Spotify and paste Spotify track, album, artist, or playlist links; downloads the original OGG/FLAC through librespot with full metadata and cover art
+- **Search** – Find tracks, albums, artists, and playlists on Deezer or Spotify with debounced search
+- **Spotify source** – Download through librespot with full metadata and cover art; OGG Vorbis and FLAC are preferred, with MP3 or M4A/AAC used when supplied by Spotify
 - **URL download** – Paste full `deezer.com` or `open.spotify.com` track, album, artist, or playlist URLs to add their content to the queue
-- **Audio preview** – Play 30-second previews before downloading
+- **Audio preview** – Play 30-second Deezer previews before downloading
 - **Smart queue** – 1 to 10 simultaneous downloads (3 by default) with drag-and-drop reordering, pause/resume, and retry
 - **Your library** – Open your Loved Tracks and your own playlists, including private ones, next to the search tabs
 - **Album & playlist download** – Download all tracks with one click, or open an album or playlist to pick individual tracks
-- **Skip existing files** – Tracks whose MP3 or FLAC file is already in the download folder are skipped, even after clearing history
+- **Skip existing files** – Tracks whose audio file is already at the destination are skipped, even after clearing history
 - **Download pacing** – Optional pause between downloads and a total speed limit, including presets that match playback speed
-- **Quality options** – MP3 128, MP3 320, or FLAC with automatic fallback
-- **Full metadata** – Title, artist, album, album artist, year, track and disc number, genre, label, and 1000×1000 cover art embedded
+- **Quality options** – Deezer MP3 128, MP3 320, or FLAC; Spotify 96/160/320 kbps or lossless FLAC, with format fallback
+- **Full metadata** – Title, artist, album, album artist, year, track and disc number, and high-resolution cover art embedded
 - **Folder structure** – Organize downloads as Flat, Artist/Track, Artist/Album/Track, Album/Track, or with a custom template
 - **Tag editor** – Edit metadata and cover art on any local MP3 or FLAC file; files with an unreadable tag are reported and left untouched instead of being overwritten
 - **Download history** – Persistent history with CSV/JSON export and open-in-file-manager
@@ -95,16 +95,26 @@ Amp automatically runs the executable `.agents/setup` script when creating a fre
 
 ---
 
+## Connect Spotify
+
+Open **Settings → Spotify** and click **Connect Spotify**. Complete the browser OAuth login, then select Spotify as the music source in Search. No Deezer account or ARL is required. Spotify OAuth tokens are stored separately from the ARL in the OS credential store when available.
+
+Deezy normally uses librespot's shared Client ID. To use your own Spotify developer app instead, add `http://127.0.0.1:5588/login` as a redirect URI in the Spotify Developer Dashboard, paste its Client ID into **Settings → Spotify Client ID**, and reconnect. Changing the saved ID while connected removes the old session token. Spotify may reject AP sessions from some third-party Client IDs; clear the field to restore the default.
+
+Track, album, and artist searches automatically use a Pathfinder fallback when the shared Web API quota is rate-limited. Catalog metadata is loaded through the AP session independently of Web API search quotas.
+
+---
+
 ## Usage
 
-1. **Setup** – Paste your ARL token, choose a download folder and quality, then click **Save & Login**
-2. **Search** – Switch to Search (Ctrl+1), type a query, and press Enter. The **Loved Tracks** and **My Playlists** tabs list your own library
-3. **Paste URLs** – Paste a full `deezer.com` track, album, artist, or playlist URL to add its content to the queue
-4. **Preview** – Click ▶ to preview a track; Space bar to play/pause
+1. **Setup** – For Deezer, paste your ARL token and click **Save & Login**; for Spotify, use **Connect Spotify**. Choose a download folder and source-specific quality
+2. **Search** – Switch to Search (Ctrl+1), choose Deezer or Spotify, type a query, and press Enter. The **Loved Tracks** and **My Playlists** tabs list your own library
+3. **Paste URLs** – Paste a full `deezer.com` or `open.spotify.com` track, album, artist, or playlist URL to add its content to the queue
+4. **Preview** – Click ▶ to preview a Deezer track; Space bar to play/pause
 5. **Download** – Click the download button on a track, or **Download All** on an album or playlist. Click an album or playlist title, including albums in an artist's discography, to see its tracks
 6. **Manage Queue** – Drag to reorder, pause/resume, or remove pending downloads (Ctrl+2)
 7. **History** – View completed downloads, open files in Explorer/Finder, or export history
-8. **Customize** – Change theme, language, folder structure, notifications, skipping of existing files, simultaneous downloads, and download pacing in Settings (Ctrl+3)
+8. **Customize** – Change theme, language, folder structure, notifications, skipping of existing files, simultaneous downloads, download pacing, Spotify quality, and Spotify Client ID in Settings (Ctrl+3)
 9. **Updates** – Download the latest Windows installer from GitHub Releases, or pull and rebuild on macOS and Linux
 10. **Tray** – Minimize to tray (Ctrl+H); left-click the icon to show or hide the window
 

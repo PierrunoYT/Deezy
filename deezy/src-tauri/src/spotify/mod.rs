@@ -1,8 +1,9 @@
 //! Spotify download engine.
 //!
-//! Catalog (search, albums, playlists) goes through Spotify's Web API, while
-//! audio comes from the librespot AP session — the same path the official
-//! desktop client uses. Both share one OAuth access token.
+//! Search starts on Spotify's Web API, with a Pathfinder fallback for track,
+//! album, and artist rate limits. Catalog metadata and audio use the librespot
+//! AP session — the same path the official desktop client uses. Web API and AP
+//! requests share one OAuth access token.
 
 pub mod api;
 pub mod ap;

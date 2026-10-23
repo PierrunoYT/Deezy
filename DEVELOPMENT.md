@@ -49,9 +49,9 @@ Paths below are relative to `deezy/`.
 | `src/lib/tray.ts` | Tray event listener and status subscriptions |
 | `src/lib/components/search/` | Search and library (Loved Tracks, My Playlists) result rendering, types, and styles |
 | `src-tauri/src/lib.rs` | Managed application state, command registration, window events |
-| `src-tauri/src/commands/` | IPC handlers grouped by account, catalog, downloads, filesystem, history, settings, tags, themes, and tray |
+| `src-tauri/src/commands/` | IPC handlers grouped by account, catalog, downloads, filesystem, history, settings, Spotify, tags, themes, and tray |
 | `src-tauri/src/deezer/` | Authentication, gateway and catalog requests, user library (Loved Tracks, profile playlists), media resolution, crypto, downloads, and models |
-| `src-tauri/src/spotify/` | OAuth login and session, Spotify Web API catalog, librespot audio streaming, and OGG/FLAC tagging |
+| `src-tauri/src/spotify/` | OAuth/AP sessions, Web API and Pathfinder search, AP catalog metadata, librespot audio streaming, and OGG/FLAC/MP3/M4A tagging |
 | `src-tauri/src/paths.rs` | Provider-neutral destination paths and safe temp-file finalization shared by both engines |
 | `src-tauri/src/settings.rs` | Validated settings, credential storage, atomic private-file writes |
 | `src-tauri/src/themes.rs` | Custom theme validation and persistence |
@@ -75,9 +75,10 @@ existing files, choosing a numbered name on collision. Filesystems without hard
 link support use an atomic no-overwrite rename instead.
 
 With skip existing files enabled (the default), the backend first builds the
-destination path for both `.mp3` and `.flac`. If a non-empty file exists at
-either, it returns `status: "skipped"` without requesting a media URL. Only the
-current folder structure is checked; the download folder is not scanned.
+destination path and checks for a non-empty supported audio file. Deezer checks
+`.mp3` and `.flac`; Spotify checks `.ogg`, `.flac`, `.mp3`, and `.m4a`. A match
+returns `status: "skipped"` without opening an audio stream. Only the current
+folder structure is checked; the download folder is not scanned.
 
 A download speed limit paces received bytes through one `BandwidthLimiter` in
 `AppState`, so the limit applies to all concurrent downloads combined.
@@ -93,9 +94,32 @@ cancels active work and flushes pending history. A forced termination can lose
 the most recent unsaved updates. Pending queue entries are not persisted.
 
 Clearing history retains active and queued rows and never deletes audio files.
-Catalog list loaders follow pagination, validate API hosts, upgrade legacy HTTP
-pagination links to HTTPS, and reject loops, exceeded limits, and failed later
-pages rather than returning a silently incomplete list.
+Deezer catalog list loaders follow pagination, validate API hosts, upgrade legacy
+HTTP pagination links to HTTPS, and reject loops, exceeded limits, and failed
+later pages rather than returning a silently incomplete list.
+
+## Spotify catalog and authentication
+
+Spotify separates catalog and download responsibilities:
+
+- `api.rs` handles Web API search and user playlists. Track, album, and artist
+  searches fall back to `pathfinder.rs` only after a Web API rate-limit error;
+  playlist search remains on the Web API. Short 429 waits are retried at most
+  twice, while `Retry-After` values over five seconds fail immediately.
+- `ap.rs` resolves track, album, artist, playlist, Loved Tracks, and download
+  metadata through the librespot AP session. Track metadata uses eight concurrent
+  requests while preserving result order. Artist discographies are capped at 120
+  albums. Unavailable individual tracks are skipped, but a completely failed
+  track load returns an error.
+- `download.rs` selects the best available audio format and streams through the
+  AP session. `tags.rs` writes the provider-appropriate OGG, FLAC, MP3, or M4A tags.
+
+OAuth uses `http://127.0.0.1:5588/login`. Client ID resolution prefers the saved
+`spotify_client_id` setting, then `DEEZY_SPOTIFY_CLIENT_ID`, then librespot's
+shared default. Tokens are bound to the Client ID that issued them, so changing
+the setting while connected logs out the old session. Spotify tokens use the
+separate `com.pierr.deezy` / `spotify_oauth` credential-store entry; persistence
+is best-effort and a keyring failure requires a fresh login after restart.
 
 ## Implementation conventions
 
@@ -140,8 +164,9 @@ that review. Test these separately when changes affect those paths.
    section. Keep source-only changes distinct from shipped installer behavior.
 3. Install locked dependencies and run the test, check, and frontend build
    commands above.
-4. Smoke-test login, search/pagination, previews, download/pause/resume, tagging,
-   restart recovery, themes, and tray shutdown on the release platform.
+4. Smoke-test Deezer and Spotify login/session restoration, search and rate-limit
+   fallback, catalog loading, previews where available, download/pause/resume,
+   tagging, restart recovery, themes, and tray shutdown on the release platform.
 5. Build with `bun run tauri build` and verify the generated artifacts under
    `src-tauri/target/release/bundle/`.
 6. Create the release commit/tag and publish the appropriate installers and notes

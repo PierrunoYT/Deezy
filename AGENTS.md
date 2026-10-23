@@ -1,6 +1,6 @@
 # Deezy — Agent Reference
 
-Deezy is a Tauri v2 desktop application that lets users download music from Deezer. The backend is written in Rust; the frontend is SvelteKit 5 (SPA mode, SSR disabled). All commands run from inside the `deezy/` subdirectory.
+Deezy is a Tauri v2 desktop application that lets users download music from Deezer and Spotify. The backend is written in Rust; the frontend is SvelteKit 5 (SPA mode, SSR disabled). All commands run from inside the `deezy/` subdirectory.
 
 ---
 
@@ -55,7 +55,9 @@ deezy/                          # All source lives here
   src-tauri/
     src/
       lib.rs                    # AppState definition + Tauri builder + window setup
-      commands.rs               # all #[tauri::command] handlers
+      commands.rs               # shared command helpers + module exports
+      commands/                 # #[tauri::command] handlers grouped by domain
+        spotify.rs              # Spotify auth, search, catalog, and library IPC
       deezer/
         mod.rs                  # DeezerClient (HTTP, login, search, URL resolution)
         download.rs             # streaming download + BF decryption + tagging
@@ -66,9 +68,11 @@ deezy/                          # All source lives here
       spotify/                  # second download source, native librespot
         mod.rs                  # SpotifyClient re-exports + `spotify:` key helpers
         auth.rs                 # OAuth PKCE login, token refresh, keyring, AP session
-        api.rs                  # Spotify Web API catalog (search/album/playlist/artist)
+        api.rs                  # Web API search/playlists + 401/429 handling
+        ap.rs                   # AP catalog/download metadata + bounded track loading
+        pathfinder.rs           # track/album/artist search fallback on Web API 429
         download.rs             # librespot AP stream -> .deezy.part -> tags
-        tags.rs                 # OGG/FLAC/MP3/MP4 tagging via lofty
+        tags.rs                 # OGG/FLAC/MP3/M4A tagging via lofty
       paths.rs                  # provider-neutral paths + temp-file finalization
       settings.rs               # Settings struct, load/save, keyring integration
       themes.rs                 # custom theme CRUD
@@ -83,17 +87,16 @@ deezy/                          # All source lives here
 ## Architecture & Data Flow
 
 ### Startup sequence
-`+layout.svelte` mounts → loads download history → loads settings (calls `get_settings`) → initialises i18n → applies theme → calls `auto_login` (reads ARL from OS keyring via Rust) → sets `loggedIn` store → shows the app shell (2.2 s minimum splash).
+`+layout.svelte` mounts → loads download history → loads settings (calls `get_settings`) → initialises i18n → applies theme → calls `auto_login` (reads ARL from OS keyring via Rust) → sets `loggedIn` store → shows the app shell (2.2 s minimum splash). Spotify restoration runs independently through `spotify_status` and does not block the splash.
 
 ### Download pipeline
 1. Frontend calls `downloadQueueManager.addToQueue(track)` — queued if `max_concurrent_downloads` (1–10, default 3, mirrored in the `maxConcurrentDownloads` store) are already active. Starts are spaced at least `download_delay_seconds` apart (mirrored in the `downloadDelaySeconds` store); skipped tracks don't count.
 2. Queue pops the next item and calls `invoke('download_track', { trackId })`.
-3. Rust: resolves track metadata via `song.getData` (private Deezer API), gets a CDN URL, streams the encrypted audio.
-   If `skip_existing_files` is on and a non-empty `.mp3` or `.flac` already exists at the destination path, Rust returns `status: "skipped"` without fetching a download URL; the frontend marks the row complete with `skipped: true`.
-4. Decryption: every **3rd** 2048-byte chunk is Blowfish-CBC decrypted; all other chunks are written as-is. Received bytes are paced through the shared `BandwidthLimiter` (`AppState.bandwidth`) when `download_speed_limit_kbps` > 0; the limit is the total across all concurrent downloads.
-5. Audio is written to a `.deezy.part` temp file, then moved to the final path on completion.
+3. `download_track` dispatches on the track key. Deezer resolves `song.getData` and a CDN URL; Spotify resolves AP metadata and selects an audio file. With `skip_existing_files`, Deezer checks non-empty `.mp3`/`.flac` files and Spotify checks `.ogg`/`.flac`/`.mp3`/`.m4a`; a match returns `status: "skipped"` before opening an audio stream.
+4. Deezer decrypts every **3rd** 2048-byte chunk with Blowfish-CBC; librespot decrypts Spotify's AES-CTR stream. Both pace received bytes through the shared `BandwidthLimiter` when `download_speed_limit_kbps` > 0, as one total limit across concurrent downloads.
+5. Audio is written to a `.deezy.part` temp file, then published to the final path on completion.
 6. Rust emits `download-progress` Tauri events with `{ track_id, title, percent, status }` throughout.
-7. After streaming, metadata tags (ID3v2.4 for MP3, Vorbis comments for FLAC) and cover art are written.
+7. Deezer writes ID3v2.4 MP3 or Vorbis FLAC tags; Spotify uses `lofty` for OGG/FLAC/MP3/M4A. Cover art is embedded on the temporary file.
 8. `+layout.svelte` listens for `download-progress` and updates the `downloads` and `downloadHistory` stores.
 
 ### IPC conventions
@@ -104,7 +107,7 @@ deezy/                          # All source lives here
 ### State management
 - Global app state lives in `src/lib/stores.ts` as Svelte `writable` stores.
 - `DownloadQueueManager` (singleton in `downloadQueue.ts`) is the authoritative source for download concurrency; it also updates the stores.
-- Rust holds `AppState` (managed via Tauri's `.manage()`) with an `Arc<Mutex<Option<DeezerClient>>>`, a `Settings` mutex, and a cancellation map keyed by track ID.
+- Rust holds `AppState` (managed via Tauri's `.manage()`) with independent `Arc<Mutex<Option<DeezerClient>>>` and `Arc<Mutex<Option<Arc<SpotifyClient>>>>` sessions, a `Settings` mutex, and a cancellation map keyed by provider-prefixed track ID.
 
 ---
 
@@ -139,9 +142,11 @@ If `write_mp3_tags` / `write_flac_tags` fails, a `tag-writing-error` event is em
 - **Legacy public API** (`https://api.deezer.com`) — used for search, album/artist/playlist metadata. No auth required for search results.
 
 ### Spotify is a second, independent download engine
-- **Catalog** goes through the Spotify Web API (`api.spotify.com/v1`); **audio** goes through a librespot AP session (`librespot-core` / `-metadata` / `-audio`), which decrypts the AES-CTR stream for us. Tagging uses `lofty` because Spotify delivers OGG Vorbis and the existing `id3` / `metaflac` stack cannot write it.
+- **Catalog uses Web API + AP + Pathfinder**: track/album/artist search starts on the Web API and falls back to Pathfinder on 429; playlist search and user playlists stay on the Web API. Direct track/album/artist/playlist metadata, Loved Tracks, and download metadata use the librespot AP session. AP track lists use 8 concurrent requests, artist discographies are capped at 120 albums, and total track-metadata failure is an error rather than an empty list.
+- **Audio** uses the librespot AP session (`librespot-core` / `-metadata` / `-audio`), which decrypts the AES-CTR stream. Tagging uses `lofty` for OGG/FLAC/MP3/M4A because the existing Deezer `id3` / `metaflac` stack cannot cover all Spotify formats.
+- **Rate limits**: Web API 429s retry at most twice only when `Retry-After` is at most 5 seconds; longer waits fail immediately. Pathfinder fallback failures are appended to the original rate-limit error.
 - **Track keys are prefixed**: Spotify tracks use `spotify:<base62>` in `Track.id`, the queue, history and the cancellation map, so they can never collide with numeric Deezer IDs. `download_track` dispatches on that prefix (`spotify::is_spotify_track`); everything else flows through the unchanged queue.
-- **Auth is OAuth PKCE**, not an ARL. `librespot-oauth` opens the browser and listens on `127.0.0.1:5588/login`; the default client ID is librespot's keymaster ID. Override it with the optional `spotify_client_id` setting in Settings, or with `DEEZY_SPOTIFY_CLIENT_ID` when the setting is blank. The resulting token (access + refresh) is stored in the OS keyring under `com.pierr.deezy` / `spotify_oauth`, separate from the ARL.
+- **Auth is OAuth PKCE**, not an ARL. `librespot-oauth` opens the browser and listens on `127.0.0.1:5588/login`. Client ID precedence is the saved `spotify_client_id` setting → `DEEZY_SPOTIFY_CLIENT_ID` → librespot's keymaster default. Changing the setting while connected deletes the old client-bound token. The access + refresh token is normally stored in the OS keyring under `com.pierr.deezy` / `spotify_oauth`, separate from the ARL; persistence is best-effort.
 - **Settings are Deezer-independent**: `save_settings` no longer requires an ARL, and the Spotify source is usable with no Deezer login. `spotify_status` restores the client on startup.
 - **Build pin**: `librespot-core 0.8.0`'s build script resolves `vergen-gitcl 1.0.8` + `vergen 9.1.0`, which pulls two incompatible `vergen-lib` versions and fails to compile. `[build-dependencies] vergen = "=9.0.6"` in `Cargo.toml` keeps it on `vergen-lib 0.1.6`. Do not relax that pin without testing a clean `Cargo.lock`.
 
@@ -164,7 +169,7 @@ Locale JSON files live in `src/lib/i18n/locales/` (`en`, `fr`, `de`, `es`, `it`,
 
 ## Adding a New Tauri Command
 
-1. Define the async function in `commands.rs` with `#[tauri::command]`.
+1. Define the async function in the appropriate `commands/*.rs` module with `#[tauri::command]` (create and export a module from `commands.rs` only when adding a new domain).
 2. Register it in the `invoke_handler!(tauri::generate_handler![...])` call in `lib.rs`.
 3. Call it from the frontend with `invoke('command_name', { camelCaseParam: value })`.
 4. For `AppState` access, add `state: tauri::State<'_, AppState>` as a parameter (order matters: Tauri state params must come before `app: AppHandle` if both are present).

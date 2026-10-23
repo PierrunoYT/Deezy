@@ -18,17 +18,23 @@ Your ARL is a sensitive session credential that can provide access to your Deeze
 - **Not returned with settings** — After saving, `get_settings` returns an empty ARL field so the stored credential is not exposed to the renderer again.
 - **Temporarily handled by the frontend** — When you paste an ARL, it exists in the application's frontend memory and is sent to the Rust backend through local Tauri IPC for authentication and storage.
 - **Used only for Deezer authentication** — The current source sends authenticated requests to Deezer endpoints. It does not send the ARL to an application-operated server or analytics provider.
-- **Encrypted network connections** — Deezy's backend HTTP client accepts HTTPS URLs only and requires TLS 1.2 or newer.
-- **Restricted remote hosts** — Backend API and media requests, including redirects, are accepted only from HTTPS Deezer and Deezer CDN hosts.
+- **Encrypted Deezer connections** — The Deezer backend HTTP client accepts HTTPS URLs only and requires TLS 1.2 or newer.
+- **Restricted Deezer hosts** — Deezer API and media requests, including redirects, are accepted only from HTTPS Deezer and Deezer CDN hosts. Spotify authentication, catalog, and audio traffic uses Spotify's own endpoints through separate clients.
 - **Open source** — You can audit the relevant implementation:
   - Token storage → `src-tauri/src/settings.rs`
   - Login handling → `src-tauri/src/commands/account.rs`
   - Settings redaction → `src-tauri/src/commands/settings.rs`
   - Deezer requests → `src-tauri/src/deezer/`
 
+### How does Deezy handle my Spotify login?
+
+Spotify uses browser OAuth rather than an ARL or your Spotify password. The access and refresh tokens are normally stored in the OS credential store under `com.pierr.deezy` / `spotify_oauth`, separately from the Deezer ARL. If credential persistence is unavailable, the current session can still work, but you will need to log in again after restarting.
+
+Use **Disconnect** in Settings to remove the stored Spotify token. Changing the optional Spotify Client ID also disconnects the current session because tokens are tied to the Client ID that issued them.
+
 ### Does Deezy collect analytics or telemetry?
 
-The current source contains no analytics, telemetry, crash-reporting service, or Deezy-operated backend. Deezy still communicates with Deezer and its content-delivery endpoints to authenticate, search, preview, and download content.
+The current source contains no analytics, telemetry, crash-reporting service, or Deezy-operated backend. Deezy still communicates with Deezer or Spotify and their content-delivery endpoints to authenticate, search, preview where available, and download content.
 
 ### Is it safe to use my Deezer account?
 
@@ -46,20 +52,24 @@ The tag editor can read or modify only MP3/FLAC files and cover images selected 
 
 ### What quality can I download in?
 
+For **Deezer**:
+
 | Account type | Available qualities |
 |---|---|
 | Free | MP3 128 kbps |
 | Premium | MP3 128 kbps, MP3 320 kbps, FLAC |
 
-Free accounts are automatically limited to MP3 128 kbps, regardless of the quality selected in Settings. Availability can also vary by track and region.
+Deezer Free accounts are automatically limited to MP3 128 kbps, regardless of the quality selected in Settings.
 
-### Why did my download fall back to a lower quality?
+For **Spotify**, Settings offers Normal (96 kbps), High (160 kbps), Very high (320 kbps), and Lossless (FLAC for Premium). OGG Vorbis and FLAC are preferred, but Deezy can save MP3 or M4A/AAC when those are the formats Spotify supplies. Availability varies by track, account, and region.
 
-Not every track is available in every quality. Deezy tries the selected quality first, then falls back in this order:
+### Why did my Deezer download fall back to a lower quality?
+
+Not every track is available in every quality. Deezy tries the selected Deezer quality first, then falls back in this order:
 
 **FLAC → MP3 320 kbps → MP3 128 kbps**
 
-For MP3 320 kbps, the fallback is MP3 128 kbps. Completed downloads show both the requested and actual quality when a fallback occurs.
+For MP3 320 kbps, the fallback is MP3 128 kbps. Completed downloads show both the requested and actual quality when a fallback occurs. Spotify independently selects the closest available format for its quality setting.
 
 ### Where are my downloaded files saved?
 
@@ -81,11 +91,11 @@ To choose individual tracks instead, click the album or playlist title. This als
 
 ### Can I download my Loved Tracks or my own playlists?
 
-Yes. In Search, the **Loved Tracks** tab lists your favorite tracks with a **Download All** button, and **My Playlists** lists the playlists on your profile, including private ones. Click a playlist title to see its tracks. Pasted links to your private playlists also work.
+Yes. In Search, the **Loved Tracks** tab lists your favorite tracks with a **Download All** button, and **My Playlists** lists the playlists on your profile. This works for both Deezer and Spotify, including private Deezer playlists and Spotify playlists visible to your account. Click a playlist title to see its tracks. Pasted links to supported private playlists also work.
 
 ### Will Deezy download a track again if I already have it?
 
-Not by default. With **Skip Existing Files** enabled in Settings, Deezy checks whether an MP3 or FLAC file for the track already exists at the path it would save to. If it does, the track is skipped and shown as "Already downloaded", even if the download history was cleared.
+Not by default. With **Skip Existing Files** enabled in Settings, Deezy checks whether a supported audio file for the track already exists at the path it would save to. Deezer checks MP3 and FLAC; Spotify checks OGG, FLAC, MP3, and M4A. If a non-empty match exists, the track is skipped and shown as "Already downloaded", even if the download history was cleared.
 
 Only the current folder structure is checked. If you change the folder structure, files saved under the previous one are not detected. Turn the setting off to always download; a second copy is then saved with a numbered name such as `Artist - Title (1).mp3`.
 
@@ -110,6 +120,10 @@ Submitting a link adds its content to the download queue:
 
 Large albums, playlists, or artist discographies may add many tracks to the queue. Deezer short links and links from other domains are not currently supported.
 
+### Can I paste a Spotify link or use Spotify without Deezer?
+
+Yes. Connect Spotify in Settings, then paste a full `open.spotify.com` track, album, artist, or playlist link into the music URL field. Spotify `spotify:` URIs are also accepted. You do not need a Deezer account or ARL. Choose Spotify as the music source to search Spotify or browse your Spotify Loved Tracks and playlists.
+
 ---
 
 ## 🛠️ Setup & Troubleshooting
@@ -128,6 +142,14 @@ Treat the ARL like a password. Do not share it, post it in screenshots, or inclu
 
 Log into Deezer in your browser again, copy the current `arl` cookie, and save it in Deezy's Settings. Deezy automatically retries a download once when it detects an expired session; if that retry fails, you must update the ARL and log in again.
 
+### Spotify search is rate-limited or my custom Client ID does not work. What do I do?
+
+Track, album, and artist searches automatically fall back to Spotify Pathfinder when the Web API is rate-limited, so retry after checking the detailed fallback error if one is shown. Catalog metadata uses the AP session and does not depend entirely on Web API search quotas.
+
+You can also use your own Spotify developer app to avoid the shared Web API quota. Add `http://127.0.0.1:5588/login` as its redirect URI in the Spotify Developer Dashboard, paste the Client ID into **Settings → Spotify Client ID**, and reconnect. The field saves when it loses focus; changing it while connected removes the old token.
+
+Spotify may reject AP sessions from some third-party Client IDs. If login or downloads fail with a custom ID, clear the field and reconnect to use librespot's default. `DEEZY_SPOTIFY_CLIENT_ID` remains available as an environment override when the saved field is blank.
+
 ### The app shows a blank/black screen on startup. What do I do?
 
 First, fully exit Deezy from the system tray and reopen it. If the problem continues, install the latest release again.
@@ -138,13 +160,13 @@ As a last resort, close Deezy and rename its application-data folder so the app 
 - **macOS:** `~/Library/Application Support/com.pierr.deezy`
 - **Linux:** `$XDG_DATA_HOME/com.pierr.deezy` or `~/.local/share/com.pierr.deezy`
 
-Resetting this folder removes local settings, download history, and custom themes. If Deezy is using plaintext fallback, it also removes the ARL. An ARL stored in the OS credential store is separate and may remain there.
+Resetting this folder removes local settings, download history, and custom themes. If Deezy is using plaintext fallback, it also removes the ARL. ARL and Spotify tokens stored in the OS credential store are separate and may remain there.
 
 ### Downloads are stalling or not starting. What do I do?
 
 - Confirm that your internet connection is working.
-- Open Settings and save a current ARL to verify that Deezer authentication succeeds.
-- Try the same track at MP3 128 kbps in case higher-quality media is unavailable.
+- For Deezer, save a current ARL to verify authentication and try MP3 128 kbps if higher-quality media is unavailable.
+- For Spotify, disconnect and reconnect in Settings; if you use a custom Client ID, clear it and retry with the default.
 - Pause and resume the download, or retry it from the download history after an error.
 - Fully exit Deezy from the tray before restarting it.
 
@@ -160,9 +182,9 @@ No. Pause cancels the transfer and cleans its temporary file. Resume requeues th
 
 No. It removes inactive history records, not audio files. Active downloads and queued tracks with history records stay visible so their progress and final file paths remain available.
 
-### Why does an album or playlist fail while loading?
+### Why does a Deezer album or playlist fail while loading?
 
-Deezy follows each API page to load the complete track list. A failed later page is reported as an error rather than treated as a complete result. Try again after checking your connection. Catalog loading is bounded to 100,000 entries and 1,000 follow-up pages per list, and repeated pagination links are rejected.
+Deezy follows each Deezer API page to load the complete track list. A failed later page is reported as an error rather than treated as a complete result. Try again after checking your connection. Deezer catalog loading is bounded to 100,000 entries and 1,000 follow-up pages per list, and repeated pagination links are rejected. Spotify uses its AP session for catalog track metadata instead of these Deezer pagination rules.
 
 ### How are unusual artist or track names handled in custom folders?
 
@@ -170,7 +192,7 @@ Only separators written in the folder template create directories. Slashes in me
 
 ### Album covers or audio previews do not load.
 
-Make sure you are running the latest release and that your network, DNS filter, firewall, or proxy allows HTTPS access to `api.deezer.com` and `*.dzcdn.net`. A Content Security Policy issue affecting installed builds was fixed in **v0.2.8**.
+Make sure you are running the latest release and that your network, DNS filter, firewall, or proxy allows HTTPS access to the selected provider's API and CDN hosts, including `api.deezer.com` and `*.dzcdn.net` for Deezer or `api.spotify.com`, `*.scdn.co`, and `*.spotifycdn.com` for Spotify. A Deezer Content Security Policy issue affecting installed builds was fixed in **v0.2.8**.
 
 ### A Deezer URL shows "Track not found" or doesn't work.
 
@@ -212,7 +234,7 @@ No. Check the [GitHub Releases page](https://github.com/PierrunoYT/Deezy/release
 
 ### Is Deezy legal to use?
 
-Deezy is provided for educational and personal use, but that does not make every use lawful. Downloading or extracting music may violate [Deezer's Terms of Service](https://www.deezer.com/legal/cgu), copyright law, or both. A Deezer subscription does not automatically grant permission to copy or redistribute recordings.
+Deezy is provided for educational and personal use, but that does not make every use lawful. Downloading or extracting music may violate [Deezer's](https://www.deezer.com/legal/cgu) or [Spotify's](https://www.spotify.com/legal/end-user-agreement/) terms of service, copyright law, or both. A subscription does not automatically grant permission to copy or redistribute recordings.
 
 Laws differ by jurisdiction. You are responsible for determining whether your use is permitted and for obtaining any necessary authorization. This FAQ is not legal advice. Do not redistribute downloaded content or use it commercially without the rights holders' permission.
 
