@@ -170,22 +170,43 @@ pub async fn track(session: &Session, id: &str) -> Result<SpotifyTrack, String> 
     track_from_metadata(&track)
 }
 
-async fn load_track(session: &Session, uri: &SpotifyUri) -> Option<SpotifyTrack> {
-    Track::get(session, uri)
+async fn load_track(session: &Session, uri: &SpotifyUri) -> Result<SpotifyTrack, String> {
+    let track = Track::get(session, uri)
         .await
-        .ok()
-        .and_then(|track| track_from_metadata(&track).ok())
+        .map_err(|e| format!("Spotify track metadata failed: {}", e))?;
+    track_from_metadata(&track)
 }
 
 /// Loads metadata for many tracks with a bounded number of AP requests in
-/// flight, keeping the original order.
-async fn load_tracks(session: &Session, uris: Vec<SpotifyUri>) -> Vec<SpotifyTrack> {
-    stream::iter(uris)
+/// flight, keeping the original order. Individual failures are skipped
+/// (unavailable tracks are normal) but logged; if nothing loads at all, the
+/// first error is returned so a broken session is not shown as an empty list.
+async fn load_tracks(
+    session: &Session,
+    uris: Vec<SpotifyUri>,
+) -> Result<Vec<SpotifyTrack>, String> {
+    let results: Vec<Result<SpotifyTrack, String>> = stream::iter(uris)
         .map(|uri| async move { load_track(session, &uri).await })
         .buffered(METADATA_CONCURRENCY)
-        .filter_map(|track| async move { track })
         .collect()
-        .await
+        .await;
+
+    let mut tracks = Vec::new();
+    let mut first_error = None;
+    for result in results {
+        match result {
+            Ok(track) => tracks.push(track),
+            Err(error) => {
+                eprintln!("Warning: skipped a Spotify track: {}", error);
+                first_error.get_or_insert(error);
+            }
+        }
+    }
+
+    match (tracks.is_empty(), first_error) {
+        (true, Some(error)) => Err(error),
+        _ => Ok(tracks),
+    }
 }
 
 pub async fn album_tracks(session: &Session, album_id: &str) -> Result<Vec<SpotifyTrack>, String> {
@@ -194,7 +215,7 @@ pub async fn album_tracks(session: &Session, album_id: &str) -> Result<Vec<Spoti
         .await
         .map_err(|e| format!("Spotify album metadata failed: {}", e))?;
 
-    Ok(load_tracks(session, album.tracks().cloned().collect()).await)
+    load_tracks(session, album.tracks().cloned().collect()).await
 }
 
 pub async fn playlist_tracks(
@@ -206,7 +227,7 @@ pub async fn playlist_tracks(
         .await
         .map_err(|e| format!("Spotify playlist metadata failed: {}", e))?;
 
-    Ok(load_tracks(session, playlist.tracks().cloned().collect()).await)
+    load_tracks(session, playlist.tracks().cloned().collect()).await
 }
 
 pub async fn artist_albums(
@@ -271,5 +292,5 @@ pub async fn liked_tracks(session: &Session, username: &str) -> Result<Vec<Spoti
         .filter(|uri| matches!(uri, SpotifyUri::Track { .. }))
         .collect();
 
-    Ok(load_tracks(session, uris).await)
+    load_tracks(session, uris).await
 }
