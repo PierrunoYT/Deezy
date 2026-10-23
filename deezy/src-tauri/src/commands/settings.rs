@@ -95,10 +95,6 @@ pub async fn update_settings(
             "max_concurrent_downloads" => settings.max_concurrent_downloads = serde_json::from_value(value).map_err(|e| e.to_string())?,
             "spotify_enabled" => settings.spotify_enabled = serde_json::from_value(value).map_err(|e| e.to_string())?,
             "spotify_quality" => settings.spotify_quality = serde_json::from_value(value).map_err(|e| e.to_string())?,
-            "spotify_client_id" => {
-                let id: String = serde_json::from_value(value).map_err(|e| e.to_string())?;
-                settings.spotify_client_id = id.trim().to_string();
-            }
             "locale" => settings.locale = serde_json::from_value(value).map_err(|e| e.to_string())?,
             _ => return Err(format!("Setting '{}' cannot be updated individually", key)),
         }

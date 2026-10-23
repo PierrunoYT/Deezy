@@ -32,9 +32,7 @@ export interface AppSettings {
   max_concurrent_downloads: number;
   spotify_enabled: boolean;
   spotify_quality: SpotifyQuality;
-  spotify_device_id?: string;
-  spotify_client_id?: string;
-}
+  spotify_device_id?: string;}
 
 export interface ArlStorageStatus {
   storage: 'keyring' | 'plain_file' | null;

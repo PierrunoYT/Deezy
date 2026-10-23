@@ -67,9 +67,6 @@ pub struct Settings {
     /// Stable device id shown on the Spotify account; generated once.
     #[serde(default)]
     pub spotify_device_id: String,
-    /// Optional own Spotify developer client ID; empty uses the shared default.
-    #[serde(default)]
-    pub spotify_client_id: String,
     /// Set on disk only when the plaintext ARL was saved with the keyring
     /// disabled (`DEEZY_NO_KEYRING`). Such a credential is newer than whatever
     /// the keyring holds; other plaintext may be stale and loses to the keyring.
@@ -127,7 +124,6 @@ impl Default for Settings {
             spotify_enabled: true,
             spotify_quality: default_spotify_quality(),
             spotify_device_id: String::new(),
-            spotify_client_id: String::new(),
             arl_saved_without_keyring: false,
         }
     }

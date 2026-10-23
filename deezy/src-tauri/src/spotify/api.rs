@@ -258,9 +258,8 @@ impl SpotifyClient {
 
 fn rate_limit_message() -> String {
     "Spotify rate limit reached (429). The default client ID is shared by every \
-     librespot install, so its Web API quota can be exhausted. Set your own \
-     Spotify Client ID in Settings (redirect URI http://127.0.0.1:5588/login) \
-     and reconnect."
+     librespot install, so its Web API quota can be exhausted. Wait a moment \
+     and try again."
         .to_string()
 }
 

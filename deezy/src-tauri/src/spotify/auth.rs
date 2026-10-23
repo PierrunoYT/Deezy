@@ -140,13 +140,9 @@ pub fn logout() -> Result<(), String> {
     clear_token()
 }
 
-/// Resolves the client ID to use: an explicit setting, the environment
-/// override, or librespot's shared keymaster ID.
-pub fn configured_client_id(settings_value: &str) -> String {
-    let settings_value = settings_value.trim();
-    if !settings_value.is_empty() {
-        return settings_value.to_string();
-    }
+/// Resolves the client ID to use: the environment override, or librespot's
+/// shared keymaster ID.
+pub fn configured_client_id() -> String {
     std::env::var("DEEZY_SPOTIFY_CLIENT_ID")
         .ok()
         .map(|value| value.trim().to_string())
@@ -199,7 +195,7 @@ async fn connect_with_profile(
                 // Spotify may refuse AP logins for third-party client IDs.
                 format!(
                     "Spotify session failed with a custom Client ID: {}. \
-                     Clear the Client ID in Settings to use the default.",
+                     Unset DEEZY_SPOTIFY_CLIENT_ID to use the default.",
                     e
                 )
             }
@@ -290,23 +286,16 @@ fn clear_token() -> Result<(), String> {
 mod tests {
     use super::*;
 
-    #[test]
-    fn setting_wins_and_is_trimmed() {
-        assert_eq!(configured_client_id("  my-client  "), "my-client");
-    }
-
     // One test owns the environment variable so parallel tests never race on it.
     #[test]
-    fn env_override_then_default_when_setting_is_blank() {
+    fn env_override_then_default_when_blank() {
         std::env::set_var("DEEZY_SPOTIFY_CLIENT_ID", " env-client ");
-        assert_eq!(configured_client_id(""), "env-client");
-        assert_eq!(configured_client_id("   "), "env-client");
-        assert_eq!(configured_client_id("setting"), "setting");
+        assert_eq!(configured_client_id(), "env-client");
 
         std::env::set_var("DEEZY_SPOTIFY_CLIENT_ID", "  ");
-        assert_eq!(configured_client_id(""), DEFAULT_CLIENT_ID);
+        assert_eq!(configured_client_id(), DEFAULT_CLIENT_ID);
 
         std::env::remove_var("DEEZY_SPOTIFY_CLIENT_ID");
-        assert_eq!(configured_client_id(""), DEFAULT_CLIENT_ID);
+        assert_eq!(configured_client_id(), DEFAULT_CLIENT_ID);
     }
 }

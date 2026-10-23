@@ -257,12 +257,7 @@
       "connectedStatus": "Spotify connected.",
       "disconnectedStatus": "Spotify disconnected.",
       "connectFailed": "Spotify connection failed: {error}",
-      "disconnectFailed": "Could not disconnect Spotify: {error}",
-      "clientIdLabel": "Spotify Client ID (optional)",
-      "clientIdHint": "Use your own Spotify developer app to avoid shared rate limits. Add http://127.0.0.1:5588/login as a redirect URI, then reconnect.",
-      "clientIdPlaceholder": "Leave empty to use the default",
-      "clientIdSaved": "Client ID saved. Reconnect Spotify to use it.",
-      "quality": {
+      "disconnectFailed": "Could not disconnect Spotify: {error}",      "quality": {
         "normal": "Normal (96 kbps)",
         "high": "High (160 kbps)",
         "veryHigh": "Very high (320 kbps)",
