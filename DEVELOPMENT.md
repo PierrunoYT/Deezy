@@ -124,7 +124,7 @@ rejects AP metadata requests made under any other ID with a 400. The Web API
 `WAVEKEEP_SPOTIFY_CLIENT_ID`), then the default;
 with a custom ID this means a second browser login. Tokens are bound to the
 Client ID that issued them, so changing the setting while connected logs out
-both. The default token uses the `com.pierr.deezy` / `spotify_oauth`
+both. The default token uses the `com.pierr.wavekeep` / `spotify_oauth`
 credential-store entry and the custom-ID token uses `spotify_oauth_web`;
 persistence is best-effort and a keyring failure requires a fresh login after
 restart. Because both logins reuse the callback port, the success page carries
@@ -193,10 +193,9 @@ that review. Test these separately when changes affect those paths.
    tagging, restart recovery, themes, and tray shutdown on the release platform.
 5. Build with `bun run tauri build` and verify the generated artifacts under
    `src-tauri/target/release/bundle/`.
-6. Until Deezy installs are gone, the release notes must say that the `.exe`
-   installer installs Wavekeep next to Deezy, and that Deezy should be uninstalled
-   without ticking "Delete the application data", because both apps share the
-   `com.pierr.deezy` data folder. See `AGENTS.md` for why the identifier is kept.
+6. Until Deezy installs are gone, the release notes must tell `.exe` users to
+   start Wavekeep once before uninstalling Deezy, so `migration.rs` has moved their
+   data and logins first. See `AGENTS.md` for how the migration works.
 7. Make one release commit named `chore: prepare version X.Y.Z release` and an
    annotated tag `vX.Y.Z` with the message `Wavekeep vX.Y.Z`, then publish the
    appropriate installers and notes through the repository's release process.

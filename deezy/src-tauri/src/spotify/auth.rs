@@ -8,9 +8,9 @@ use librespot_oauth::{OAuthClient, OAuthClientBuilder, OAuthToken};
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
-const KEYRING_SERVICE: &str = "com.pierr.deezy";
-const KEYRING_USER: &str = "spotify_oauth";
-const KEYRING_WEB_USER: &str = "spotify_oauth_web";
+const KEYRING_SERVICE: &str = crate::migration::IDENTIFIER;
+pub(crate) const KEYRING_USER: &str = "spotify_oauth";
+pub(crate) const KEYRING_WEB_USER: &str = "spotify_oauth_web";
 
 /// librespot's own keymaster client. Its registered redirect is the loopback
 /// URI below, so no Spotify developer app is required. The AP session (track

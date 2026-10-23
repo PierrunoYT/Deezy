@@ -1,5 +1,6 @@
 mod commands;
 mod deezer;
+mod migration;
 mod paths;
 mod settings;
 mod spotify;
@@ -68,6 +69,9 @@ pub fn run() {
             bandwidth: Arc::new(deezer::bandwidth::BandwidthLimiter::new()),
         })
         .setup(|app| {
+            // Before anything reads settings or credentials.
+            migration::run(app.handle());
+
             // Create system tray
             if let Err(e) = tray::create_tray(app.handle()) {
                 eprintln!("Failed to create system tray: {}", e);

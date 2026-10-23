@@ -28,7 +28,7 @@ Your ARL is a sensitive session credential that can provide access to your Deeze
 
 ### How does Wavekeep handle my Spotify login?
 
-Spotify uses browser OAuth rather than an ARL or your Spotify password. The access and refresh tokens are normally stored in the OS credential store under `com.pierr.deezy` / `spotify_oauth`, separately from the Deezer ARL. If credential persistence is unavailable, the current session can still work, but you will need to log in again after restarting.
+Spotify uses browser OAuth rather than an ARL or your Spotify password. The access and refresh tokens are normally stored in the OS credential store under `com.pierr.wavekeep` / `spotify_oauth`, separately from the Deezer ARL. If credential persistence is unavailable, the current session can still work, but you will need to log in again after restarting.
 
 Use **Disconnect** in Settings to remove the stored Spotify token. Changing the optional Spotify Client ID also disconnects the current session because tokens are tied to the Client ID that issued them.
 
@@ -156,9 +156,9 @@ First, fully exit Wavekeep from the system tray and reopen it. If the problem co
 
 As a last resort, close Wavekeep and rename its application-data folder so the app can create a clean configuration:
 
-- **Windows:** `%APPDATA%\com.pierr.deezy`
-- **macOS:** `~/Library/Application Support/com.pierr.deezy`
-- **Linux:** `$XDG_DATA_HOME/com.pierr.deezy` or `~/.local/share/com.pierr.deezy`
+- **Windows:** `%APPDATA%\com.pierr.wavekeep`
+- **macOS:** `~/Library/Application Support/com.pierr.wavekeep`
+- **Linux:** `$XDG_DATA_HOME/com.pierr.wavekeep` or `~/.local/share/com.pierr.wavekeep`
 
 Resetting this folder removes local settings, download history, and custom themes. If Wavekeep is using plaintext fallback, it also removes the ARL. ARL and Spotify tokens stored in the OS credential store are separate and may remain there.
 
@@ -206,20 +206,25 @@ Short-link domains are not supported. If a valid full URL still fails, update yo
 
 ### I used Deezy. Will I lose my data when I install Wavekeep?
 
-No. Wavekeep is the new name of Deezy, and it keeps your settings, download history, custom themes, saved Deezer ARL and Spotify login, and your download folder. Your music files are never touched by an update.
+No. Wavekeep is the new name of Deezy. The first time it starts, it moves your settings, download history and custom themes from Deezy's data folder into its own, and moves your saved Deezer ARL and Spotify login to Wavekeep's entries in the credential store. Your download folder setting and your music files are not touched.
 
-The one thing to watch for is the `.exe` installer: it installs Wavekeep next to the old Deezy app instead of replacing it. When you uninstall Deezy afterwards, leave **"Delete the application data"** unticked, because both apps use the same data folder and that option would wipe it. The `.msi` installer upgrades Deezy in place, so this does not come up.
+With the `.exe` installer, Deezy stays installed next to Wavekeep. Start Wavekeep once before you uninstall Deezy. If you uninstall Deezy first and tick **"Delete the application data"**, its uninstaller deletes the data before Wavekeep can move it. The `.msi` installer upgrades Deezy in place, so this does not come up.
 
-### Why do some folders and settings still say "deezy"?
+### What exactly does the move from Deezy do?
 
-On purpose. Every Tauri app has an internal identifier, and Wavekeep's is still `com.pierr.deezy`. It decides two things:
+Every Tauri app has an internal identifier that decides where it keeps its data and how its entries in Windows Credential Manager, macOS Keychain or Linux Secret Service are named. Deezy's identifier was `com.pierr.deezy`; Wavekeep's is `com.pierr.wavekeep`. On every start, before anything is loaded, Wavekeep:
 
-- **Where your data lives:** the app-data folder for settings, download history and themes, for example `%APPDATA%\com.pierr.deezy` on Windows, `~/Library/Application Support/com.pierr.deezy` on macOS and `~/.local/share/com.pierr.deezy` on Linux.
-- **Where your logins are stored:** the name of the entry in Windows Credential Manager, macOS Keychain or Linux Secret Service that holds your Deezer ARL and Spotify tokens.
+- **Moves your data:** `settings.json`, `download_history.json` and the `themes` folder go from the old folder to the new one, for example from `%APPDATA%\com.pierr.deezy` to `%APPDATA%\com.pierr.wavekeep` on Windows. Anything already in the new folder is kept and never overwritten. The old folder is removed only once it is empty.
+- **Moves your logins:** each saved credential (Deezer ARL, Spotify tokens) is copied to the new name and read back to check it. Only then is the old entry deleted, so a secret is never lost and never left behind under the old name.
 
-If the identifier changed with the name, Wavekeep would look in a new, empty folder and a new credential entry. You would start with default settings, an empty history and no custom themes, and you would have to log in to Deezer and Spotify again. Avoiding that would need migration code that copies everything over and moves the stored credentials, which is easy to get wrong for logins. Since users never see the identifier except in these paths, keeping it is the safer choice. It may change later in a release that migrates the data properly.
+Once everything has moved, these steps do nothing. What happened is written to `wavekeep-debug.log` in your temporary folder.
 
-For the same reason, the older `DEEZY_NO_KEYRING` and `DEEZY_SPOTIFY_CLIENT_ID` environment variables still work alongside the new `WAVEKEEP_` names.
+Things to know:
+
+- After the move, the old Deezy app starts with default settings and no saved logins.
+- On macOS, the Keychain may ask once whether Wavekeep may read the logins Deezy saved.
+- On Windows, Deezy's browser cache in `%LOCALAPPDATA%\com.pierr.deezy` is not moved. You can delete that folder.
+- The older `DEEZY_NO_KEYRING` and `DEEZY_SPOTIFY_CLIENT_ID` environment variables still work alongside the new `WAVEKEEP_` names.
 
 ### How do I update Wavekeep on Windows?
 

@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use tauri::Manager;
 
-const KEYRING_SERVICE: &str = "com.pierr.deezy";
-const KEYRING_USER: &str = "arl_token";
+const KEYRING_SERVICE: &str = crate::migration::IDENTIFIER;
+pub(crate) const KEYRING_USER: &str = "arl_token";
 const MAX_SETTINGS_BYTES: u64 = 1024 * 1024;
 const MAX_DOWNLOAD_DELAY_SECONDS: u32 = 3600;
 pub const MAX_CONCURRENT_DOWNLOADS: u32 = 10;
@@ -141,7 +141,7 @@ pub fn app_env(name: &str) -> Option<String> {
         .ok()
 }
 
-fn keyring_enabled() -> bool {
+pub(crate) fn keyring_enabled() -> bool {
     !matches!(
         app_env("NO_KEYRING").as_deref(),
         Some("1") | Some("true") | Some("yes")

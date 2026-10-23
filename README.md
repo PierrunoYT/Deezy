@@ -63,10 +63,11 @@ These docs describe the current source. Changes under [Unreleased](CHANGELOG.md#
 
 ### Upgrading from Deezy
 
-Your settings, download history, custom themes, saved Deezer and Spotify logins, and downloaded music all carry over. Wavekeep stores them under the same internal app identifier as Deezy (`com.pierr.deezy`), so it finds them where Deezy left them.
+Your settings, download history, custom themes, saved Deezer and Spotify logins, and downloaded music all carry over. The first time Wavekeep starts, it moves them from Deezy's data folder and credential entries (`com.pierr.deezy`) to its own (`com.pierr.wavekeep`).
 
 - **`.msi` installer:** upgrades the existing Deezy installation in place.
-- **`.exe` installer:** installs Wavekeep next to Deezy, because it is keyed on the app name. Both apps share the same data. Afterwards, uninstall Deezy from Windows Settings, and **do not tick "Delete the application data"** in its uninstaller: that would delete the settings, history, themes and saved logins that Wavekeep uses too. Your music files are not affected either way.
+- **`.exe` installer:** installs Wavekeep next to Deezy, because it is keyed on the app name. **Start Wavekeep once before you uninstall Deezy**, so your data has been moved; after that, uninstalling Deezy is safe. If you uninstall Deezy first and tick "Delete the application data", its uninstaller deletes your settings, history and themes before Wavekeep can move them. Your music files are not affected either way.
+- Once moved, the data belongs to Wavekeep: the old Deezy app starts with default settings and no saved logins.
 
 ### Windows
 

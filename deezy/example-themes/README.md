@@ -105,9 +105,9 @@ A futuristic cyberpunk theme with electric neon accents. Bold and eye-catching f
 
 ### Method 2: Copy to Themes Directory
 1. Copy the JSON file to your Wavekeep themes directory:
-   - **Windows**: `%APPDATA%/com.pierr.deezy/themes/`
-   - **macOS**: `~/Library/Application Support/com.pierr.deezy/themes/`
-   - **Linux**: `~/.local/share/com.pierr.deezy/themes/`
+   - **Windows**: `%APPDATA%/com.pierr.wavekeep/themes/`
+   - **macOS**: `~/Library/Application Support/com.pierr.wavekeep/themes/`
+   - **Linux**: `~/.local/share/com.pierr.wavekeep/themes/`
 2. Restart Wavekeep or refresh the themes list
 3. The theme will appear in the Custom Themes section
 
