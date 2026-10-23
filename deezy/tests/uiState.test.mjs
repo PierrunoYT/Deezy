@@ -6,14 +6,16 @@ function searchSetup() {
   const pending = new Map();
   const api = loadModule('../src/lib/components/SearchView.svelte', {
     '@tauri-apps/api/core': { invoke(command, args) {
-      const request = deferred(); pending.set(args.artistId ?? args.playlistId, request); return request.promise;
+      const request = deferred(); pending.set(args?.artistId ?? args?.playlistId ?? command, request); return request.promise;
     } },
     '$lib/stores': {}, '$lib/downloadQueue': {}, '$lib/rateLimiter': {},
     svelte: { onMount() {} }, '$lib/keyboardShortcuts': {}, '$lib/audioPlayer': {},
-    'svelte-i18n': {}, './search/SearchResults.svelte': {}, './search/SearchView.css': {}
+    'svelte-i18n': {}, './search/SearchResults.svelte': {}, './search/SearchView.css': {},
+    './search/types': loadModule('../src/lib/components/search/types.ts', {})
   }, { $state: value => value, $effect() {}, $_: key => key }, `
-    export { openArtist, closeArtist, openPlaylist, closePlaylist };
-    export const inspect = () => ({ selectedArtist, artistAlbums, loadingDiscography, selectedPlaylist, playlistTracks, loadingPlaylist });
+    export { openArtist, closeArtist, openPlaylist, closePlaylist, switchSearchType };
+    export const login = () => { isLoggedIn = true; };
+    export const inspect = () => ({ selectedArtist, artistAlbums, loadingDiscography, selectedPlaylist, playlistTracks, loadingPlaylist, results, playlistResults, searching, errorMsg });
   `);
   return { api, pending };
 }
@@ -44,6 +46,22 @@ test('reopening the same playlist invalidates the previous request', async () =>
   pending.get('1').resolve([{ id: 20 }]);
   await second;
   assert.equal(api.inspect().playlistTracks[0].id, 20);
+});
+
+test('a library tab that finishes loading after another tab opened cannot replace its results', async () => {
+  const { api, pending } = searchSetup();
+  api.login();
+  api.switchSearchType('loved');
+  const lovedRequest = pending.get('get_loved_tracks');
+  api.switchSearchType('myPlaylists');
+  lovedRequest.resolve([{ id: 10 }]);
+  await settle();
+  assert.equal(api.inspect().results.length, 0);
+  assert.equal(api.inspect().searching, true);
+  pending.get('get_user_playlists').resolve([]);
+  await settle();
+  assert.equal(api.inspect().searching, false);
+  assert.equal(api.inspect().errorMsg, 'search.library.noPlaylists');
 });
 
 function themeSetup() {

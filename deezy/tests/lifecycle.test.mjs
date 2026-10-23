@@ -14,7 +14,8 @@ test('closing Settings during initialization does not create orphan subscription
     '$lib/notifications': {}, 'svelte-i18n': {}, '$lib/i18n': {}, './ThemeManager.svelte': {}
   }, {
     $state: value => value, $derived: value => value, $props: () => ({}), $effect() {},
-    $notificationsEnabled: false, $userInfo: null, $settingsArlDraft: '', $downloadDelaySeconds: 0
+    $notificationsEnabled: false, $userInfo: null, $settingsArlDraft: '', $downloadDelaySeconds: 0,
+    $maxConcurrentDownloads: 3
   });
   cleanup();
   pending.resolve({});

@@ -6,7 +6,7 @@ function setup(completionNotice = Promise.resolve()) {
   const stores = {
     downloads: store(new Map()), downloadHistory: store([]), downloadQueue: store([]),
     activeDownloads: store(0), pausedDownloads: store(new Set()), downloadDelaySeconds: store(0),
-    MAX_CONCURRENT_DOWNLOADS: 3
+    maxConcurrentDownloads: store(3)
   };
   const download = deferred();
   const cancel = deferred();
@@ -128,4 +128,24 @@ test('a skipped track is complete without a quality or notification and does not
   assert.equal(downloadsById.has('2'), true, 'the skip released the delay');
   downloadsById.get('2').resolve(complete);
   await settle();
+});
+
+test('the simultaneous download limit holds back extra tracks and applies when it is raised', async () => {
+  const { manager, stores, download, downloadsById } = setup();
+  stores.maxConcurrentDownloads.set(1);
+  await manager.addToQueue(track);
+  await manager.addToQueue({ ...track, id: 2 });
+  await settle();
+  assert.equal(stores.activeDownloads.value, 1);
+  assert.equal(downloadsById.has('2'), false, 'the limit holds back the second track');
+
+  stores.maxConcurrentDownloads.set(2);
+  // The queue rechecks for a free slot once per second.
+  await new Promise(resolve => setTimeout(resolve, 1100));
+  assert.equal(downloadsById.has('2'), true, 'the raised limit started the queued track');
+  assert.equal(stores.activeDownloads.value, 2);
+  download.resolve(complete);
+  downloadsById.get('2').resolve(complete);
+  await settle();
+  assert.equal(stores.activeDownloads.value, 0);
 });
