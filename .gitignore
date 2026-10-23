@@ -114,3 +114,6 @@ coverage/
 
 # Amp orb portals
 .amp/portals/*
+
+# Local standalone tools
+/Spotify Download/

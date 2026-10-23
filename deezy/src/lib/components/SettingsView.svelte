@@ -52,6 +52,8 @@
   let selectedLocale = $state('en');
   let spotifyQuality = $state<SpotifyQuality>('very-high');
   let spotifyBusy = $state(false);
+  let spotifyClientId = $state('');
+  let savedSpotifyClientId = '';
   let showArl = $state(false);
   let saving = $state(false);
   let statusMsg = $state('');
@@ -124,7 +126,10 @@
         downloadDelay = settings.download_delay_seconds ?? 0;
         speedLimitKbps = settings.download_speed_limit_kbps ?? 0;
         concurrentDownloads = settings.max_concurrent_downloads ?? concurrentDownloads;
-        spotifyQuality = settings.spotify_quality ?? 'very-high';      } catch {
+        spotifyQuality = settings.spotify_quality ?? 'very-high';
+        spotifyClientId = settings.spotify_client_id ?? '';
+        savedSpotifyClientId = spotifyClientId;
+      } catch {
         // First run
       }
 
@@ -304,6 +309,25 @@
       await updateSetting('spotify_quality', value);
     } catch (err) {
       console.error('Failed to save Spotify quality:', err);
+    }
+  }
+
+  async function saveSpotifyClientId(): Promise<void> {
+    const value = spotifyClientId.trim();
+    if (value === savedSpotifyClientId) return;
+    try {
+      await updateSetting('spotify_client_id', value);
+      savedSpotifyClientId = value;
+      spotifyClientId = value;
+      // Tokens are bound to the client ID that issued them.
+      if ($spotifyConnected) {
+        await invoke('spotify_logout');
+        spotifyConnected.set(false);
+        spotifyUserName.set(null);
+      }
+      showStatus($_('settings.spotify.clientIdSaved'), 'success');
+    } catch (err) {
+      console.error('Failed to save Spotify client ID:', err);
     }
   }
 
@@ -523,6 +547,18 @@
           </button>
         {/if}
       </div>
+      <label for="spotify-client-id">{$_('settings.spotify.clientIdLabel')}</label>
+      <p class="form-hint">{$_('settings.spotify.clientIdHint')}</p>
+      <input
+        id="spotify-client-id"
+        class="spotify-client-id-input"
+        type="text"
+        bind:value={spotifyClientId}
+        onblur={saveSpotifyClientId}
+        placeholder={$_('settings.spotify.clientIdPlaceholder')}
+        autocomplete="off"
+        spellcheck="false"
+      />
       <select
         id="spotify-quality-select"
         value={spotifyQuality}
@@ -866,6 +902,10 @@
   .spotify-row {
     align-items: center;
     gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .spotify-client-id-input {
     margin-bottom: 12px;
   }
 

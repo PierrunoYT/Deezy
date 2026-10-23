@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { deferred, loadModule, settle } from './helpers.mjs';
+import { deferred, loadModule, settle, store } from './helpers.mjs';
 
 test('closing Settings during initialization does not create orphan subscriptions', async () => {
   const pending = deferred();
@@ -21,6 +21,41 @@ test('closing Settings during initialization does not create orphan subscription
   pending.resolve({});
   await settle();
   assert.equal(subscriptions, 0);
+});
+
+test('changing the Spotify client ID saves a trimmed value and disconnects the old token', async () => {
+  const calls = [];
+  const spotifyConnected = store(true);
+  const spotifyUserName = store('Listener');
+  const { saveSpotifyClientId, setClientId } = loadModule('../src/lib/components/SettingsView.svelte', {
+    '@tauri-apps/api/core': { invoke: async (command, args) => { calls.push({ command, args }); } },
+    svelte: { onMount() {} },
+    '$lib/stores': { spotifyConnected, spotifyUserName },
+    '$lib/notifications': {}, 'svelte-i18n': {}, '$lib/i18n': {}, './ThemeManager.svelte': {}
+  }, {
+    $state: value => value, $derived: value => value, $props: () => ({}), $effect() {},
+    $notificationsEnabled: false, $userInfo: null, $settingsArlDraft: '', $downloadDelaySeconds: 0,
+    $maxConcurrentDownloads: 3, $spotifyConnected: true, $_: key => key
+  }, `
+    export { saveSpotifyClientId };
+    export function setClientId(value, saved) {
+      spotifyClientId = value;
+      savedSpotifyClientId = saved;
+    }
+  `);
+
+  setClientId('  custom-client  ', 'old-client');
+  await saveSpotifyClientId();
+
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].command, 'update_settings');
+  assert.equal(calls[0].args.updates.spotify_client_id, 'custom-client');
+  assert.equal(calls[1].command, 'spotify_logout');
+  assert.equal(spotifyConnected.value, false);
+  assert.equal(spotifyUserName.value, null);
+
+  await saveSpotifyClientId();
+  assert.equal(calls.length, 2);
 });
 
 function traySetup() {

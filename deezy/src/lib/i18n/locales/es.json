@@ -257,7 +257,12 @@
       "connectedStatus": "Spotify conectado.",
       "disconnectedStatus": "Spotify desconectado.",
       "connectFailed": "Error al conectar Spotify: {error}",
-      "disconnectFailed": "No se pudo desconectar Spotify: {error}",      "quality": {
+      "disconnectFailed": "No se pudo desconectar Spotify: {error}",
+      "clientIdLabel": "ID de cliente de Spotify (opcional)",
+      "clientIdHint": "Usa tu propia app de desarrollador de Spotify para evitar los límites compartidos. Añade http://127.0.0.1:5588/login como URI de redirección y vuelve a conectar.",
+      "clientIdPlaceholder": "Déjalo vacío para usar el predeterminado",
+      "clientIdSaved": "ID de cliente guardado. Vuelve a conectar Spotify para usarlo.",
+      "quality": {
         "normal": "Normal (96 kbps)",
         "high": "Alta (160 kbps)",
         "veryHigh": "Muy alta (320 kbps)",
