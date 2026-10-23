@@ -13,10 +13,15 @@
 //! URL query strings (which can carry session or download tokens) are dropped,
 //! and any unbroken token-like run of 100+ characters, the shape of an ARL or
 //! OAuth token, is replaced. Callers must still never pass credentials.
+//!
+//! Track names, artists and file paths go through [`detail`], which writes
+//! `[hidden]` instead when the user turned off "Include track details in the
+//! log" (`log_track_details` in settings).
 
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, OnceLock};
 
 const FILE_NAME: &str = "wavekeep-debug.log";
@@ -35,6 +40,23 @@ const MAX_PENDING_LINES: usize = 500;
 static LOG_DIR: OnceLock<PathBuf> = OnceLock::new();
 /// Serialises writes and holds the lines logged before `init`.
 static PENDING: Mutex<Vec<String>> = Mutex::new(Vec::new());
+/// Mirrors the `log_track_details` setting; kept in sync by `Settings`.
+static TRACK_DETAILS: AtomicBool = AtomicBool::new(true);
+
+/// Applies the "Include track details in the log" setting.
+pub fn set_track_details(enabled: bool) {
+    TRACK_DETAILS.store(enabled, Ordering::Relaxed);
+}
+
+/// A personal detail for a log line (track name, artist, file path): the value
+/// itself, or `[hidden]` when the user keeps track details out of the log.
+pub fn detail(value: impl std::fmt::Display) -> String {
+    if TRACK_DETAILS.load(Ordering::Relaxed) {
+        value.to_string()
+    } else {
+        "[hidden]".to_string()
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Level {
@@ -149,6 +171,22 @@ pub fn tail(max_lines: usize) -> String {
     let lines: Vec<&str> = old.lines().chain(current.lines()).collect();
     let start = lines.len().saturating_sub(max_lines);
     lines[start..].join("\n")
+}
+
+/// Deletes the current and the rotated log ("Delete log" in Info & FAQ).
+pub fn delete_logs() -> Result<(), String> {
+    let _guard = PENDING.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let Some(path) = log_path() else {
+        return Ok(());
+    };
+    for file in [path.with_file_name(OLD_FILE_NAME), path] {
+        match fs::remove_file(&file) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(format!("Could not delete the log: {}", e)),
+        }
+    }
+    Ok(())
 }
 
 fn format_line(level: Level, area: &str, message: &str, unix: u64) -> String {
@@ -309,6 +347,15 @@ two
 ");
         assert_eq!(fs::metadata(dir.join(OLD_FILE_NAME)).unwrap().len(), MAX_BYTES + 1);
         let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn hides_track_details_when_turned_off() {
+        assert_eq!(detail("Artist - Title"), "Artist - Title");
+        set_track_details(false);
+        assert_eq!(detail("Artist - Title"), "[hidden]");
+        set_track_details(true);
+        assert_eq!(detail(42), "42");
     }
 
     #[test]

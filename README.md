@@ -159,7 +159,14 @@ metadata are sanitized, so an artist such as `AC/DC` stays in one directory.
 
 Open **Info & FAQ** in the sidebar, press **Copy recent log**, and paste it with a short description into a [GitHub issue](https://github.com/PierrunoYT/Deezy/issues) or the [Discord server](https://discord.gg/dvuWBeXSf3). **Open log folder** shows the whole file, `wavekeep-debug.log` in Wavekeep's logs folder (`%LOCALAPPDATA%\com.pierr.wavekeep\logs` on Windows, `~/Library/Logs/com.pierr.wavekeep` on macOS, and `~/.local/share/com.pierr.wavekeep/logs` on Linux). The system does not clean that folder up on its own.
 
-The log is local only. It stays on your computer and Wavekeep never uploads it. Passwords, your ARL and login tokens are never written to it; on top of that, every line is cleaned before it is saved: your home folder appears as `~`, web addresses lose their query part (where tokens travel), and any long token-like string is replaced with `[redacted]`. It does contain track IDs, artist and title, and the paths of your saved files, so read it before sharing if that matters to you. **Copy recent log** copies the last 300 lines; older lines are in `wavekeep-debug.old.log` once the log passes 1 MB.
+**Privacy:**
+
+- **Local only.** The log stays on your computer; Wavekeep never uploads it, and the app sends nothing to the developer (no analytics, telemetry or crash reports).
+- **Never in the log:** passwords, your ARL, login tokens, and what you search for. Every line is also cleaned before it is saved: your home folder appears as `~`, web addresses lose their query part, and long token-like strings become `[redacted]`.
+- **Track details are your choice.** By default the log includes track names, artists and file paths, which makes reports easier to follow. Turn off **Track Details in Log** in Settings to write `[hidden]` instead.
+- **You control it.** **Copy recent log** copies the last 300 lines, **Delete log** removes the log and its rotated copy (`wavekeep-debug.old.log`, created once the log passes 1 MB), and you can read the file before sharing it.
+
+See [What does Wavekeep collect or send?](FAQ.md#what-does-wavekeep-collect-or-send) for everything Wavekeep stores and how to remove it.
 
 ## Development
 

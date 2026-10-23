@@ -130,7 +130,8 @@ class AudioPlayerManager {
     }
 
     if (!track.preview) {
-      console.warn('No preview available for track:', track.title);
+      // The ID, not the title: warnings are copied into the diagnostic log.
+      console.warn('No preview available for track:', track.id);
       return;
     }
 

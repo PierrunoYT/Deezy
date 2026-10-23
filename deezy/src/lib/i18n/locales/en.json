@@ -203,6 +203,18 @@
       "clear": "Clear Search History",
       "clearConfirm": "Are you sure you want to clear your search history?"
     },
+    "logDetails": {
+      "label": "Track Details in Log",
+      "hint": "Write track names, artists and file paths to the local diagnostic log. Turn this off to write [hidden] instead; IDs, statuses and errors are still logged. The log never leaves your computer unless you share it.",
+      "enabled": "Included",
+      "disabled": "Hidden"
+    },
+    "closeToTray": {
+      "label": "System Tray",
+      "hint": "Minimize to system tray when closing the window instead of quitting the app.",
+      "enabled": "Close to Tray",
+      "disabled": "Close to Quit"
+    },
     "language": {
       "label": "Language",
       "hint": "Choose your preferred language for the interface."
@@ -328,7 +340,10 @@
       "copy": "Copy recent log",
       "open": "Open log folder",
       "copied": "Copied the most recent log lines. Paste them into your report.",
-      "failed": "Could not access the log. It is wavekeep-debug.log in Wavekeep's logs folder."
+      "failed": "Could not access the log. It is wavekeep-debug.log in Wavekeep's logs folder.",
+      "delete": "Delete log",
+      "confirmDelete": "Click again to delete",
+      "deleted": "The log was deleted."
     },
     "button": "Info & FAQ",
     "title": "Important information",
@@ -371,13 +386,13 @@
       },
       "log": {
         "title": "Something went wrong?",
-        "text": "Wavekeep keeps a diagnostic log named wavekeep-debug.log in Wavekeep's logs folder. It stays on your computer and is never uploaded. Passwords, your ARL and login tokens are never written to it, and your home folder appears as ~. It does include track IDs, artist and title, and the paths of your downloads. Use the buttons below to copy it or open its folder when you report a problem."
+        "text": "Wavekeep keeps a diagnostic log on your computer so problems can be traced. It is never uploaded; it only leaves your computer if you share it. It never contains passwords, your ARL or login tokens, and your home folder appears as ~. It records what the app did, with track IDs, statuses and errors, plus track names, artists and file paths unless you turn off Track Details in Log in Settings. Use the buttons below to copy it for a report, open its folder or delete it."
       }
     },
     "faq": {
       "report": {
         "q": "How do I report a problem?",
-        "a": "Open Info & FAQ, press Copy recent log, and paste it with a short description into a GitHub issue or the Discord server. The log stays on your computer until you share it yourself, and it never contains your password, ARL or login tokens."
+        "a": "Open Info & FAQ, press Copy recent log, and paste it with a short description into a GitHub issue or the Discord server. The log only leaves your computer when you share it, and it never contains your password, ARL or login tokens. To leave out track names and file paths, turn off Track Details in Log in Settings before reproducing the problem."
       },
       "deezy": {
         "q": "I used Deezy. Will I lose anything?",
@@ -416,8 +431,8 @@
         "a": "Use the Tag Editor in the sidebar, or the pencil button next to a finished download. MP3, FLAC, OGG and M4A files are supported."
       },
       "privacy": {
-        "q": "Does Wavekeep collect my data?",
-        "a": "No. It has no analytics or telemetry and only talks to Deezer and Spotify. Your ARL and Spotify tokens are kept in your operating system's credential store when one is available."
+        "q": "What does Wavekeep collect or send?",
+        "a": "Nothing goes to the developer: there are no analytics, telemetry, crash reports or update checks. Wavekeep only connects to Deezer and Spotify (and their image and audio servers) to log in, search and download. On your computer it keeps your settings, including your last 20 searches unless search history is off, your download history, custom themes and the diagnostic log. Logins are kept in your system's credential store; the Deezer ARL only goes into the settings file if that store is unavailable. You can clear the download history in Downloads, clear or turn off search history in Settings, and delete the log here in Info & FAQ."
       }
     }
   },

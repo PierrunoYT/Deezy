@@ -44,6 +44,7 @@
   let customTheme = $state<string | null>(null);
   let enableNotifications = $state($notificationsEnabled);
   let enableSearchHistory = $state(true);
+  let logTrackDetails = $state(true);
   let closeToTray = $state(true);
   let skipExistingFiles = $state(true);
   let downloadDelay = $state($downloadDelaySeconds);
@@ -118,6 +119,9 @@
         if (settings.locale) selectedLocale = settings.locale;
         if (settings.enable_search_history !== undefined) {
           enableSearchHistory = settings.enable_search_history;
+        }
+        if (settings.log_track_details !== undefined) {
+          logTrackDetails = settings.log_track_details;
         }
         if (settings.close_to_tray !== undefined) {
           closeToTray = settings.close_to_tray;
@@ -360,6 +364,14 @@
       await updateSetting('enable_search_history', enableSearchHistory);
     } catch (err) {
       console.error('Failed to save search history setting:', err);
+    }
+  }
+
+  async function saveLogTrackDetails(): Promise<void> {
+    try {
+      await updateSetting('log_track_details', logTrackDetails);
+    } catch (err) {
+      console.error('Failed to save log detail setting:', err);
     }
   }
 
@@ -766,9 +778,29 @@
     </div>
 
     <div class="form-group">
-      <div class="label-text">System Tray</div>
+      <div class="label-text">{$_('settings.logDetails.label')}</div>
       <p class="form-hint">
-        Minimize to system tray when closing the window instead of quitting the app.
+        {$_('settings.logDetails.hint')}
+      </p>
+      <label class="toggle-wrapper">
+        <span class="toggle-container">
+          <input
+            type="checkbox"
+            bind:checked={logTrackDetails}
+            onchange={saveLogTrackDetails}
+          />
+          <span class="toggle-slider"></span>
+        </span>
+        <span class="toggle-label">
+          {logTrackDetails ? $_('settings.logDetails.enabled') : $_('settings.logDetails.disabled')}
+        </span>
+      </label>
+    </div>
+
+    <div class="form-group">
+      <div class="label-text">{$_('settings.closeToTray.label')}</div>
+      <p class="form-hint">
+        {$_('settings.closeToTray.hint')}
       </p>
       <label class="toggle-wrapper">
         <span class="toggle-container">
@@ -780,7 +812,7 @@
           <span class="toggle-slider"></span>
         </span>
         <span class="toggle-label">
-          {closeToTray ? 'Close to Tray' : 'Close to Quit'}
+          {closeToTray ? $_('settings.closeToTray.enabled') : $_('settings.closeToTray.disabled')}
         </span>
       </label>
     </div>

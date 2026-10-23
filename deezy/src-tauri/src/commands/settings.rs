@@ -88,6 +88,7 @@ pub async fn update_settings(
             "custom_theme" => settings.custom_theme = serde_json::from_value(value).map_err(|e| e.to_string())?,
             "notifications_enabled" => settings.notifications_enabled = serde_json::from_value(value).map_err(|e| e.to_string())?,
             "enable_search_history" => settings.enable_search_history = serde_json::from_value(value).map_err(|e| e.to_string())?,
+            "log_track_details" => settings.log_track_details = serde_json::from_value(value).map_err(|e| e.to_string())?,
             "close_to_tray" => settings.close_to_tray = serde_json::from_value(value).map_err(|e| e.to_string())?,
             "skip_existing_files" => settings.skip_existing_files = serde_json::from_value(value).map_err(|e| e.to_string())?,
             "download_delay_seconds" => settings.download_delay_seconds = serde_json::from_value(value).map_err(|e| e.to_string())?,

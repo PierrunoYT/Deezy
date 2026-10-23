@@ -14,12 +14,15 @@
 
   let tab = $state<Tab>('important');
   let modalRef = $state<HTMLDivElement | undefined>(undefined);
-  let logStatus = $state<'' | 'copied' | 'failed'>('');
+  let logStatus = $state<'' | 'copied' | 'deleted' | 'failed'>('');
+  /** Deleting asks for a second click instead of a separate dialog. */
+  let confirmDelete = $state(false);
 
   $effect(() => {
     if (show) {
       tab = 'important';
       logStatus = '';
+      confirmDelete = false;
       setTimeout(() => modalRef?.focus(), 0);
     }
   });
@@ -41,6 +44,22 @@
       await invoke('open_log_folder');
     } catch (err) {
       console.warn('Could not open the log folder:', err);
+      logStatus = 'failed';
+    }
+  }
+
+  async function deleteLog(): Promise<void> {
+    if (!confirmDelete) {
+      confirmDelete = true;
+      logStatus = '';
+      return;
+    }
+    confirmDelete = false;
+    try {
+      await invoke('delete_log');
+      logStatus = 'deleted';
+    } catch (err) {
+      console.warn('Could not delete the log:', err);
       logStatus = 'failed';
     }
   }
@@ -112,6 +131,9 @@
           <div class="log-actions">
             <button type="button" class="log-btn" onclick={copyRecentLog}>{$_('info.logActions.copy')}</button>
             <button type="button" class="log-btn" onclick={openLogFolder}>{$_('info.logActions.open')}</button>
+            <button type="button" class="log-btn danger" class:confirm={confirmDelete} onclick={deleteLog}>
+              {confirmDelete ? $_('info.logActions.confirmDelete') : $_('info.logActions.delete')}
+            </button>
           </div>
           {#if logStatus}
             <p class="log-status" class:failed={logStatus === 'failed'} role="status">{$_(`info.logActions.${logStatus}`)}</p>
@@ -290,6 +312,16 @@
 
   .log-btn:hover {
     background: var(--bg-elevated);
+  }
+
+  .log-btn.danger {
+    color: var(--error);
+  }
+
+  .log-btn.danger.confirm {
+    border-color: var(--error);
+    background: var(--error);
+    color: #fff;
   }
 
   .log-status {

@@ -203,6 +203,18 @@
       "clear": "Effacer l'Historique de Recherche",
       "clearConfirm": "Êtes-vous sûr de vouloir effacer votre historique de recherche ?"
     },
+    "logDetails": {
+      "label": "Détails des morceaux dans le journal",
+      "hint": "Écrit les titres, artistes et chemins de fichiers dans le journal de diagnostic local. Désactivez pour écrire [hidden] à la place ; les identifiants, états et erreurs restent enregistrés. Le journal ne quitte jamais votre ordinateur, sauf si vous le partagez.",
+      "enabled": "Inclus",
+      "disabled": "Masqués"
+    },
+    "closeToTray": {
+      "label": "Barre d'état système",
+      "hint": "Réduire dans la barre d'état système à la fermeture de la fenêtre au lieu de quitter l'application.",
+      "enabled": "Fermer vers la barre d'état",
+      "disabled": "Fermer pour quitter"
+    },
     "language": {
       "label": "Langue",
       "hint": "Choisissez votre langue préférée pour l'interface."
@@ -328,7 +340,10 @@
       "copy": "Copier le journal récent",
       "open": "Ouvrir le dossier du journal",
       "copied": "Dernières lignes du journal copiées. Collez-les dans votre signalement.",
-      "failed": "Impossible d'accéder au journal. Il s'agit de wavekeep-debug.log dans le dossier des journaux de Wavekeep."
+      "failed": "Impossible d'accéder au journal. Il s'agit de wavekeep-debug.log dans le dossier des journaux de Wavekeep.",
+      "delete": "Supprimer le journal",
+      "confirmDelete": "Cliquez à nouveau pour supprimer",
+      "deleted": "Le journal a été supprimé."
     },
     "button": "Infos et FAQ",
     "title": "Informations importantes",
@@ -371,13 +386,13 @@
       },
       "log": {
         "title": "Un problème ?",
-        "text": "Wavekeep tient un journal de diagnostic nommé wavekeep-debug.log dans le dossier des journaux de Wavekeep. Il reste sur votre ordinateur et n'est jamais envoyé. Les mots de passe, votre ARL et vos jetons de connexion n'y sont jamais écrits, et votre dossier personnel apparaît sous la forme ~. Il contient en revanche les identifiants, artistes et titres des morceaux et les chemins de vos téléchargements. Utilisez les boutons ci-dessous pour le copier ou ouvrir son dossier lorsque vous signalez un problème."
+        "text": "Wavekeep tient un journal de diagnostic sur votre ordinateur pour pouvoir retracer les problèmes. Il n'est jamais envoyé : il ne quitte votre ordinateur que si vous le partagez. Il ne contient jamais de mots de passe, votre ARL ni vos jetons de connexion, et votre dossier personnel apparaît sous la forme ~. Il enregistre ce que fait l'application, avec les identifiants des morceaux, les états et les erreurs, ainsi que les titres, artistes et chemins de fichiers, sauf si vous désactivez « Détails des morceaux dans le journal » dans les Paramètres. Utilisez les boutons ci-dessous pour le copier pour un signalement, ouvrir son dossier ou le supprimer."
       }
     },
     "faq": {
       "report": {
         "q": "Comment signaler un problème ?",
-        "a": "Ouvrez Infos et FAQ, cliquez sur Copier le journal récent et collez-le avec une courte description dans un ticket GitHub ou sur le serveur Discord. Le journal reste sur votre ordinateur tant que vous ne le partagez pas vous-même, et il ne contient jamais votre mot de passe, votre ARL ni vos jetons de connexion."
+        "a": "Ouvrez Infos et FAQ, cliquez sur Copier le journal récent et collez-le avec une courte description dans un ticket GitHub ou sur le serveur Discord. Le journal ne quitte votre ordinateur que si vous le partagez, et il ne contient jamais votre mot de passe, votre ARL ni vos jetons de connexion. Pour exclure les titres et chemins de fichiers, désactivez « Détails des morceaux dans le journal » dans les Paramètres avant de reproduire le problème."
       },
       "deezy": {
         "q": "J'utilisais Deezy. Vais-je perdre quelque chose ?",
@@ -416,8 +431,8 @@
         "a": "Utilisez l'éditeur de tags dans la barre latérale, ou le bouton crayon à côté d'un téléchargement terminé. Les fichiers MP3, FLAC, OGG et M4A sont pris en charge."
       },
       "privacy": {
-        "q": "Wavekeep collecte-t-il mes données ?",
-        "a": "Non. Il n'a ni analytique ni télémétrie et ne communique qu'avec Deezer et Spotify. Votre ARL et vos jetons Spotify sont conservés dans le coffre d'identifiants de votre système lorsqu'il est disponible."
+        "q": "Que collecte ou envoie Wavekeep ?",
+        "a": "Rien n'est envoyé au développeur : pas d'analytique, de télémétrie, de rapports de plantage ni de recherche de mises à jour. Wavekeep se connecte uniquement à Deezer et Spotify (et à leurs serveurs d'images et d'audio) pour la connexion, la recherche et le téléchargement. Sur votre ordinateur, il conserve vos paramètres, dont vos 20 dernières recherches si l'historique de recherche est activé, votre historique de téléchargements, vos thèmes personnalisés et le journal de diagnostic. Les connexions sont conservées dans le coffre d'identifiants de votre système ; l'ARL Deezer ne va dans le fichier de paramètres que si ce coffre n'est pas disponible. Vous pouvez effacer l'historique de téléchargements dans Téléchargements, effacer ou désactiver l'historique de recherche dans les Paramètres, et supprimer le journal ici, dans Infos et FAQ."
       }
     }
   },

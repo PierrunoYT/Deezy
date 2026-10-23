@@ -203,6 +203,18 @@
       "clear": "Suchverlauf Löschen",
       "clearConfirm": "Sind Sie sicher, dass Sie Ihren Suchverlauf löschen möchten?"
     },
+    "logDetails": {
+      "label": "Titeldetails im Protokoll",
+      "hint": "Schreibt Titel, Interpreten und Dateipfade in das lokale Diagnoseprotokoll. Deaktivieren Sie dies, um stattdessen [hidden] zu schreiben; IDs, Status und Fehler werden weiterhin protokolliert. Das Protokoll verlässt Ihren Computer nur, wenn Sie es teilen.",
+      "enabled": "Enthalten",
+      "disabled": "Ausgeblendet"
+    },
+    "closeToTray": {
+      "label": "Infobereich",
+      "hint": "Beim Schließen des Fensters in den Infobereich minimieren, statt die App zu beenden.",
+      "enabled": "In den Infobereich schließen",
+      "disabled": "Beim Schließen beenden"
+    },
     "language": {
       "label": "Sprache",
       "hint": "Wählen Sie Ihre bevorzugte Sprache für die Benutzeroberfläche."
@@ -328,7 +340,10 @@
       "copy": "Aktuelles Protokoll kopieren",
       "open": "Protokollordner öffnen",
       "copied": "Die letzten Protokollzeilen wurden kopiert. Füge sie in deine Meldung ein.",
-      "failed": "Kein Zugriff auf das Protokoll. Es liegt als wavekeep-debug.log im Protokollordner von Wavekeep."
+      "failed": "Kein Zugriff auf das Protokoll. Es liegt als wavekeep-debug.log im Protokollordner von Wavekeep.",
+      "delete": "Protokoll löschen",
+      "confirmDelete": "Zum Löschen erneut klicken",
+      "deleted": "Das Protokoll wurde gelöscht."
     },
     "button": "Info & FAQ",
     "title": "Wichtige Informationen",
@@ -371,13 +386,13 @@
       },
       "log": {
         "title": "Etwas ist schiefgelaufen?",
-        "text": "Wavekeep führt ein Diagnoseprotokoll namens wavekeep-debug.log im Protokollordner von Wavekeep. Es bleibt auf deinem Computer und wird nie hochgeladen. Passwörter, dein ARL und Anmelde-Token werden nie hineingeschrieben, und dein Benutzerordner erscheint als ~. Es enthält aber Titel-IDs, Interpret und Titel sowie die Pfade deiner Downloads. Mit den Schaltflächen unten kannst du es kopieren oder seinen Ordner öffnen, wenn du ein Problem meldest."
+        "text": "Wavekeep führt auf deinem Computer ein Diagnoseprotokoll, damit sich Probleme nachvollziehen lassen. Es wird nie hochgeladen und verlässt deinen Computer nur, wenn du es selbst teilst. Es enthält nie Passwörter, deinen ARL oder Anmelde-Token, und dein Benutzerordner erscheint als ~. Es hält fest, was die App getan hat, mit Titel-IDs, Status und Fehlern, dazu Titelnamen, Interpreten und Dateipfade, sofern du „Titeldetails im Protokoll“ in den Einstellungen nicht ausschaltest. Mit den Schaltflächen unten kannst du es für eine Meldung kopieren, seinen Ordner öffnen oder es löschen."
       }
     },
     "faq": {
       "report": {
         "q": "Wie melde ich ein Problem?",
-        "a": "Öffne Info & FAQ, klicke auf „Aktuelles Protokoll kopieren“ und füge es mit einer kurzen Beschreibung in ein GitHub-Issue oder auf dem Discord-Server ein. Das Protokoll bleibt auf deinem Computer, bis du es selbst teilst, und enthält nie dein Passwort, deinen ARL oder Anmelde-Token."
+        "a": "Öffne Info & FAQ, klicke auf „Aktuelles Protokoll kopieren“ und füge es mit einer kurzen Beschreibung in ein GitHub-Issue oder auf dem Discord-Server ein. Das Protokoll verlässt deinen Computer nur, wenn du es teilst, und enthält nie dein Passwort, deinen ARL oder Anmelde-Token. Um Titelnamen und Dateipfade wegzulassen, schalte „Titeldetails im Protokoll“ in den Einstellungen aus, bevor du das Problem nachstellst."
       },
       "deezy": {
         "q": "Ich habe Deezy benutzt. Verliere ich etwas?",
@@ -416,8 +431,8 @@
         "a": "Nutze den Tag-Editor in der Seitenleiste oder die Stift-Schaltfläche neben einem fertigen Download. MP3-, FLAC-, OGG- und M4A-Dateien werden unterstützt."
       },
       "privacy": {
-        "q": "Sammelt Wavekeep meine Daten?",
-        "a": "Nein. Es gibt keine Analyse oder Telemetrie, und Wavekeep spricht nur mit Deezer und Spotify. Dein ARL und deine Spotify-Token werden, sofern vorhanden, im Anmeldespeicher deines Betriebssystems abgelegt."
+        "q": "Was sammelt oder sendet Wavekeep?",
+        "a": "An den Entwickler geht nichts: keine Analyse, keine Telemetrie, keine Absturzberichte und keine Update-Prüfung. Wavekeep verbindet sich nur mit Deezer und Spotify (und deren Bild- und Audioservern), um dich anzumelden, zu suchen und herunterzuladen. Auf deinem Computer speichert es deine Einstellungen, darunter deine letzten 20 Suchen, sofern der Suchverlauf an ist, deinen Download-Verlauf, eigene Designs und das Diagnoseprotokoll. Anmeldungen liegen im Anmeldespeicher deines Systems; der Deezer-ARL landet nur dann in der Einstellungsdatei, wenn dieser Speicher nicht verfügbar ist. Du kannst den Download-Verlauf unter Downloads löschen, den Suchverlauf in den Einstellungen löschen oder ausschalten und das Protokoll hier unter Info & FAQ löschen."
       }
     }
   },

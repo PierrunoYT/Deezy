@@ -40,6 +40,10 @@ pub struct Settings {
     pub search_history: Vec<String>,
     #[serde(default = "default_true")]
     pub enable_search_history: bool,
+    /// Write track names, artists and file paths to the local diagnostic log;
+    /// when off they appear as `[hidden]`.
+    #[serde(default = "default_true")]
+    pub log_track_details: bool,
     #[serde(default = "default_true")]
     pub notifications_enabled: bool,
     #[serde(default = "default_locale")]
@@ -117,6 +121,7 @@ impl Default for Settings {
             custom_theme: None,
             search_history: Vec::new(),
             enable_search_history: true,
+            log_track_details: true,
             notifications_enabled: true,
             locale: "en".to_string(),
             close_to_tray: true,
@@ -531,6 +536,7 @@ impl Settings {
         } else {
             Self::default()
         };
+        crate::logging::set_track_details(settings.log_track_details);
 
         if !keyring_enabled() {
             return Ok(settings);
@@ -581,6 +587,7 @@ impl Settings {
     pub fn save(&self, app: &tauri::AppHandle) -> Result<(), String> {
         // Validate before saving
         self.validate()?;
+        crate::logging::set_track_details(self.log_track_details);
 
         let path = Self::path(app)?;
         // The marker is decided here per storage path, never taken from callers.

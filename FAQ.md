@@ -32,15 +32,31 @@ Spotify uses browser OAuth rather than an ARL or your Spotify password. The acce
 
 Use **Disconnect** in Settings to remove the stored Spotify token. Changing the optional Spotify Client ID also disconnects the current session because tokens are tied to the Client ID that issued them.
 
-### Does Wavekeep collect analytics or telemetry?
+### What does Wavekeep collect or send?
 
-The current source contains no analytics, telemetry, crash-reporting service, or Wavekeep-operated backend. Wavekeep still communicates with Deezer or Spotify and their content-delivery endpoints to authenticate, search, preview where available, and download content.
+**Nothing goes to the developer.** The source contains no analytics, telemetry, crash reporting, update checks, or Wavekeep-operated server.
+
+**What is sent, and where:** Wavekeep only talks to Deezer and Spotify, and to their image and audio servers, to log in, search, play previews, and download. Your Spotify login happens in your browser on Spotify's own page.
+
+**What is stored on your computer:**
+
+| Data | Where | How to remove it |
+|---|---|---|
+| Settings, including your last 20 searches | `settings.json` in the app-data folder | Clear or turn off search history in Settings |
+| Download history | `download_history.json` in the app-data folder | Clear it in Downloads |
+| Custom themes | `themes/` in the app-data folder | Delete them in Settings |
+| Deezer ARL and Spotify logins | Your system's credential store (the ARL goes into `settings.json` only if that store is unavailable) | Log out, or disconnect Spotify, in Settings |
+| Diagnostic log | `wavekeep-debug.log` in the logs folder | **Delete log** in Info & FAQ |
+| Your music | The download folder you chose | Delete the files yourself; clearing history never touches them |
 
 ### Does Wavekeep keep a log? What is in it?
 
-Yes, a local diagnostic log named `wavekeep-debug.log` in Wavekeep's logs folder: `%LOCALAPPDATA%\com.pierr.wavekeep\logs` on Windows, `~/Library/Logs/com.pierr.wavekeep` on macOS, and `~/.local/share/com.pierr.wavekeep/logs` (or `$XDG_DATA_HOME/com.pierr.wavekeep/logs`) on Linux. The system does not clean that folder up on its own. It stays on your computer and Wavekeep never uploads it. Passwords, your ARL and login tokens are never written to it; on top of that, every line is cleaned before it is saved: your home folder appears as `~`, web addresses lose their query part (where tokens travel), and any long token-like string is replaced with `[redacted]`.
+Yes, a diagnostic log that never leaves your computer unless you share it yourself. It lives in Wavekeep's logs folder: `%LOCALAPPDATA%\com.pierr.wavekeep\logs` on Windows, `~/Library/Logs/com.pierr.wavekeep` on macOS, and `~/.local/share/com.pierr.wavekeep/logs` (or `$XDG_DATA_HOME/com.pierr.wavekeep/logs`) on Linux. The system does not clean that folder up on its own.
 
-It records what the app does so problems can be traced: app start and version, the move from Deezy, whether Deezer and Spotify logins worked (account type only), quality fallbacks, the start and result of every download (and each step of Spotify downloads), Spotify rate limits, and any errors. Lines include track IDs, artist and title, and the paths of saved files, with your home folder shown as `~`. What you search for is not logged. When it reaches 1 MB it is renamed to `wavekeep-debug.old.log` and a new one starts. You can delete both files at any time.
+- **What it records:** app start and version, the move from Deezy, whether Deezer and Spotify logins worked (account type only), quality fallbacks, the start and result of every download (and each step of Spotify downloads), Spotify rate limits, and any errors, with track IDs.
+- **Track details:** track names, artists and file paths are included by default. Turn off **Track Details in Log** in Settings and they are written as `[hidden]` instead; IDs, statuses and errors are still logged.
+- **Never in it:** passwords, your ARL, login tokens, and what you search for. As a safety net, every line is also cleaned before it is saved: your home folder appears as `~`, web addresses lose their query part (where tokens travel), and any long token-like string becomes `[redacted]`.
+- **Size and deletion:** at 1 MB the log is renamed to `wavekeep-debug.old.log` and a new one starts. **Delete log** in Info & FAQ removes both files, and you can also delete them by hand at any time.
 
 ### Is it safe to use my Deezer account?
 
@@ -201,7 +217,7 @@ Only separators written in the folder template create directories. Slashes in me
 
 Open **Info & FAQ** in the sidebar, press **Copy recent log**, and paste it with a short description of what you did into a [GitHub issue](https://github.com/PierrunoYT/Deezy/issues) or the [Discord server](https://discord.gg/dvuWBeXSf3). **Open log folder** shows the whole file if you need more than the recent lines.
 
-The log only leaves your computer when you share it yourself. Passwords, your ARL and login tokens are never written to it; on top of that, every line is cleaned before it is saved: your home folder appears as `~`, web addresses lose their query part (where tokens travel), and any long token-like string is replaced with `[redacted]`. You can read it before sharing.
+The log only leaves your computer when you share it yourself, and it never contains passwords, your ARL or login tokens. If you would rather not share track names and file paths, turn off **Track Details in Log** in Settings, press **Delete log**, and reproduce the problem before copying. You can read the log before sharing; see [Does Wavekeep keep a log?](#does-wavekeep-keep-a-log-what-is-in-it) for what it contains.
 
 ### Album covers or audio previews do not load.
 

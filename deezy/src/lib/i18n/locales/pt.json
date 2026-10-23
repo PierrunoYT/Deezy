@@ -203,6 +203,18 @@
             "clear": "Limpar Histórico de Pesquisa",
             "clearConfirm": "Tem a certeza que deseja limpar o seu histórico de pesquisa?"
         },
+        "logDetails": {
+            "label": "Detalhes das faixas no registo",
+            "hint": "Escreve títulos, artistas e caminhos de ficheiros no registo de diagnóstico local. Desative para escrever [hidden] em vez disso; os ID, estados e erros continuam a ser registados. O registo nunca sai do seu computador, a não ser que o partilhe.",
+            "enabled": "Incluídos",
+            "disabled": "Ocultos"
+        },
+        "closeToTray": {
+            "label": "Área de notificação",
+            "hint": "Minimizar para a área de notificação ao fechar a janela em vez de sair da aplicação.",
+            "enabled": "Fechar para a área de notificação",
+            "disabled": "Fechar e sair"
+        },
         "language": {
             "label": "Idioma",
             "hint": "Escolha o seu idioma preferido para a interface."
@@ -328,7 +340,10 @@
             "copy": "Copiar registo recente",
             "open": "Abrir pasta do registo",
             "copied": "As últimas linhas do registo foram copiadas. Cola-as no teu relatório.",
-            "failed": "Não foi possível aceder ao registo. É o wavekeep-debug.log na pasta de registos do Wavekeep."
+            "failed": "Não foi possível aceder ao registo. É o wavekeep-debug.log na pasta de registos do Wavekeep.",
+            "delete": "Eliminar registo",
+            "confirmDelete": "Clica novamente para eliminar",
+            "deleted": "O registo foi eliminado."
         },
         "button": "Info e FAQ",
         "title": "Informações importantes",
@@ -371,13 +386,13 @@
             },
             "log": {
                 "title": "Algo correu mal?",
-                "text": "O Wavekeep mantém um registo de diagnóstico chamado wavekeep-debug.log na pasta de registos do Wavekeep. Fica no teu computador e nunca é enviado. Palavras-passe, o teu ARL e tokens de sessão nunca são escritos nele, e a tua pasta pessoal aparece como ~. Inclui, no entanto, os ID, artistas e títulos das faixas e os caminhos das tuas transferências. Usa os botões abaixo para o copiar ou abrir a pasta quando reportares um problema."
+                "text": "O Wavekeep mantém um registo de diagnóstico no teu computador para que os problemas possam ser investigados. Nunca é enviado: só sai do teu computador se fores tu a partilhá-lo. Nunca contém palavras-passe, o teu ARL nem tokens de sessão, e a tua pasta pessoal aparece como ~. Regista o que a aplicação fez, com os ID das faixas, estados e erros, e também títulos, artistas e caminhos de ficheiros, a não ser que desatives «Detalhes das faixas no registo» nas Definições. Usa os botões abaixo para o copiar para um relatório, abrir a pasta ou eliminá-lo."
             }
         },
         "faq": {
             "report": {
                 "q": "Como reporto um problema?",
-                "a": "Abre Info e FAQ, carrega em Copiar registo recente e cola-o com uma breve descrição numa issue do GitHub ou no servidor do Discord. O registo fica no teu computador até seres tu a partilhá-lo, e nunca contém a tua palavra-passe, o ARL nem tokens de sessão."
+                "a": "Abre Info e FAQ, carrega em Copiar registo recente e cola-o com uma breve descrição numa issue do GitHub ou no servidor do Discord. O registo só sai do teu computador se fores tu a partilhá-lo, e nunca contém a tua palavra-passe, o ARL nem tokens de sessão. Para deixar de fora títulos e caminhos de ficheiros, desativa «Detalhes das faixas no registo» nas Definições antes de reproduzires o problema."
             },
             "deezy": {
                 "q": "Usava o Deezy. Vou perder alguma coisa?",
@@ -416,8 +431,8 @@
                 "a": "Usa o editor de etiquetas na barra lateral ou o botão do lápis junto a uma transferência concluída. São suportados ficheiros MP3, FLAC, OGG e M4A."
             },
             "privacy": {
-                "q": "O Wavekeep recolhe os meus dados?",
-                "a": "Não. Não tem análises nem telemetria e só comunica com o Deezer e o Spotify. O teu ARL e os tokens do Spotify são guardados no cofre de credenciais do sistema operativo, quando disponível."
+                "q": "O que é que o Wavekeep recolhe ou envia?",
+                "a": "Nada chega ao programador: não há análises, telemetria, relatórios de erros nem verificação de atualizações. O Wavekeep só se liga ao Deezer e ao Spotify (e aos respetivos servidores de imagens e áudio) para iniciar sessão, pesquisar e transferir. No teu computador guarda as definições, incluindo as tuas últimas 20 pesquisas se o histórico de pesquisa estiver ativo, o histórico de transferências, os temas personalizados e o registo de diagnóstico. Os inícios de sessão ficam no cofre de credenciais do sistema; o ARL do Deezer só vai para o ficheiro de definições se esse cofre não estiver disponível. Podes limpar o histórico de transferências em Transferências, limpar ou desativar o histórico de pesquisa nas Definições e eliminar o registo aqui, em Info e FAQ."
             }
         }
     },

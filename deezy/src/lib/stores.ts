@@ -23,6 +23,7 @@ export interface AppSettings {
   custom_theme: string | null;
   search_history: string[];
   enable_search_history: boolean;
+  log_track_details: boolean;
   notifications_enabled: boolean;
   locale: string;
   close_to_tray: boolean;

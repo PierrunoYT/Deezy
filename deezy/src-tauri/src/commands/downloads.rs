@@ -20,7 +20,10 @@ pub async fn download_track(
 
     let result = execute_download_track(&trackId, &state, &app, cancel_flag).await;
     match &result {
-        Ok(r) => crate::logging::info("download", &format!("download_track result: {} {}", r.status, r.file_path)),
+        Ok(r) => crate::logging::info(
+            "download",
+            &format!("download_track result: {} {}", r.status, crate::logging::detail(&r.file_path)),
+        ),
         Err(e) => crate::logging::error("download", &format!("download_track error: {}", e)),
     }
 

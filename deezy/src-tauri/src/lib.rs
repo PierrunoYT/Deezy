@@ -176,6 +176,7 @@ pub fn run() {
             commands::set_tray_labels,
             commands::write_log,
             commands::read_recent_log,
+            commands::delete_log,
             commands::open_log_folder,
             commands::parse_deezer_url,
             commands::pick_audio_file,

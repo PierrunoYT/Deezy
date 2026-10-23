@@ -147,10 +147,13 @@ and friends) and, from the UI, `src/lib/logger.ts`, which also forwards
 `console.error`, `console.warn` and uncaught errors. Lines are written to
 `wavekeep-debug.log` in the app log folder (`app_log_dir`, for example
 `%LOCALAPPDATA%\com.pierr.wavekeep\logs`), rotated at 1 MB. The log is local
-only: users copy or open it from Info & FAQ for bug reports, and nothing
-uploads it. Never log credentials, tokens, user names or search queries; each line is also
-redacted (home folder as `~`, URL query strings and long token-like strings
-removed). See "Logging (local only)" in `AGENTS.md`.
+only: users copy, open or delete it from Info & FAQ for bug reports, and
+nothing uploads it. Never log credentials, tokens, user names or search
+queries, and wrap track names, artists and file paths in `logging::detail()`
+so the **Track Details in Log** setting (`log_track_details`) can replace them
+with `[hidden]`. Each line is also redacted (home folder as `~`, URL query
+strings and long token-like strings removed). See "Logging (local only)" in
+`AGENTS.md`.
 
 ## Implementation conventions
 

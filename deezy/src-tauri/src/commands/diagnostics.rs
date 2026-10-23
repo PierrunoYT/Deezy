@@ -29,6 +29,12 @@ pub async fn read_recent_log(lines: Option<usize>) -> Result<String, String> {
     run_blocking(move || Ok(logging::tail(lines))).await
 }
 
+/// Deletes the log and its rotated copy ("Delete log" in Info & FAQ).
+#[tauri::command]
+pub async fn delete_log() -> Result<(), String> {
+    run_blocking(logging::delete_logs).await
+}
+
 /// Opens the folder that holds the log, with the log file selected where the
 /// platform supports it.
 #[tauri::command]

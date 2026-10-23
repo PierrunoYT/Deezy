@@ -52,7 +52,10 @@ pub async fn download_track(
             crate::logging::warn("spotify", &format!("track metadata failed: {}", e));
             e
         })?;
-    crate::logging::debug("spotify", &format!("track metadata ok: {} - {}", track.artist, track.title));
+    crate::logging::debug(
+        "spotify",
+        &format!("track metadata ok: {}", crate::logging::detail(format!("{} - {}", track.artist, track.title))),
+    );
 
     emit_progress(app, track_key, &track.title, 0.0, "resolving");
 
@@ -135,7 +138,10 @@ pub async fn download_track(
     crate::logging::debug("spotify", "audio key received");
 
     let (temp_path, mut file) = create_temp_download_file(&download_path, track_key).await?;
-    crate::logging::debug("spotify", &format!("opening audio file, temp: {}", temp_path.display()));
+    crate::logging::debug(
+        "spotify",
+        &format!("opening audio file, temp: {}", crate::logging::detail(temp_path.display())),
+    );
 
     let encrypted = match AudioFile::open(&client.session, file_id, FETCH_RATE).await {
         Ok(audio) => audio,
@@ -293,7 +299,10 @@ pub async fn download_track(
         }
     };
 
-    crate::logging::info("spotify", &format!("download complete: {}", download_path.display()));
+    crate::logging::info(
+        "spotify",
+        &format!("download complete: {}", crate::logging::detail(download_path.display())),
+    );
     emit_progress(app, track_key, &track.title, 100.0, "complete");
 
     Ok(DownloadResult {

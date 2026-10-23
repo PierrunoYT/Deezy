@@ -203,6 +203,18 @@
             "clear": "Cancella Cronologia Ricerche",
             "clearConfirm": "Sei sicuro di voler cancellare la cronologia delle ricerche?"
         },
+        "logDetails": {
+            "label": "Dettagli dei brani nel registro",
+            "hint": "Scrive titoli, artisti e percorsi dei file nel registro diagnostico locale. Disattiva per scrivere [hidden] al loro posto; ID, stati ed errori vengono comunque registrati. Il registro non lascia mai il tuo computer, a meno che tu non lo condivida.",
+            "enabled": "Inclusi",
+            "disabled": "Nascosti"
+        },
+        "closeToTray": {
+            "label": "Area di notifica",
+            "hint": "Riduci nell'area di notifica alla chiusura della finestra invece di uscire dall'app.",
+            "enabled": "Chiudi nell'area di notifica",
+            "disabled": "Chiudi ed esci"
+        },
         "language": {
             "label": "Lingua",
             "hint": "Scegli la lingua preferita per l'interfaccia."
@@ -328,7 +340,10 @@
             "copy": "Copia registro recente",
             "open": "Apri cartella del registro",
             "copied": "Ultime righe del registro copiate. Incollale nella tua segnalazione.",
-            "failed": "Impossibile accedere al registro. È wavekeep-debug.log nella cartella dei registri di Wavekeep."
+            "failed": "Impossibile accedere al registro. È wavekeep-debug.log nella cartella dei registri di Wavekeep.",
+            "delete": "Elimina registro",
+            "confirmDelete": "Fai di nuovo clic per eliminare",
+            "deleted": "Il registro è stato eliminato."
         },
         "button": "Info e FAQ",
         "title": "Informazioni importanti",
@@ -371,13 +386,13 @@
             },
             "log": {
                 "title": "Qualcosa è andato storto?",
-                "text": "Wavekeep tiene un registro diagnostico chiamato wavekeep-debug.log nella cartella dei registri di Wavekeep. Resta sul tuo computer e non viene mai inviato. Password, ARL e token di accesso non vi vengono mai scritti, e la tua cartella utente appare come ~. Contiene invece gli ID, gli artisti e i titoli dei brani e i percorsi dei tuoi download. Usa i pulsanti qui sotto per copiarlo o aprirne la cartella quando segnali un problema."
+                "text": "Wavekeep tiene un registro diagnostico sul tuo computer per poter ricostruire i problemi. Non viene mai inviato: lascia il tuo computer solo se lo condividi tu. Non contiene mai password, l'ARL o token di accesso, e la tua cartella utente appare come ~. Registra ciò che ha fatto l'app, con ID dei brani, stati ed errori, più titoli, artisti e percorsi dei file, a meno che tu non disattivi «Dettagli dei brani nel registro» nelle Impostazioni. Usa i pulsanti qui sotto per copiarlo per una segnalazione, aprirne la cartella o eliminarlo."
             }
         },
         "faq": {
             "report": {
                 "q": "Come segnalo un problema?",
-                "a": "Apri Info e FAQ, premi Copia registro recente e incollalo con una breve descrizione in una issue su GitHub o sul server Discord. Il registro resta sul tuo computer finché non lo condividi tu, e non contiene mai la tua password, l'ARL o i token di accesso."
+                "a": "Apri Info e FAQ, premi Copia registro recente e incollalo con una breve descrizione in una issue su GitHub o sul server Discord. Il registro lascia il tuo computer solo se lo condividi tu, e non contiene mai la tua password, l'ARL o i token di accesso. Per escludere titoli e percorsi dei file, disattiva «Dettagli dei brani nel registro» nelle Impostazioni prima di riprodurre il problema."
             },
             "deezy": {
                 "q": "Usavo Deezy. Perderò qualcosa?",
@@ -416,8 +431,8 @@
                 "a": "Usa l'editor di tag nella barra laterale o il pulsante a matita accanto a un download completato. Sono supportati file MP3, FLAC, OGG e M4A."
             },
             "privacy": {
-                "q": "Wavekeep raccoglie i miei dati?",
-                "a": "No. Non ha analisi né telemetria e comunica solo con Deezer e Spotify. Il tuo ARL e i token Spotify sono conservati nell'archivio delle credenziali del sistema operativo, quando disponibile."
+                "q": "Cosa raccoglie o invia Wavekeep?",
+                "a": "Allo sviluppatore non arriva nulla: niente analisi, telemetria, segnalazioni di crash o controllo degli aggiornamenti. Wavekeep si collega solo a Deezer e Spotify (e ai loro server di immagini e audio) per accedere, cercare e scaricare. Sul tuo computer conserva le impostazioni, comprese le ultime 20 ricerche se la cronologia delle ricerche è attiva, la cronologia dei download, i temi personalizzati e il registro diagnostico. Gli accessi sono conservati nell'archivio delle credenziali del sistema; l'ARL di Deezer finisce nel file delle impostazioni solo se l'archivio non è disponibile. Puoi cancellare la cronologia dei download in Download, cancellare o disattivare la cronologia delle ricerche nelle Impostazioni ed eliminare il registro qui, in Info e FAQ."
             }
         }
     },
