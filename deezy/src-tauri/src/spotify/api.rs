@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use serde::Serialize;
 use serde_json::Value;
 
@@ -65,6 +67,7 @@ pub struct SpotifyPlaylist {
 impl SpotifyClient {
     async fn get_json(&self, url: &str, query: &[(&str, String)]) -> Result<Value, String> {
         let mut refreshed = false;
+        let mut throttled = 0;
         loop {
             let token = if refreshed {
                 self.refresh_token().await?
@@ -82,6 +85,15 @@ impl SpotifyClient {
                 .map_err(|e| format!("Spotify request failed: {}", e))?;
 
             let status = response.status();
+            // Spotify's 429 carries the wait in seconds; cap it so a huge
+            // Retry-After cannot freeze the UI for minutes.
+            let retry_after = response
+                .headers()
+                .get("retry-after")
+                .and_then(|value| value.to_str().ok())
+                .and_then(|value| value.parse::<u64>().ok())
+                .unwrap_or(1)
+                .clamp(1, 5);
             let body: Value = response
                 .json()
                 .await
@@ -90,6 +102,15 @@ impl SpotifyClient {
             if status.as_u16() == 401 && !refreshed {
                 refreshed = true;
                 continue;
+            }
+
+            if status.as_u16() == 429 {
+                if throttled < 2 {
+                    throttled += 1;
+                    tokio::time::sleep(Duration::from_secs(retry_after)).await;
+                    continue;
+                }
+                return Err(rate_limit_message());
             }
 
             if !status.is_success() {
@@ -126,6 +147,24 @@ impl SpotifyClient {
     }
 
     pub async fn search_tracks(&self, query: &str, limit: u32) -> Result<Vec<SpotifyTrack>, String> {
+        match self.search_tracks_web(query, limit).await {
+            Ok(tracks) => Ok(tracks),
+            // The Web API can be exhausted through the shared keymaster client.
+            // Tracks are also available through the AP search context.
+            Err(error) if error.contains("429") => {
+                super::ap::search_tracks(&self.session, query, limit as usize)
+                    .await
+                    .map_err(|ap_error| format!("{} (AP fallback failed: {})", error, ap_error))
+            }
+            Err(error) => Err(error),
+        }
+    }
+
+    async fn search_tracks_web(
+        &self,
+        query: &str,
+        limit: u32,
+    ) -> Result<Vec<SpotifyTrack>, String> {
         let body = self
             .get_json(
                 &format!("{}/search", API),
@@ -213,72 +252,6 @@ impl SpotifyClient {
             .collect())
     }
 
-    pub async fn track(&self, id: &str) -> Result<SpotifyTrack, String> {
-        let body = self.get_json(&format!("{}/tracks/{}", API, id), &[]).await?;
-        track_from_value(&body, None).ok_or_else(|| "Spotify track has no metadata".to_string())
-    }
-
-    pub async fn album_tracks(&self, album_id: &str) -> Result<Vec<SpotifyTrack>, String> {
-        let album = self
-            .get_json(&format!("{}/albums/{}", API, album_id), &[])
-            .await?;
-        let items = self
-            .get_paged(
-                &format!("{}/albums/{}/tracks?limit=50", API, album_id),
-                1000,
-            )
-            .await?;
-
-        Ok(items
-            .iter()
-            .filter_map(|track| track_from_value(track, Some(&album)))
-            .collect())
-    }
-
-    pub async fn artist_albums(&self, artist_id: &str) -> Result<Vec<SpotifyAlbum>, String> {
-        let items = self
-            .get_paged(
-                &format!(
-                    "{}/artists/{}/albums?include_groups=album,single&limit=50",
-                    API, artist_id
-                ),
-                1000,
-            )
-            .await?;
-
-        Ok(items.iter().filter_map(album_from_value).collect())
-    }
-
-    pub async fn playlist_tracks(&self, playlist_id: &str) -> Result<Vec<SpotifyTrack>, String> {
-        let items = self
-            .get_paged(
-                &format!("{}/playlists/{}/tracks?limit=100", API, playlist_id),
-                10000,
-            )
-            .await?;
-
-        Ok(items
-            .iter()
-            .filter_map(|item| item.get("track"))
-            .filter(|track| !track.is_null())
-            .filter_map(|track| track_from_value(track, None))
-            .collect())
-    }
-
-    /// The user's Liked Songs, equivalent to Deezer's "Loved Tracks".
-    pub async fn liked_tracks(&self) -> Result<Vec<SpotifyTrack>, String> {
-        let items = self
-            .get_paged(&format!("{}/me/tracks?limit=50", API), 10000)
-            .await?;
-
-        Ok(items
-            .iter()
-            .filter_map(|item| item.get("track"))
-            .filter(|track| !track.is_null())
-            .filter_map(|track| track_from_value(track, None))
-            .collect())
-    }
-
     pub async fn user_playlists(&self) -> Result<Vec<SpotifyPlaylist>, String> {
         let items = self
             .get_paged(&format!("{}/me/playlists?limit=50", API), 10000)
@@ -286,6 +259,14 @@ impl SpotifyClient {
 
         Ok(items.iter().filter_map(playlist_from_value).collect())
     }
+}
+
+fn rate_limit_message() -> String {
+    "Spotify rate limit reached (429). The default client ID is shared by every \
+     librespot install, so its Web API quota can be exhausted. Set your own \
+     Spotify Client ID in Settings (redirect URI http://127.0.0.1:5588/login) \
+     and reconnect."
+        .to_string()
 }
 
 fn api_error(body: &Value) -> String {

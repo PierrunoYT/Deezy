@@ -35,7 +35,8 @@ pub async fn spotify_login(
     app: AppHandle,
 ) -> Result<SpotifyStatus, String> {
     let device_id = ensure_device_id(&state, &app).await?;
-    let client = spotify::auth::login(&device_id).await?;
+    let client_id = spotify::auth::configured_client_id("");
+    let client = spotify::auth::login(&device_id, &client_id).await?;
     let status = status(&client);
     *state.spotify.lock().await = Some(client);
     Ok(status)
@@ -58,7 +59,8 @@ pub async fn spotify_status(
     }
 
     let device_id = ensure_device_id(&state, &app).await?;
-    match spotify::auth::restore(&device_id).await? {
+    let client_id = spotify::auth::configured_client_id("");
+    match spotify::auth::restore(&device_id, &client_id).await? {
         Some(client) => {
             let status = status(&client);
             *state.spotify.lock().await = Some(client);
@@ -106,10 +108,8 @@ pub async fn get_spotify_track(
     trackId: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<SpotifyTrack, String> {
-    spotify_client(&state)
-        .await?
-        .track(spotify::bare_track_id(&trackId))
-        .await
+    let client = spotify_client(&state).await?;
+    spotify::ap::track(&client.session, spotify::bare_track_id(&trackId)).await
 }
 
 #[tauri::command]
@@ -118,7 +118,8 @@ pub async fn get_spotify_album_tracks(
     albumId: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<SpotifyTrack>, String> {
-    spotify_client(&state).await?.album_tracks(&albumId).await
+    let client = spotify_client(&state).await?;
+    spotify::ap::album_tracks(&client.session, &albumId).await
 }
 
 #[tauri::command]
@@ -127,7 +128,8 @@ pub async fn get_spotify_artist_albums(
     artistId: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<SpotifyAlbum>, String> {
-    spotify_client(&state).await?.artist_albums(&artistId).await
+    let client = spotify_client(&state).await?;
+    spotify::ap::artist_albums(&client.session, &artistId).await
 }
 
 #[tauri::command]
@@ -136,14 +138,16 @@ pub async fn get_spotify_playlist_tracks(
     playlistId: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<SpotifyTrack>, String> {
-    spotify_client(&state).await?.playlist_tracks(&playlistId).await
+    let client = spotify_client(&state).await?;
+    spotify::ap::playlist_tracks(&client.session, &playlistId).await
 }
 
 #[tauri::command]
 pub async fn get_spotify_loved_tracks(
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<SpotifyTrack>, String> {
-    spotify_client(&state).await?.liked_tracks().await
+    let client = spotify_client(&state).await?;
+    spotify::ap::liked_tracks(&client.session, &client.profile.id).await
 }
 
 #[tauri::command]

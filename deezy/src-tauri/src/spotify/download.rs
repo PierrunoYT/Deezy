@@ -41,7 +41,7 @@ pub async fn download_track(
     cancel_flag: Arc<AtomicBool>,
 ) -> Result<DownloadResult, String> {
     let id = bare_track_id(track_key);
-    let track = client.track(id).await?;
+    let track = super::ap::track(&client.session, id).await?;
 
     emit_progress(app, track_key, &track.title, 0.0, "resolving");
 

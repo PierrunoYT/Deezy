@@ -6,7 +6,6 @@ use librespot_core::config::SessionConfig;
 use librespot_core::Session;
 use librespot_oauth::{OAuthClient, OAuthClientBuilder, OAuthToken};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use tokio::sync::RwLock;
 
 const KEYRING_SERVICE: &str = "com.pierr.deezy";
@@ -91,22 +90,25 @@ impl SpotifyClient {
     }
 }
 
-pub async fn login(device_id: &str) -> Result<Arc<SpotifyClient>, String> {
-    let oauth = build_oauth()?;
+pub async fn login(device_id: &str, client_id: &str) -> Result<Arc<SpotifyClient>, String> {
+    let oauth = build_oauth(client_id)?;
     let token = oauth
         .get_access_token_async()
         .await
         .map_err(|e| format!("Spotify login failed: {}", e))?;
-    connect(oauth, token, device_id).await
+    connect(oauth, token, device_id, client_id).await
 }
 
 /// Recreates the client from the stored refresh token, if there is one.
-pub async fn restore(device_id: &str) -> Result<Option<Arc<SpotifyClient>>, String> {
+pub async fn restore(
+    device_id: &str,
+    client_id: &str,
+) -> Result<Option<Arc<SpotifyClient>>, String> {
     let Some(stored) = load_token()? else {
         return Ok(None);
     };
 
-    let oauth = build_oauth()?;
+    let oauth = build_oauth(client_id)?;
     let mut token = OAuthToken {
         access_token: stored.access_token,
         refresh_token: stored.refresh_token,
@@ -131,20 +133,29 @@ pub async fn restore(device_id: &str) -> Result<Option<Arc<SpotifyClient>>, Stri
     } else {
         Some(stored.profile)
     };
-    connect_with_profile(oauth, token, device_id, profile).await.map(Some)
+    connect_with_profile(oauth, token, device_id, client_id, profile).await.map(Some)
 }
 
 pub fn logout() -> Result<(), String> {
     clear_token()
 }
 
-fn build_oauth() -> Result<OAuthClient, String> {
-    let client_id = std::env::var("DEEZY_SPOTIFY_CLIENT_ID")
+/// Resolves the client ID to use: an explicit setting, the environment
+/// override, or librespot's shared keymaster ID.
+pub fn configured_client_id(settings_value: &str) -> String {
+    let settings_value = settings_value.trim();
+    if !settings_value.is_empty() {
+        return settings_value.to_string();
+    }
+    std::env::var("DEEZY_SPOTIFY_CLIENT_ID")
         .ok()
-        .filter(|id| !id.trim().is_empty())
-        .unwrap_or_else(|| DEFAULT_CLIENT_ID.to_string());
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| DEFAULT_CLIENT_ID.to_string())
+}
 
-    OAuthClientBuilder::new(&client_id, REDIRECT_URI, SCOPES.to_vec())
+fn build_oauth(client_id: &str) -> Result<OAuthClient, String> {
+    OAuthClientBuilder::new(client_id, REDIRECT_URI, SCOPES.to_vec())
         .open_in_browser()
         .with_custom_message(LOGIN_DONE_HTML)
         .build()
@@ -155,14 +166,16 @@ async fn connect(
     oauth: OAuthClient,
     token: OAuthToken,
     device_id: &str,
+    client_id: &str,
 ) -> Result<Arc<SpotifyClient>, String> {
-    connect_with_profile(oauth, token, device_id, None).await
+    connect_with_profile(oauth, token, device_id, client_id, None).await
 }
 
 async fn connect_with_profile(
     oauth: OAuthClient,
     token: OAuthToken,
     device_id: &str,
+    client_id: &str,
     cached_profile: Option<Profile>,
 ) -> Result<Arc<SpotifyClient>, String> {
     let http = reqwest::Client::builder()
@@ -173,11 +186,7 @@ async fn connect_with_profile(
     // The AP session and the Web API share the same access token.
     let mut config = SessionConfig::default();
     config.device_id = device_id.to_string();
-    if let Ok(client_id) = std::env::var("DEEZY_SPOTIFY_CLIENT_ID") {
-        if !client_id.trim().is_empty() {
-            config.client_id = client_id;
-        }
-    }
+    config.client_id = client_id.to_string();
 
     let session = Session::new(config, None);
     session
@@ -185,10 +194,20 @@ async fn connect_with_profile(
         .await
         .map_err(|e| format!("Spotify session failed: {}", e))?;
 
-    let profile = match cached_profile {
-        Some(profile) => profile,
-        None => fetch_profile(&http, &token.access_token).await.unwrap_or_default(),
-    };
+    // The AP already knows the account type and country, so a Web API call is
+    // only needed for a display name we may have cached earlier.
+    let profile = cached_profile.unwrap_or_else(|| Profile {
+        id: session.username(),
+        name: session
+            .get_user_attribute("name")
+            .filter(|name| !name.is_empty())
+            .unwrap_or_else(|| session.username()),
+        product: session
+            .get_user_attribute("type")
+            .unwrap_or_else(|| "free".to_string()),
+        country: Some(session.country()),
+        image: None,
+    });
 
     let stored = StoredToken {
         access_token: token.access_token.clone(),
@@ -209,35 +228,6 @@ async fn connect_with_profile(
         token: RwLock::new(token),
         profile,
     }))
-}
-
-async fn fetch_profile(http: &reqwest::Client, access_token: &str) -> Result<Profile, String> {
-    let response = http
-        .get("https://api.spotify.com/v1/me")
-        .bearer_auth(access_token)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
-    let body: Value = response.json().await.map_err(|e| e.to_string())?;
-    if body.get("error").is_some() {
-        return Err("Spotify profile request failed".to_string());
-    }
-
-    Ok(Profile {
-        id: body["id"].as_str().unwrap_or_default().to_string(),
-        name: body["display_name"]
-            .as_str()
-            .or_else(|| body["id"].as_str())
-            .unwrap_or("Spotify")
-            .to_string(),
-        product: body["product"].as_str().unwrap_or("free").to_string(),
-        country: body["country"].as_str().map(str::to_string),
-        image: body["images"]
-            .as_array()
-            .and_then(|images| images.first())
-            .and_then(|image| image["url"].as_str())
-            .map(str::to_string),
-    })
 }
 
 fn unix_now() -> u64 {

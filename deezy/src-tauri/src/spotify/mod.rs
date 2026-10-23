@@ -5,6 +5,7 @@
 //! desktop client uses. Both share one OAuth access token.
 
 pub mod api;
+pub mod ap;
 pub mod auth;
 pub mod download;
 pub mod tags;
