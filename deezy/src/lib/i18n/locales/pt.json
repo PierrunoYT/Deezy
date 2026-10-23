@@ -319,5 +319,89 @@
             "label": "Editora",
             "comment": "Comentário"
         }
+    },
+    "info": {
+        "button": "Info e FAQ",
+        "title": "Informações importantes",
+        "close": "Fechar",
+        "tabs": {
+            "important": "Importante",
+            "faq": "FAQ"
+        },
+        "warning": {
+            "title": "Antes de continuares",
+            "intro": "O Deezy é uma ferramenta não oficial e não está associado ao Deezer nem ao Spotify. Lê isto primeiro.",
+            "dontShow": "Não mostrar novamente",
+            "understand": "Compreendo",
+            "moreInfo": "Info e FAQ"
+        },
+        "items": {
+            "legal": {
+                "title": "Apenas para uso pessoal",
+                "text": "Transferir do Deezer ou do Spotify pode violar os respetivos termos de serviço e a lei dos direitos de autor do teu país. Transfere apenas música que possas guardar e não partilhes os ficheiros."
+            },
+            "account": {
+                "title": "As tuas contas estão em risco",
+                "text": "Os serviços podem restringir ou suspender contas em que detetem ferramentas de transferência. Considera usar uma conta secundária em vez da principal."
+            },
+            "credentials": {
+                "title": "Protege o teu início de sessão",
+                "text": "O teu ARL do Deezer funciona como uma palavra-passe, por isso nunca o partilhes. O Spotify usa um início de sessão no navegador e o Deezy nunca vê a tua palavra-passe do Spotify."
+            },
+            "unofficial": {
+                "title": "Não oficial e sem suporte",
+                "text": "O Deezy depende de interfaces que o Deezer e o Spotify podem alterar ou bloquear a qualquer momento, pelo que as funcionalidades podem deixar de funcionar sem aviso."
+            },
+            "accounts": {
+                "title": "De que conta preciso?",
+                "text": "O Deezer precisa do cookie ARL da tua conta Deezer. O Spotify precisa de uma conta Spotify própria e de um início de sessão no navegador. As contas gratuitas do Deezer estão limitadas a MP3 128 kbps; o Premium desbloqueia MP3 320 e FLAC. O que o Spotify fornece depende da tua conta e da faixa."
+            },
+            "files": {
+                "title": "Onde estão os meus ficheiros?",
+                "text": "As transferências vão para a pasta escolhida nas Definições, por predefinição uma pasta Deezy dentro da pasta Música. As etiquetas e a capa ficam incorporadas e podes editá-las depois com o editor de etiquetas."
+            },
+            "log": {
+                "title": "Algo correu mal?",
+                "text": "O Deezy escreve um registo de diagnóstico chamado deezy-debug.log na tua pasta temporária. Ao reportar um problema, inclui as últimas linhas e remove antes os caminhos pessoais."
+            }
+        },
+        "faq": {
+            "legal": {
+                "q": "É legal usar o Deezy?",
+                "a": "Depende do teu país e do que fazes com os ficheiros. O Deezy não pode verificar isso por ti. Trata as transferências como cópias pessoais e respeita os termos dos serviços e a lei local dos direitos de autor."
+            },
+            "ban": {
+                "q": "A minha conta pode ser banida?",
+                "a": "É possível, porque a transferência automatizada pode provocar restrições. Usa uma conta secundária se a tua conta for importante e mantém as transferências moderadas e espaçadas com o atraso de transferência nas Definições."
+            },
+            "arl": {
+                "q": "Como obtenho o meu ARL do Deezer?",
+                "a": "Inicia sessão em deezer.com no navegador, abre as ferramentas de programador e copia o valor do cookie chamado arl. Cola-o nas Definições. Trata-o como uma palavra-passe."
+            },
+            "quality": {
+                "q": "Porque não consigo transferir em FLAC ou 320 kbps?",
+                "a": "No Deezer, FLAC e 320 kbps exigem uma conta Premium. No Spotify, o FLAC sem perdas exige Premium e cada faixa só oferece os formatos que o Spotify fornece. A vista Transferências mostra a qualidade que realmente obtiveste."
+            },
+            "rateLimit": {
+                "q": "A pesquisa do Spotify diz que o limite foi atingido (429)",
+                "a": "O Client ID do Spotify predefinido do Deezy é partilhado por todos os utilizadores do librespot, por isso a sua quota de pesquisa pode esgotar-se. Adiciona o teu próprio Client ID em Definições → Spotify, com o URI de redirecionamento http://127.0.0.1:5588/login, e depois desliga e volta a ligar."
+            },
+            "twoLogins": {
+                "q": "Porque pede o Spotify dois inícios de sessão?",
+                "a": "Com o teu próprio Client ID, a pesquisa usa a tua app e as transferências usam o predefinido do Spotify, por isso são precisos dois inícios de sessão no navegador. Aprova ambos."
+            },
+            "failed": {
+                "q": "Uma transferência falhou. O que posso fazer?",
+                "a": "Carrega em Tentar novamente em Transferências. No Deezer, verifica se o teu ARL continua válido nas Definições. No Spotify, desliga e volta a ligar. Se continuar a falhar, consulta o deezy-debug.log na tua pasta temporária."
+            },
+            "tags": {
+                "q": "Como edito etiquetas ou capas?",
+                "a": "Usa o editor de etiquetas na barra lateral ou o botão do lápis junto a uma transferência concluída. São suportados ficheiros MP3, FLAC, OGG e M4A."
+            },
+            "privacy": {
+                "q": "O Deezy recolhe os meus dados?",
+                "a": "Não. Não tem análises nem telemetria e só comunica com o Deezer e o Spotify. O teu ARL e os tokens do Spotify são guardados no cofre de credenciais do sistema operativo, quando disponível."
+            }
+        }
     }
 }

@@ -47,6 +47,7 @@ A modern desktop Deezer and Spotify downloader. Search for tracks, albums, artis
 - **Download history** – Persistent history with CSV/JSON export and open-in-file-manager
 - **Themes** – Light, Dark, System, and fully custom JSON themes
 - **Internationalization** – English, Spanish, French, German, Portuguese, and Italian
+- **Info & FAQ** – A warning about terms of service, account risk and credentials appears at startup (with a "Don't show this again" option), and the **Info & FAQ** button in the sidebar reopens it with a short FAQ, in all six languages
 - **Keyboard shortcuts** – Ctrl+F, Ctrl+1/2/3, Ctrl+, (Settings), Ctrl+H, Esc (clear search / go back), Space, Shift+? and more
 - **System tray** – Minimize to tray with download status and quick controls
 - **Manual updates** – Install Windows releases from GitHub or rebuild from source on macOS and Linux

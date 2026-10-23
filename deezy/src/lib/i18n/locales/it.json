@@ -319,5 +319,89 @@
             "label": "Etichetta",
             "comment": "Commento"
         }
+    },
+    "info": {
+        "button": "Info e FAQ",
+        "title": "Informazioni importanti",
+        "close": "Chiudi",
+        "tabs": {
+            "important": "Importante",
+            "faq": "FAQ"
+        },
+        "warning": {
+            "title": "Prima di continuare",
+            "intro": "Deezy è uno strumento non ufficiale e non è affiliato a Deezer né a Spotify. Leggi prima questo avviso.",
+            "dontShow": "Non mostrare più",
+            "understand": "Ho capito",
+            "moreInfo": "Info e FAQ"
+        },
+        "items": {
+            "legal": {
+                "title": "Solo per uso personale",
+                "text": "Scaricare da Deezer o Spotify può violare i loro termini di servizio e le leggi sul diritto d'autore del tuo paese. Scarica solo musica che puoi conservare e non condividere i file."
+            },
+            "account": {
+                "title": "I tuoi account sono a rischio",
+                "text": "I servizi possono limitare o sospendere gli account in cui rilevano strumenti di download. Valuta di usare un account secondario invece di quello principale."
+            },
+            "credentials": {
+                "title": "Proteggi il tuo accesso",
+                "text": "Il tuo ARL di Deezer funziona come una password, quindi non condividerlo mai. Spotify usa un accesso tramite browser e Deezy non vede mai la tua password di Spotify."
+            },
+            "unofficial": {
+                "title": "Non ufficiale e senza supporto",
+                "text": "Deezy si basa su interfacce che Deezer e Spotify possono modificare o bloccare in qualsiasi momento, quindi alcune funzioni potrebbero smettere di funzionare senza preavviso."
+            },
+            "accounts": {
+                "title": "Di quale account ho bisogno?",
+                "text": "Deezer richiede il cookie ARL del tuo account Deezer. Spotify richiede un proprio account Spotify e un accesso tramite browser. Gli account Deezer gratuiti sono limitati a MP3 128 kbps; Premium sblocca MP3 320 e FLAC. Ciò che Spotify fornisce dipende dal tuo account e dal brano."
+            },
+            "files": {
+                "title": "Dove sono i miei file?",
+                "text": "I download vanno nella cartella scelta nelle Impostazioni, per impostazione predefinita una cartella Deezy dentro la cartella Musica. Tag e copertina sono incorporati e puoi modificarli in seguito con l'editor di tag."
+            },
+            "log": {
+                "title": "Qualcosa è andato storto?",
+                "text": "Deezy scrive un registro diagnostico chiamato deezy-debug.log nella tua cartella temporanea. Quando segnali un problema, includi le ultime righe dopo aver rimosso i percorsi personali."
+            }
+        },
+        "faq": {
+            "legal": {
+                "q": "È legale usare Deezy?",
+                "a": "Dipende dal tuo paese e da ciò che fai con i file. Deezy non può verificarlo per te. Considera i download come copie personali e rispetta i termini dei servizi e il diritto d'autore locale."
+            },
+            "ban": {
+                "q": "Il mio account può essere bannato?",
+                "a": "È possibile, perché il download automatico può causare restrizioni. Usa un account secondario se ci tieni al tuo e mantieni i download moderati e distanziati con il ritardo di download nelle Impostazioni."
+            },
+            "arl": {
+                "q": "Come ottengo il mio ARL di Deezer?",
+                "a": "Accedi a deezer.com dal browser, apri gli strumenti per sviluppatori e copia il valore del cookie chiamato arl. Incollalo nelle Impostazioni. Trattalo come una password."
+            },
+            "quality": {
+                "q": "Perché non posso scaricare in FLAC o 320 kbps?",
+                "a": "Su Deezer, FLAC e 320 kbps richiedono un account Premium. Su Spotify, il FLAC lossless richiede Premium e ogni brano offre solo i formati che Spotify fornisce. La vista Download mostra la qualità che hai effettivamente ottenuto."
+            },
+            "rateLimit": {
+                "q": "La ricerca Spotify dice che il limite è stato raggiunto (429)",
+                "a": "Il Client ID Spotify predefinito di Deezy è condiviso da tutti gli utenti di librespot, quindi la sua quota di ricerca può esaurirsi. Aggiungi il tuo Client ID in Impostazioni → Spotify, con l'URI di reindirizzamento http://127.0.0.1:5588/login, poi disconnetti e riconnetti."
+            },
+            "twoLogins": {
+                "q": "Perché Spotify chiede di accedere due volte?",
+                "a": "Con il tuo Client ID, la ricerca usa la tua app e i download usano quello predefinito di Spotify, quindi servono due accessi dal browser. Approvali entrambi."
+            },
+            "failed": {
+                "q": "Un download non è riuscito. Cosa posso fare?",
+                "a": "Premi Riprova in Download. Per Deezer, controlla che il tuo ARL sia ancora valido nelle Impostazioni. Per Spotify, disconnetti e riconnetti. Se continua a fallire, controlla deezy-debug.log nella cartella temporanea."
+            },
+            "tags": {
+                "q": "Come modifico tag o copertina?",
+                "a": "Usa l'editor di tag nella barra laterale o il pulsante a matita accanto a un download completato. Sono supportati file MP3, FLAC, OGG e M4A."
+            },
+            "privacy": {
+                "q": "Deezy raccoglie i miei dati?",
+                "a": "No. Non ha analisi né telemetria e comunica solo con Deezer e Spotify. Il tuo ARL e i token Spotify sono conservati nell'archivio delle credenziali del sistema operativo, quando disponibile."
+            }
+        }
     }
 }

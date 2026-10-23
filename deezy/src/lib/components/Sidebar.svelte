@@ -8,10 +8,11 @@
     activeDownloads: number;
     onViewChange: (view: string) => void;
     onShowHelp?: () => void;
+    onShowInfo?: () => void;
     onOpenTagEditor?: () => void;
   }
 
-  let { currentView, user, activeDownloads, onViewChange, onShowHelp, onOpenTagEditor }: Props = $props();
+  let { currentView, user, activeDownloads, onViewChange, onShowHelp, onShowInfo, onOpenTagEditor }: Props = $props();
 
   const views = [
     { id: 'search', icon: 'search', label: $_('nav.search') },
@@ -94,6 +95,17 @@
         <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
       </svg>
       <span>{$_('nav.tagEditor')}</span>
+    </button>
+  {/if}
+
+  {#if onShowInfo}
+    <button class="help-btn" onclick={onShowInfo} title={$_('info.button')}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="16" x2="12" y2="12"/>
+        <line x1="12" y1="8" x2="12.01" y2="8"/>
+      </svg>
+      <span>{$_('info.button')}</span>
     </button>
   {/if}
 

@@ -9,7 +9,10 @@
   import SettingsView from '$lib/components/SettingsView.svelte';
   import KeyboardShortcutsModal from '$lib/components/KeyboardShortcutsModal.svelte';
   import TagEditorModal from '$lib/components/TagEditorModal.svelte';
+  import InfoModal from '$lib/components/InfoModal.svelte';
+  import StartupWarning from '$lib/components/StartupWarning.svelte';
   import MiniPlayer from '$lib/components/MiniPlayer.svelte';
+  import { shouldShowStartupNotice, dismissStartupNotice } from '$lib/notice';
   import { keyboardShortcuts, type KeyboardShortcut } from '$lib/keyboardShortcuts';
   import { audioPlayerManager } from '$lib/audioPlayer';
 
@@ -20,6 +23,8 @@
   let user = $state<UserInfo | null>(null);
   let activeCount = $state(0);
   let showShortcutsModal = $state(false);
+  let showInfoModal = $state(false);
+  let showStartupWarning = $state(false);
   let showTagEditor = $state(false);
   let tagEditorFilePath = $state<string | null>(null);
 
@@ -123,6 +128,9 @@
       currentView = 'settings';
     }
 
+    // This page only mounts once the splash screen is done.
+    showStartupWarning = shouldShowStartupNotice();
+
     registerShortcuts();
     keyboardShortcuts.attach();
 
@@ -147,6 +155,7 @@
     activeDownloads={activeCount}
     onViewChange={switchView}
     onShowHelp={() => showShortcutsModal = true}
+    onShowInfo={() => showInfoModal = true}
     onOpenTagEditor={() => { tagEditorFilePath = null; showTagEditor = true; }}
   />
   
@@ -166,6 +175,23 @@
 <KeyboardShortcutsModal 
   show={showShortcutsModal} 
   onClose={() => showShortcutsModal = false} 
+/>
+
+<InfoModal
+  show={showInfoModal}
+  onClose={() => showInfoModal = false}
+/>
+
+<StartupWarning
+  show={showStartupWarning}
+  onClose={(dontShowAgain) => {
+    dismissStartupNotice(dontShowAgain);
+    showStartupWarning = false;
+  }}
+  onMoreInfo={() => {
+    showStartupWarning = false;
+    showInfoModal = true;
+  }}
 />
 
 <TagEditorModal

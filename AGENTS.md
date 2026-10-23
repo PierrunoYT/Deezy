@@ -197,6 +197,12 @@ Built-in themes are `light`, `dark` and `system`; they only toggle a `light` cla
 
 ---
 
+## Startup warning and Info & FAQ
+
+- `StartupWarning.svelte` is shown by `+page.svelte` when it mounts (that is, after the splash screen) unless the user ticked "Don't show this again". That choice is stored in the webview's `localStorage` under `deezy.startupNotice` as the dismissed `NOTICE_VERSION` (`src/lib/notice.ts`); storage may be missing or throw, in which case the warning simply shows every launch. Raise `NOTICE_VERSION` when the warning's meaning changes so it shows again.
+- `InfoModal.svelte` (sidebar "Info & FAQ" button) has an "Important" tab and a FAQ made of `<details>` items.
+- All text lives under `info.*` in every locale file. The ids are listed in `notice.ts` (`WARNING_ITEMS`, `IMPORTANT_ITEMS`, `FAQ_ITEMS`); an id needs `info.items.<id>.title/.text` or `info.faq.<id>.q/.a` in all six locales (`tests/notice.test.mjs` checks English). Keep the content consistent with the README and `FAQ.md`.
+
 ## Internationalisation
 
 Locale JSON files live in `src/lib/i18n/locales/` (`en`, `fr`, `de`, `es`, `it`, `pt`). The locale is initialised by `initI18n()` in `+layout.svelte` using the `locale` field from settings and kept in sync via the `currentLocale` store. Add new keys to all locale files when adding UI strings.
