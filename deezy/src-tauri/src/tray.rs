@@ -135,10 +135,10 @@ pub fn create_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-/// macOS tints tray icons itself, so it gets a black template image; Windows
-/// and Linux get the mark in the app's accent purple (#a238ff), which reads on
-/// light and dark taskbars. Both are rendered from
-/// `icons/source/wavekeep-tray.svg`.
+/// macOS tints tray icons itself, so it gets a black template image of the
+/// wave "W" (`icons/source/wavekeep-tray.svg`); Windows and Linux get the full
+/// app icon (`icons/source/wavekeep-icon.svg`), which reads on light and dark
+/// taskbars.
 const TRAY_IS_TEMPLATE: bool = cfg!(target_os = "macos");
 
 fn get_tray_icon(_app: &AppHandle) -> Result<tauri::image::Image<'static>, Box<dyn std::error::Error>> {

@@ -23,7 +23,7 @@ All notable changes to Wavekeep (formerly Deezy) are documented here.
 ### Changed
 
 - **Renamed to Wavekeep** — Deezy is now called Wavekeep, now that it downloads from Spotify as well as Deezer. The app identifier changed from `com.pierr.deezy` to `com.pierr.wavekeep`: on first start Wavekeep moves settings, download history, custom themes, and saved Deezer and Spotify logins over (old copies are removed only after the new ones check out), and MSI installs upgrade the existing Deezy install. New installs default to a `Music/Wavekeep` download folder; existing download folders are kept. `WAVEKEEP_NO_KEYRING` and `WAVEKEEP_SPOTIFY_CLIENT_ID` replace the `DEEZY_` variables, which still work. Unfinished downloads now use `.wavekeep.part`. The `.exe` installer installs Wavekeep next to Deezy instead of replacing it: start Wavekeep once before uninstalling Deezy, so the data has been moved first. After the move, the old Deezy app starts without settings or logins.
-- **New logo and icons** — A keep in the app's accent purple with a soft teal waveform replaces the "D" logo in the app, the installers, and all platform icons. The tray uses a bolder version of the mark: purple on Windows and Linux, and a template image on macOS that follows the menu-bar colours.
+- **New logo and icons** — A white sound wave shaped like a "W" on a rounded purple square (in the app's accent colour) replaces the "D" logo in the app, the installers, and all platform icons. The tray shows the same icon on Windows and Linux, and the wave alone as a template image on macOS, which follows the menu-bar colours.
 - **Deezer-free settings** — Saving settings no longer requires an ARL, so the Spotify source can be used without a Deezer account.
 
 ### Fixed
