@@ -634,6 +634,13 @@
             isSpotify ? 'get_spotify_artist_albums' : 'get_artist_albums',
             { artistId: parsed.id }
           );
+          if (artistAlbums.length === 0) {
+            urlError = $_('search.artist.noAlbums');
+            break;
+          }
+          if (!confirm($_('search.artist.queueConfirm', { values: { count: artistAlbums.length } }))) {
+            break;
+          }
           for (const album of artistAlbums) {
             const tracks = await invoke<Track[]>(
               isSpotify ? 'get_spotify_album_tracks' : 'get_album_tracks',

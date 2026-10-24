@@ -28,6 +28,7 @@ All notable changes to Wavekeep (formerly Deezy) are documented here.
 
 ### Fixed
 
+- **Artist links** — Pasting an artist URL now asks for confirmation, showing the number of albums, before every track is added to the download queue. An artist without albums shows the usual message instead.
 - **Spotify Liked Songs on large libraries** — Liked Songs used only the pages in the first reply from Spotify, so a large library could be cut short. The remaining pages are now followed (only `hm://` links, at most 200 extra pages and 10,000 tracks), and a page that cannot be read gives an error instead of a shorter list.
 - **Untranslated texts** — The tray menu, the Deezer Free quality hint, and errors for pasted links now follow the selected language instead of always being English.
 - **Minimize shortcut on macOS** — Wavekeep no longer registers its own Cmd+H there, which clashed with the system "Hide" shortcut; the system shortcut hides the app instead.

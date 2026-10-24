@@ -40,6 +40,7 @@
       "discography": "Discographie",
       "loadingDiscography": "Chargement de la discographie...",
       "noAlbums": "Aucun album trouvé pour cet artiste.",
+      "queueConfirm": "Cet artiste a {count} albums. Ajouter tous ses titres à la file de téléchargement ?",
       "browseDiscography": "Parcourir la discographie de {artist}"
     },
     "track": {
