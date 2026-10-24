@@ -154,10 +154,9 @@ async fn query_once(
         .await
         .map_err(|e| format!("{} (HTTP {})", e, status.as_u16()))?;
     let text = String::from_utf8_lossy(&bytes);
-    let value: Value = serde_json::from_str(&text).map_err(|_| {
-        let snippet: String = text.chars().take(120).collect();
-        format!("{} returned HTTP {}: {}", operation, status.as_u16(), snippet)
-    })?;
+    // The body is not echoed: it could contain the search query.
+    let value: Value = serde_json::from_str(&text)
+        .map_err(|_| format!("{} returned HTTP {} without JSON", operation, status.as_u16()))?;
 
     // A stale hash answers 412 or a GraphQL `PersistedQueryNotFound` error.
     if !status.is_success() || value.get("errors").is_some() {
