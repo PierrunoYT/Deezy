@@ -6,7 +6,7 @@ All notable changes to Wavekeep (formerly Deezy) are documented here.
 
 ---
 
-## [0.3.0] - 2026-10-23
+## [0.3.0] - 2026-10-24
 
 ### Added
 

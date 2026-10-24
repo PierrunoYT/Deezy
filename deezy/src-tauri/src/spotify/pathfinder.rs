@@ -162,12 +162,12 @@ async fn query_once(
     // A stale hash answers 412 or a GraphQL `PersistedQueryNotFound` error.
     if !status.is_success() || value.get("errors").is_some() {
         let detail = value["errors"][0]["message"].as_str().unwrap_or("no details");
-        let snippet: String = text.chars().take(300).collect();
+        // The response body is not logged: it could echo the search query.
         crate::logging::warn("spotify", format!(
-            "pathfinder {} HTTP {}: body={} client_token_error={:?}",
+            "pathfinder {} HTTP {}: {} client_token_error={:?}",
             operation,
             status.as_u16(),
-            snippet,
+            detail,
             client_token_error
         ));
         return Err(format!(

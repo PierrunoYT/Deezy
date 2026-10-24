@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Target** | Wavekeep 0.3.0 (formerly Deezy), commit `f4c6337` on `main`, clean working tree |
+| **Target** | Wavekeep 0.3.0 (formerly Deezy), commit `f4c6337` on `main`, clean working tree (the audited state; the findings were fixed in the following commit, see §0) |
 | **Stack** | Tauri 2.11.2 (Rust backend, 37 files / ~9.5k lines, 60 IPC commands) + SvelteKit 2 / Svelte 5 SPA |
 | **Platform used** | Windows 11 Pro 10.0.26200, WebView2 155, rustc stable, bun 1.3.14 |
 | **Date** | 2026-10-24 |
@@ -53,6 +53,8 @@ The findings below describe the code at `f4c6337`. They were fixed in the commit
 ---
 
 ## 1. Executive summary
+
+> Written against `f4c6337`, before the fixes. §0 gives the current status of every finding.
 
 The app is in **good shape for a hobby-scale desktop tool**: no Critical or High findings. The obvious big risks are designed out.
 - The ARL and the Spotify tokens never cross IPC.
