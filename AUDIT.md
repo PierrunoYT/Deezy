@@ -47,7 +47,7 @@ The findings below describe the code at `f4c6337`. They were fixed in the commit
 | I-1 | Fixed | `without_url()` on the remaining reqwest errors (including search). |
 | I-2 | Fixed | First `MD5_ORIGIN` character must be a hex digit. |
 | I-3 | Fixed | Client ID must be empty or 32 hex characters; Settings shows an error for an invalid one. |
-| I-4 | Open | Liked Songs paging needs librespot context-page parsing and a large real library to test against. |
+| I-4 | Fixed (untested against a real large library) | `liked_tracks` follows every `next_page_url` (and the `page_url` of a page without tracks) through `spclient().get_next_page`, accepts only `hm://` links, stops at 200 extra pages / 10,000 tracks, retries a page once, and fails instead of returning a shorter list. Unit tests cover paging order, cycles, foreign links, failures and both reply shapes; the live response format is assumed from librespot's own types. |
 | Minor | Mostly fixed | All listed items except: tag-editor writes are still in place (a safe replace breaks hard links, ACLs and alternate data streams and copies up to 1 GiB per save); artist-URL queueing still has no confirmation; the Deezer full-GET quality probe is unchanged. |
 
 ---
