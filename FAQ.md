@@ -215,7 +215,7 @@ Only separators written in the folder template create directories. Slashes in me
 
 ### How do I report a problem?
 
-Open **Info & FAQ** in the sidebar, press **Copy recent log**, and paste it with a short description of what you did into a [GitHub issue](https://github.com/PierrunoYT/Deezy/issues) or the [Discord server](https://discord.gg/dvuWBeXSf3). **Open log folder** shows the whole file if you need more than the recent lines.
+Open **Info & FAQ** in the sidebar, press **Copy recent log**, and paste it with a short description of what you did into a [GitHub issue](https://github.com/PierrunoYT/Wavekeep/issues) or the [Discord server](https://discord.gg/dvuWBeXSf3). **Open log folder** shows the whole file if you need more than the recent lines.
 
 The log only leaves your computer when you share it yourself, and it never contains passwords, your ARL or login tokens. If you would rather not share track names and file paths, turn off **Track Details in Log** in Settings, press **Delete log**, and reproduce the problem before copying. You can read the log before sharing; see [Does Wavekeep keep a log?](#does-wavekeep-keep-a-log-what-is-in-it) for what it contains.
 
@@ -259,7 +259,7 @@ Things to know:
 
 ### How do I update Wavekeep on Windows?
 
-Wavekeep does not include an automatic updater. Download the latest `.exe` or `.msi` from the [GitHub Releases page](https://github.com/PierrunoYT/Deezy/releases/latest), fully exit Wavekeep from the system tray, and run the installer.
+Wavekeep does not include an automatic updater. Download the latest `.exe` or `.msi` from the [GitHub Releases page](https://github.com/PierrunoYT/Wavekeep/releases/latest), fully exit Wavekeep from the system tray, and run the installer.
 
 Installing a newer version over the existing installation should preserve settings and download history, but keeping a backup of important data is recommended.
 
@@ -268,7 +268,7 @@ Installing a newer version over the existing installation should preserve settin
 Prebuilt macOS and Linux packages are not currently published. If you built Wavekeep from source, update the repository and rebuild it:
 
 ```bash
-cd Deezy
+cd Wavekeep
 git pull
 cd deezy
 bun install --frozen-lockfile
@@ -279,7 +279,7 @@ Install the new bundle from `src-tauri/target/release/bundle/`. Use Bun to insta
 
 ### Does Wavekeep check for updates automatically?
 
-No. Check the [GitHub Releases page](https://github.com/PierrunoYT/Deezy/releases/latest) for new versions.
+No. Check the [GitHub Releases page](https://github.com/PierrunoYT/Wavekeep/releases/latest) for new versions.
 
 ---
 
@@ -299,4 +299,4 @@ Do not assume that downloading through Wavekeep compensates artists or other rig
 
 ## 💬 Community & Support
 
-Have a question not answered here? Join the [Discord server](https://discord.gg/dvuWBeXSf3) or open an [issue on GitHub](https://github.com/PierrunoYT/Deezy/issues).
+Have a question not answered here? Join the [Discord server](https://discord.gg/dvuWBeXSf3) or open an [issue on GitHub](https://github.com/PierrunoYT/Wavekeep/issues).

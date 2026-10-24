@@ -9,7 +9,7 @@
 A modern desktop Deezer and Spotify downloader. Search for tracks, albums, artists, and playlists, paste music URLs for direct download, and save audio with full metadata and cover art.
 
 [![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/dvuWBeXSf3)
-[![Release](https://img.shields.io/github/v/release/PierrunoYT/Deezy?label=latest)](https://github.com/PierrunoYT/Deezy/releases/latest)
+[![Release](https://img.shields.io/github/v/release/PierrunoYT/Wavekeep?label=latest)](https://github.com/PierrunoYT/Wavekeep/releases/latest)
 
 ---
 
@@ -71,7 +71,7 @@ Your settings, download history, custom themes, saved Deezer and Spotify logins,
 
 ### Windows
 
-Download the latest installer from the [Releases page](https://github.com/PierrunoYT/Deezy/releases/latest):
+Download the latest installer from the [Releases page](https://github.com/PierrunoYT/Wavekeep/releases/latest):
 
 - `.exe` (NSIS installer) — recommended
 - `.msi` (MSI package)
@@ -81,8 +81,8 @@ Download the latest installer from the [Releases page](https://github.com/Pierru
 No pre-built binaries are available yet. Install the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your operating system, plus [Bun](https://bun.sh/), Node.js with npm (the Tauri build runs `npm run build`), and the stable Rust toolchain, then build from source:
 
 ```bash
-git clone https://github.com/PierrunoYT/Deezy.git
-cd Deezy/deezy
+git clone https://github.com/PierrunoYT/Wavekeep.git
+cd Wavekeep/deezy
 bun install --frozen-lockfile
 bun run tauri build
 ```
@@ -157,7 +157,7 @@ metadata are sanitized, so an artist such as `AC/DC` stays in one directory.
 
 ## Reporting a problem
 
-Open **Info & FAQ** in the sidebar, press **Copy recent log**, and paste it with a short description into a [GitHub issue](https://github.com/PierrunoYT/Deezy/issues) or the [Discord server](https://discord.gg/dvuWBeXSf3). **Open log folder** shows the whole file, `wavekeep-debug.log` in Wavekeep's logs folder (`%LOCALAPPDATA%\com.pierr.wavekeep\logs` on Windows, `~/Library/Logs/com.pierr.wavekeep` on macOS, and `~/.local/share/com.pierr.wavekeep/logs` on Linux). The system does not clean that folder up on its own.
+Open **Info & FAQ** in the sidebar, press **Copy recent log**, and paste it with a short description into a [GitHub issue](https://github.com/PierrunoYT/Wavekeep/issues) or the [Discord server](https://discord.gg/dvuWBeXSf3). **Open log folder** shows the whole file, `wavekeep-debug.log` in Wavekeep's logs folder (`%LOCALAPPDATA%\com.pierr.wavekeep\logs` on Windows, `~/Library/Logs/com.pierr.wavekeep` on macOS, and `~/.local/share/com.pierr.wavekeep/logs` on Linux). The system does not clean that folder up on its own.
 
 **Privacy:**
 

@@ -150,7 +150,7 @@ The app is called **Wavekeep** (formerly Deezy). Its identifier `com.pierr.wavek
 - The `.exe` (NSIS) installer is keyed on `productName`, so it installs Wavekeep next to Deezy. If Deezy is uninstalled with "Delete the application data" before Wavekeep's first start, the data is gone before it can be moved, so release notes must tell users to start Wavekeep once first.
 - WebView storage (`localStorage`, caches) also lives under the identifier and is not migrated; the only thing the app keeps there is the startup-notice flag, so the startup warning shows once more after the upgrade. Tauri puts it in `app_local_data_dir` on Windows and Linux. On Linux that is the same folder as `app_data_dir`, so the old `com.pierr.deezy` folder keeps its WebKit data and is never removed (the data itself still moves).
 - Environment variables are read through `settings::app_env`, which tries `WAVEKEEP_<NAME>` and then the old `DEEZY_<NAME>`; blank values count as unset.
-- The source folder `deezy/`, the GitHub repository `PierrunoYT/Deezy`, and the `.agents/` scripts still use the old name.
+- The source folder `deezy/`, and the `.agents/` scripts still use the old name; the GitHub repository is `PierrunoYT/Wavekeep` (renamed from `PierrunoYT/Deezy`; GitHub redirects the old address).
 
 ### Logo and icons
 - The logo is a white wave with two troughs, which reads as a "W", on a rounded square (`rx` 240 on 1024) with a diagonal gradient `#b65bff` → `#7a22e6` around the UI accent `#a238ff` (`--accent` in `app.css`); keep them in step if the accent changes.
