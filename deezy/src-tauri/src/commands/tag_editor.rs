@@ -385,7 +385,17 @@ fn write_file_tags_blocking(filePath: String, tags: WriteTagData) -> Result<(), 
         None
     };
 
-    match ext.as_str() {
+    with_backup(path, || write_tags_to(path, &ext, &tags, new_cover))
+}
+
+/// Writes the tags into the file at `path`, in place.
+fn write_tags_to(
+    path: &std::path::Path,
+    ext: &str,
+    tags: &WriteTagData,
+    new_cover: Option<Vec<u8>>,
+) -> Result<(), String> {
+    match ext {
         "mp3" => {
             use id3::TagLike;
 
@@ -559,6 +569,112 @@ fn read_cover_image(path: &str) -> Result<Vec<u8>, String> {
     std::fs::read(path).map_err(|e| format!("Failed to read cover image: {}", e))
 }
 
+/// Where the safety copy of `path` goes: a hidden sibling, so a crash leaves
+/// it next to the file it belongs to.
+fn backup_path(path: &std::path::Path) -> std::path::PathBuf {
+    let mut name: String = path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let mut cut = name.len().min(64);
+    while !name.is_char_boundary(cut) {
+        cut -= 1;
+    }
+    name.truncate(cut);
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.subsec_nanos())
+        .unwrap_or(0);
+    path.with_file_name(format!(".{}.{:08x}.wavekeep.bak", name, nanos ^ std::process::id()))
+}
+
+fn same_file_state(before: &std::fs::Metadata, path: &std::path::Path) -> bool {
+    match std::fs::metadata(path) {
+        Ok(now) => {
+            now.len() == before.len()
+                && match (now.modified(), before.modified()) {
+                    (Ok(a), Ok(b)) => a == b,
+                    _ => false,
+                }
+        }
+        Err(_) => false,
+    }
+}
+
+/// Tag writers edit the file in place, so a failure half way (full disk,
+/// a parser panic) could leave it damaged. A replace through a temporary file
+/// would be safer for the bytes but loses hard links, ACLs and alternate data
+/// streams, so this keeps the in-place write and adds a safety copy instead:
+/// if `write` fails after touching the file, the original bytes are written
+/// back into the same file.
+fn with_backup<F>(path: &std::path::Path, write: F) -> Result<(), String>
+where
+    F: FnOnce() -> Result<(), String>,
+{
+    use std::io::Write;
+
+    let before = std::fs::metadata(path)
+        .map_err(|e| format!("Failed to inspect audio file: {}", e))?;
+    let backup = backup_path(path);
+    let made = (|| -> std::io::Result<()> {
+        let mut source = std::fs::File::open(path)?;
+        let mut copy = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&backup)?;
+        std::io::copy(&mut source, &mut copy)?;
+        copy.flush()?;
+        copy.sync_all()
+    })();
+    if let Err(e) = made {
+        let _ = std::fs::remove_file(&backup);
+        return Err(format!("Could not make a safety copy, so nothing was changed: {}", e));
+    }
+
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(write))
+        .unwrap_or_else(|_| Err("Writing the tags failed because of an internal error".to_string()));
+
+    let error = match result {
+        Ok(()) => {
+            let _ = std::fs::remove_file(&backup);
+            return Ok(());
+        }
+        Err(e) => e,
+    };
+
+    if same_file_state(&before, path) {
+        let _ = std::fs::remove_file(&backup);
+        return Err(error);
+    }
+
+    let restored = (|| -> std::io::Result<()> {
+        let mut source = std::fs::File::open(&backup)?;
+        let mut target = std::fs::OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .open(path)?;
+        std::io::copy(&mut source, &mut target)?;
+        target.flush()?;
+        target.sync_all()
+    })();
+    match restored {
+        Ok(()) => {
+            let _ = std::fs::remove_file(&backup);
+            crate::logging::warn("tag-editor", "A tag write failed; the original file was restored");
+            Err(format!("{} (the original file was restored)", error))
+        }
+        Err(e) => {
+            crate::logging::error("tag-editor", format!("A tag write failed and the file could not be restored: {}", e));
+            Err(format!(
+                "{} (restoring the original failed: {}; a copy of it is at {})",
+                error,
+                e,
+                backup.display()
+            ))
+        }
+    }
+}
+
 fn validate_audio_file(path: &std::path::Path) -> Result<(), String> {
     let metadata = std::fs::metadata(path)
         .map_err(|e| format!("Failed to inspect audio file: {}", e))?;
@@ -569,4 +685,86 @@ fn validate_audio_file(path: &std::path::Path) -> Result<(), String> {
         return Err("Audio file is too large to edit".to_string());
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod backup_tests {
+    use super::*;
+
+    fn scratch(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("wavekeep-tagtest-{}-{}", std::process::id(), name));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn leftovers(dir: &std::path::Path) -> usize {
+        std::fs::read_dir(dir)
+            .unwrap()
+            .filter(|e| e.as_ref().unwrap().file_name().to_string_lossy().ends_with(".wavekeep.bak"))
+            .count()
+    }
+
+    #[test]
+    fn success_keeps_the_new_bytes_and_removes_the_copy() {
+        let dir = scratch("ok");
+        let file = dir.join("a.mp3");
+        std::fs::write(&file, b"original").unwrap();
+        with_backup(&file, || std::fs::write(&file, b"edited").map_err(|e| e.to_string())).unwrap();
+        assert_eq!(std::fs::read(&file).unwrap(), b"edited");
+        assert_eq!(leftovers(&dir), 0);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_failure_after_damaging_the_file_restores_it() {
+        let dir = scratch("restore");
+        let file = dir.join("a.mp3");
+        std::fs::write(&file, b"original bytes").unwrap();
+        let error = with_backup(&file, || {
+            std::fs::write(&file, b"half").unwrap();
+            Err("disk full".to_string())
+        })
+        .unwrap_err();
+        assert!(error.contains("disk full") && error.contains("restored"));
+        assert_eq!(std::fs::read(&file).unwrap(), b"original bytes");
+        assert_eq!(leftovers(&dir), 0);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_failure_before_touching_the_file_just_returns_the_error() {
+        let dir = scratch("untouched");
+        let file = dir.join("a.mp3");
+        std::fs::write(&file, b"original").unwrap();
+        let error = with_backup(&file, || Err("cannot parse".to_string())).unwrap_err();
+        assert_eq!(error, "cannot parse");
+        assert_eq!(std::fs::read(&file).unwrap(), b"original");
+        assert_eq!(leftovers(&dir), 0);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_panic_is_an_error_and_the_file_is_restored() {
+        let dir = scratch("panic");
+        let file = dir.join("a.mp3");
+        std::fs::write(&file, b"original bytes").unwrap();
+        let error = with_backup(&file, || {
+            std::fs::write(&file, b"x").unwrap();
+            panic!("parser bug");
+        })
+        .unwrap_err();
+        assert!(error.contains("internal error"));
+        assert_eq!(std::fs::read(&file).unwrap(), b"original bytes");
+        assert_eq!(leftovers(&dir), 0);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn the_copy_name_is_hidden_and_short() {
+        let long = "x".repeat(300);
+        let name = backup_path(std::path::Path::new(&format!("/m/{}.flac", long)));
+        let name = name.file_name().unwrap().to_string_lossy().into_owned();
+        assert!(name.starts_with('.') && name.ends_with(".wavekeep.bak") && name.len() < 100);
+    }
 }

@@ -28,6 +28,7 @@ All notable changes to Wavekeep (formerly Deezy) are documented here.
 
 ### Fixed
 
+- **Tag Editor failures** — Saving tags now first copies the file next to itself (a hidden `.wavekeep.bak` file) and puts the original bytes back if the write fails half way or crashes inside a tag library, so a full disk can no longer leave a damaged song. The copy is deleted afterwards. The file is still edited in place, so hard links, permissions and alternate data streams are kept.
 - **Artist links** — Pasting an artist URL now asks for confirmation, showing the number of albums, before every track is added to the download queue. An artist without albums shows the usual message instead.
 - **Spotify Liked Songs on large libraries** — Liked Songs used only the pages in the first reply from Spotify, so a large library could be cut short. The remaining pages are now followed (only `hm://` links, at most 200 extra pages and 10,000 tracks), and a page that cannot be read gives an error instead of a shorter list.
 - **Untranslated texts** — The tray menu, the Deezer Free quality hint, and errors for pasted links now follow the selected language instead of always being English.
